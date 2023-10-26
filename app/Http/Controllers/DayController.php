@@ -4,9 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpFoundation\Response;
-
-use function Laravel\Prompts\select;
 
 class DayController extends Controller
 {
@@ -20,7 +17,7 @@ class DayController extends Controller
 
         DB::insert($query, [$request->dia]);
 
-        return response('Creado exitosamente', 200);
+        return response('Dia ocupado exitosamente', 200);
     }
     public function read()
     {

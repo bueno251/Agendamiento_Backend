@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DayController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -24,4 +25,12 @@ Route::controller(DayController::class)->group(function () {
     Route::get('days/read', 'read');
     Route::get('days/find/{id}', 'find');
     Route::delete('days/delete/{dia}', 'delete');
+});
+
+Route::controller(ClientController::class)->group(function () {
+    Route::post('client/create', 'create');
+    Route::get('client/read', 'read');
+    Route::get('client/find/{id}', 'find');
+    Route::patch('client/update/{id}', 'update');
+    Route::delete('client/delete/{id}', 'delete');
 });
