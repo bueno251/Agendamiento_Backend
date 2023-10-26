@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\clientTipoController;
 use App\Http\Controllers\DayController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -33,4 +34,8 @@ Route::controller(ClientController::class)->group(function () {
     Route::get('client/find/{id}', 'find');
     Route::patch('client/update/{id}', 'update');
     Route::delete('client/delete/{id}', 'delete');
+});
+
+Route::controller(clientTipoController::class)->group(function () {
+    Route::get('client/type/all', 'read');
 });
