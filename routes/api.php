@@ -32,10 +32,15 @@ Route::controller(ClientController::class)->group(function () {
     Route::post('client/create', 'create');
     Route::get('client/read', 'read');
     Route::get('client/find/{id}', 'find');
+    Route::get('client/find/document/{doc}', 'findDoc');
     Route::patch('client/update/{id}', 'update');
     Route::delete('client/delete/{id}', 'delete');
 });
 
 Route::controller(clientTipoController::class)->group(function () {
     Route::get('client/type/all', 'read');
+    Route::get('client/type/documents', 'readDoc');
+    Route::get('client/type/obligations', 'readObl');
+    Route::get('client/type/people', 'readPer');
+    Route::get('client/type/regimens', 'readReg');
 });

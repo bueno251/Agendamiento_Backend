@@ -10,21 +10,58 @@ class ClientController extends Controller
     public function create(Request $request)
     {
         $request->validate([
-            'nombre' => 'required',
-            'direccion' => 'required',
+            'nombre1' => 'required',
+            'apellido1' => 'required',
+            'tipoDocumento' => 'required',
             'documento' => 'required',
+            'direccion' => 'required',
+            'pais' => 'required',
+            'ciudad' => 'required',
             'correo' => 'required | email',
+            'telefono' => 'required',
+            'tipoPersona' => 'required',
+            'tipoObligacion' => 'required',
+            'tipoRegimen' => 'required',
         ]);
 
         $query = 'INSERT INTO clients
-        (nombre, direccion, documento, correo, observacion, created_at)
-        VALUES (?, ?, ?, ?, ?, now())';
+        (nombre1,
+        nombre2,
+        apellido1,
+        apellido2,
+        tipo_documento_id,
+        documento,
+        direccion,
+        pais,
+        departamento,
+        ciudad,
+        correo,
+        telefono,
+        telefono_alt,
+        tipo_persona_id,
+        tipo_obligacion_id,
+        tipo_regimen_id,
+        observacion,
+        created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())';
 
         DB::insert($query, [
-            $request->nombre,
-            $request->direccion,
+            $request->nombre1,
+            $request->nombre2,
+            $request->apellido1,
+            $request->apellido2,
+            $request->tipoDocumento,
             $request->documento,
+            $request->direccion,
+            $request->pais,
+            $request->departamento,
+            $request->ciudad,
             $request->correo,
+            $request->telefono,
+            $request->telefonoAlt,
+            $request->tipoPersona,
+            $request->tipoObligacion,
+            $request->tipoRegimen,
             $request->observacion,
         ]);
 
@@ -34,12 +71,27 @@ class ClientController extends Controller
     public function read()
     {
         $query = 'SELECT id,
-        nombre,
-        direccion,
+        nombre1,
+        nombre2,
+        apellido1,
+        apellido2,
+        CONCAT(nombre1, " ", nombre2, " ", apellido1, " ", apellido2) as fullname,
+        tipo_documento_id,
         documento,
+        direccion,
+        pais,
+        departamento,
+        ciudad,
         correo,
-        observacion
-        FROM clients WHERE deleted_at IS NULL';
+        telefono,
+        telefono_alt,
+        tipo_persona_id,
+        tipo_obligacion_id,
+        tipo_regimen_id,
+        observacion,
+        created_at
+        FROM clients WHERE deleted_at IS NULL
+        ORDER BY created_at DESC';
 
         $clients = DB::select($query);
 
@@ -48,9 +100,58 @@ class ClientController extends Controller
 
     public function find($id)
     {
-        $query = 'SELECT * FROM clients WHERE id = ? && deleted_at IS NULL';
+        $query = 'SELECT id,
+        nombre1,
+        nombre2,
+        apellido1,
+        apellido2,
+        CONCAT(nombre1, " ", nombre2, " ", apellido1, " ", apellido2) as fullname,
+        tipo_documento_id,
+        documento,
+        direccion,
+        pais,
+        departamento,
+        ciudad,
+        correo,
+        telefono,
+        telefono_alt,
+        tipo_persona_id,
+        tipo_obligacion_id,
+        tipo_regimen_id,
+        observacion,
+        created_at
+        FROM clients WHERE id = ? && deleted_at IS NULL';
 
         $clients = DB::select($query, [$id]);
+
+        return response($clients, 200);
+    }
+
+    public function findDoc($doc)
+    {
+        $query = 'SELECT id,
+        nombre1,
+        nombre2,
+        apellido1,
+        apellido2,
+        CONCAT(nombre1, " ", nombre2, " ", apellido1, " ", apellido2) as fullname,
+        tipo_documento_id,
+        documento,
+        direccion,
+        pais,
+        departamento,
+        ciudad,
+        correo,
+        telefono,
+        telefono_alt,
+        tipo_persona_id,
+        tipo_obligacion_id,
+        tipo_regimen_id,
+        observacion,
+        created_at
+        FROM clients WHERE documento = ? && deleted_at IS NULL';
+
+        $clients = DB::select($query, [$doc]);
 
         return response($clients, 200);
     }

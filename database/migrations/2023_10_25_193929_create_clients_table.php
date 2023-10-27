@@ -20,7 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('tipo_documento_id')->nullable();
             $table->foreign('tipo_documento_id')->references('id')->on('cliente_tipo_documento')
                 ->onDelete('set null');
-            $table->string('documento');
+            $table->string('documento')->unique();
             $table->string('direccion');
             $table->string('pais');
             $table->string('departamento')->nullable();
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->unsignedBigInteger('tipo_regimen_id')->nullable();
             $table->foreign('tipo_regimen_id')->references('id')->on('cliente_tipo_regimen')
                 ->onDelete('set null');
-            $table->string('observacion')->default('');
+            $table->string('observacion')->default('')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
