@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ClienteTipoObligacionSeeder::class,
             ClienteTipoPersonaSeeder::class,
             ClienteTipoRegimenSeeder::class,
+            UserSeeder::class,
         ]);
     }
 }
