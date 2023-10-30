@@ -3,6 +3,8 @@
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\clientTipoController;
 use App\Http\Controllers\DayController;
+use App\Http\Controllers\RoomController;
+use App\Http\Controllers\RoomTipoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -43,4 +45,16 @@ Route::controller(clientTipoController::class)->group(function () {
     Route::get('client/type/obligations', 'readObl');
     Route::get('client/type/people', 'readPer');
     Route::get('client/type/regimens', 'readReg');
+});
+
+Route::controller(RoomController::class)->group(function () {
+    Route::post('room/create', 'create');
+    Route::get('room/read', 'read');
+    Route::get('room/find/{id}', 'find');
+    Route::patch('room/update/{id}', 'update');
+    Route::delete('room/delete/{id}', 'delete');
+});
+
+Route::controller(RoomTipoController::class)->group(function () {
+    Route::get('room/type', 'read');
 });

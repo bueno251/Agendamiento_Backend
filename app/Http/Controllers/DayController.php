@@ -44,6 +44,6 @@ class DayController extends Controller
 
         DB::delete($query, [$dia]);
 
-        return response("Desocupado", 200);
+        return response("Dia desocupado", 200);
     }
 }

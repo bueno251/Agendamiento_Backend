@@ -75,7 +75,7 @@ class ClientController extends Controller
         nombre2,
         apellido1,
         apellido2,
-        CONCAT(nombre1, " ", nombre2, " ", apellido1, " ", apellido2) as fullname,
+        CONCAT_WS(" ", nombre1, nombre2, apellido1, apellido2) AS fullname,
         tipo_documento_id,
         documento,
         direccion,
@@ -105,7 +105,7 @@ class ClientController extends Controller
         nombre2,
         apellido1,
         apellido2,
-        CONCAT(nombre1, " ", nombre2, " ", apellido1, " ", apellido2) as fullname,
+        CONCAT_WS(" ", nombre1, nombre2, apellido1, apellido2) AS fullname,
         tipo_documento_id,
         documento,
         direccion,
@@ -218,7 +218,6 @@ class ClientController extends Controller
 
     public function delete($id)
     {
-
         $query = 'UPDATE clients SET 
         deleted_at = now(),
         WHERE id = ?';
