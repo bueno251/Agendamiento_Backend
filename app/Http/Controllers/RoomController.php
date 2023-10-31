@@ -93,7 +93,7 @@ class RoomController extends Controller
         room_tipo_id = ?,
         capacidad = ?,
         estado = ?,
-        updated_at = now(),
+        updated_at = now()
         WHERE id = ?';
 
         DB::update($query, [
@@ -104,12 +104,14 @@ class RoomController extends Controller
             $request->estado,
             $id
         ]);
+
+        return response('Habitacion Actualizada', 200);
     }
 
     public function delete($id)
     {
         $query = 'UPDATE rooms SET 
-        deleted_at = now(),
+        deleted_at = now()
         WHERE id = ?';
 
         DB::update($query, [

@@ -191,7 +191,7 @@ class ClientController extends Controller
         tipo_obligacion_id = ?,
         tipo_regimen_id = ?,
         observacion = ?,
-        updated_at = now(),
+        updated_at = now()
         WHERE id = ?';
 
         DB::update($query, [
@@ -214,18 +214,20 @@ class ClientController extends Controller
             $request->observacion,
             $id
         ]);
+
+        return response('Cliente actualizado exitosamente', 200);
     }
 
     public function delete($id)
     {
         $query = 'UPDATE clients SET 
-        deleted_at = now(),
+        deleted_at = now()
         WHERE id = ?';
 
         DB::update($query, [
             $id
         ]);
 
-        return response("Eliminado", 200);
+        return response("Cliente Eliminado", 200);
     }
 }
