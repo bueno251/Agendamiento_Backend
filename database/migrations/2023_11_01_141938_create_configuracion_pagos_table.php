@@ -11,13 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rooms', function (Blueprint $table) {
+        Schema::create('configuracion_pagos', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre')->unique();
-            $table->string('descripcion');
-            $table->unsignedBigInteger('room_tipo_id')->nullable();
-            $table->foreign('room_tipo_id')->references('id')->on('room_tipos')->onDelete('set null');
-            $table->integer('capacidad');
+            $table->unsignedBigInteger('configuracion_id')->nullable();
+            $table->foreign('configuracion_id')->references('id')->on('configuracions')->onDelete('set null');
+            $table->unsignedBigInteger('tipo_pago_id')->nullable();
+            $table->foreign('tipo_pago_id')->references('id')->on('tipo_pagos')->onDelete('set null');
             $table->integer('estado');
             $table->softDeletes();
             $table->timestamps();
@@ -29,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rooms');
+        Schema::dropIfExists('configuracion_pagos');
     }
 };

@@ -3,6 +3,7 @@
 use App\Http\Controllers\authController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\clientTipoController;
+use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\DayController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomTipoController;
@@ -62,4 +63,8 @@ Route::controller(RoomController::class)->group(function () {
 
 Route::controller(RoomTipoController::class)->group(function () {
     Route::get('room/type', 'read');
+});
+
+Route::controller(ConfiguracionController::class)->group(function () {
+    Route::get('settings/read', 'read');
 });

@@ -18,8 +18,7 @@ return new class extends Migration
             $table->string('apellido1');
             $table->string('apellido2')->nullable();
             $table->unsignedBigInteger('tipo_documento_id')->nullable();
-            $table->foreign('tipo_documento_id')->references('id')->on('cliente_tipo_documento')
-                ->onDelete('set null');
+            $table->foreign('tipo_documento_id')->references('id')->on('cliente_tipo_documento')->onDelete('set null');
             $table->string('documento')->unique();
             $table->string('direccion');
             $table->string('pais');
@@ -29,14 +28,11 @@ return new class extends Migration
             $table->string('telefono');
             $table->string('telefono_alt')->nullable();
             $table->unsignedBigInteger('tipo_persona_id')->nullable();
-            $table->foreign('tipo_persona_id')->references('id')->on('cliente_tipo_persona')
-                ->onDelete('set null');
+            $table->foreign('tipo_persona_id')->references('id')->on('cliente_tipo_persona')->onDelete('set null');
             $table->unsignedBigInteger('tipo_obligacion_id')->nullable();
-            $table->foreign('tipo_obligacion_id')->references('id')->on('cliente_tipo_obligacion')
-                ->onDelete('set null');
+            $table->foreign('tipo_obligacion_id')->references('id')->on('cliente_tipo_obligacion')->onDelete('set null');
             $table->unsignedBigInteger('tipo_regimen_id')->nullable();
-            $table->foreign('tipo_regimen_id')->references('id')->on('cliente_tipo_regimen')
-                ->onDelete('set null');
+            $table->foreign('tipo_regimen_id')->references('id')->on('cliente_tipo_regimen')->onDelete('set null');
             $table->string('observacion')->default('')->nullable();
             $table->softDeletes();
             $table->timestamps();

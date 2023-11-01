@@ -11,14 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rooms', function (Blueprint $table) {
+        Schema::create('tipo_pagos', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre')->unique();
-            $table->string('descripcion');
-            $table->unsignedBigInteger('room_tipo_id')->nullable();
-            $table->foreign('room_tipo_id')->references('id')->on('room_tipos')->onDelete('set null');
-            $table->integer('capacidad');
-            $table->integer('estado');
+            $table->string('tipo')->unique();
             $table->softDeletes();
             $table->timestamps();
         });
@@ -29,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rooms');
+        Schema::dropIfExists('tipo_pagos');
     }
 };
