@@ -17,7 +17,7 @@ class TipoPagoSeeder extends Seeder
         (tipo, created_at)
         VALUES (?, now())';
 
-        DB::insert($query, ['tranfererencia']);
-        DB::insert($query, ['pasarela de pago']);
+        DB::insert($query, ['Tranfererencia']);
+        DB::insert($query, ['Pasarela de pago']);
     }
 }

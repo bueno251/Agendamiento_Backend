@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use App\Models\configuracion;
 
 class ConfiguracionController extends Controller
@@ -35,10 +36,39 @@ class ConfiguracionController extends Controller
         $pagos = DB::select($queryTipoPagos);
 
         $json = array(
-            "settings" => $configuration,
+            "settings" => $configuration[0],
             "pagos" => $pagos,
         );
 
         return response($json, 200);
+    }
+
+    public function pagos(Request $request)
+    {
+        $request->validate([
+            'configuracionId' => 'required',
+            'pagos' => 'required',
+        ]);
+
+        $pagos = $request->input('pagos');
+
+        $query = 'INSERT INTO configuracion_pagos
+        (configuracion_id,
+        tipo_pago_id,
+        estado,
+        created_at)
+        VALUES (?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE estado = ?, updated_at = NOW()';
+
+        foreach ($pagos as $tipo) {
+            DB::insert($query, [
+                $request->configuracionId,
+                $tipo['id'],
+                $tipo['estado'],
+                $tipo['estado'],
+            ]);
+        }
+
+        return response('Tipo de pagos guardados', 200);
     }
 }

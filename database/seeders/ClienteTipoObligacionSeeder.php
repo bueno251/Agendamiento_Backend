@@ -17,7 +17,7 @@ class ClienteTipoObligacionSeeder extends Seeder
         (tipo, created_at)
         VALUES (?, now())';
 
-        DB::insert($query, ['no responsable']);
-        DB::insert($query, ['responsable']);
+        DB::insert($query, ['No responsable']);
+        DB::insert($query, ['Responsable']);
     }
 }

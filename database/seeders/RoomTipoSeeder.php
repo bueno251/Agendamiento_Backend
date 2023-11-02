@@ -17,7 +17,7 @@ class RoomTipoSeeder extends Seeder
         (tipo, created_at)
         VALUES (?, now())';
 
-        DB::insert($query, ['cabaña']);
-        DB::insert($query, ['habitacion']);
+        DB::insert($query, ['Cabaña']);
+        DB::insert($query, ['Habitacion']);
     }
 }

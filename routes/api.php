@@ -66,5 +66,6 @@ Route::controller(RoomTipoController::class)->group(function () {
 });
 
 Route::controller(ConfiguracionController::class)->group(function () {
+    Route::post('settings/pagos', 'pagos');
     Route::get('settings/read', 'read');
 });

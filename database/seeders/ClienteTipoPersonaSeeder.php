@@ -17,7 +17,7 @@ class ClienteTipoPersonaSeeder extends Seeder
         (tipo, created_at)
         VALUES (?, now())';
 
-        DB::insert($query, ['persona natural']);
-        DB::insert($query, ['persona jurídica']);
+        DB::insert($query, ['Persona natural']);
+        DB::insert($query, ['Persona jurídica']);
     }
 }

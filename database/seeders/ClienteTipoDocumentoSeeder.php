@@ -17,7 +17,7 @@ class ClienteTipoDocumentoSeeder extends Seeder
         (tipo, created_at)
         VALUES (?, now())';
 
-        DB::insert($query, ['tarjeta de identidad']);
-        DB::insert($query, ['cedula ciudadanía']);
+        DB::insert($query, ['Tarjeta de identidad']);
+        DB::insert($query, ['Cedula ciudadanía']);
     }
 }

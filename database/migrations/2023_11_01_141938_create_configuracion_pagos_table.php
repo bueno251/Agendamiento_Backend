@@ -17,7 +17,8 @@ return new class extends Migration
             $table->foreign('configuracion_id')->references('id')->on('configuracions')->onDelete('set null');
             $table->unsignedBigInteger('tipo_pago_id')->nullable();
             $table->foreign('tipo_pago_id')->references('id')->on('tipo_pagos')->onDelete('set null');
-            $table->integer('estado');
+            $table->unique(['configuracion_id', 'tipo_pago_id']);
+            $table->integer('estado')->default(0);
             $table->softDeletes();
             $table->timestamps();
         });

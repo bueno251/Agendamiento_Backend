@@ -17,7 +17,7 @@ class ClienteTipoRegimenSeeder extends Seeder
         (tipo, created_at)
         VALUES (?, now())';
 
-        DB::insert($query, ['no responsable de IVA']);
-        DB::insert($query, ['responsable de IVA']);
+        DB::insert($query, ['No responsable de IVA']);
+        DB::insert($query, ['Responsable de IVA']);
     }
 }
