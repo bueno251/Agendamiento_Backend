@@ -17,8 +17,10 @@ return new class extends Migration
             $table->string('descripcion');
             $table->unsignedBigInteger('room_tipo_id')->nullable();
             $table->foreign('room_tipo_id')->references('id')->on('room_tipos')->onDelete('set null');
+            $table->unsignedBigInteger('room_estado_id')->nullable();
+            $table->foreign('room_estado_id')->references('id')->on('room_estados')->onDelete('set null');
+            $table->integer('habilitada');
             $table->integer('capacidad');
-            $table->integer('estado');
             $table->softDeletes();
             $table->timestamps();
         });

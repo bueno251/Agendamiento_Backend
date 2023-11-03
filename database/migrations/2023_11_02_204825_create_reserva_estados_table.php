@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('days', function (Blueprint $table) {
+        Schema::create('reserva_estados', function (Blueprint $table) {
             $table->id();
-            $table->date('dia')->unique();
+            $table->string('estado')->unique();
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 
@@ -22,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('days');
+        Schema::dropIfExists('reserva_estados');
     }
 };

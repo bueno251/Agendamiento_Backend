@@ -29,12 +29,12 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login');
 });
 
-Route::controller(DayController::class)->group(function () {
-    Route::post('days/create', 'create');
-    Route::get('days/read', 'read');
-    Route::get('days/find/{id}', 'find');
-    Route::delete('days/delete/{dia}', 'delete');
-});
+// Route::controller(ReservasController::class)->group(function () {
+//     Route::post('reserva/create', 'create');
+//     Route::get('reserva/read', 'read');
+//     Route::get('reserva/find/{id}', 'find');
+//     Route::delete('reserva/delete/{dia}', 'delete');
+// });
 
 Route::controller(ClientController::class)->group(function () {
     Route::post('client/create', 'create');

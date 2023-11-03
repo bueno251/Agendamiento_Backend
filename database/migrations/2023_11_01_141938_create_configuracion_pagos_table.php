@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('configuracion_id')->nullable();
             $table->foreign('configuracion_id')->references('id')->on('configuracions')->onDelete('set null');
-            $table->unsignedBigInteger('tipo_pago_id')->nullable();
-            $table->foreign('tipo_pago_id')->references('id')->on('tipo_pagos')->onDelete('set null');
-            $table->unique(['configuracion_id', 'tipo_pago_id']);
+            $table->unsignedBigInteger('reserva_tipo_pago_id')->nullable();
+            $table->foreign('reserva_tipo_pago_id')->references('id')->on('reserva_tipo_pagos')->onDelete('set null');
+            $table->unique(['configuracion_id', 'reserva_tipo_pago_id'], 'unique_configuracion_tipo_pago');
             $table->integer('estado')->default(0);
             $table->softDeletes();
             $table->timestamps();

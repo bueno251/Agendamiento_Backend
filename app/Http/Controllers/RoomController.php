@@ -46,10 +46,12 @@ class RoomController extends Controller
         r.descripcion AS descripcion,
         r.room_tipo_id AS tipoId,
         rt.tipo AS tipo,
-        r.capacidad AS capacidad,
-        r.estado AS estado
+        r.room_estado_id AS estadoId,
+        re.estado AS estado,
+        r.capacidad AS capacidad
         FROM rooms r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
+        JOIN room_estados re ON r.room_estado_id = re.id
         WHERE r.deleted_at IS NULL
         ORDER BY r.created_at DESC';
 
@@ -66,10 +68,12 @@ class RoomController extends Controller
         r.descripcion AS descripcion,
         r.room_tipo_id AS tipoId,
         rt.tipo AS tipo,
-        r.capacidad AS capacidad,
-        r.estado AS estado
+        r.room_estado_id AS estadoId,
+        re.estado AS estado,
+        r.capacidad AS capacidad
         FROM rooms r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
+        JOIN room_estados re ON r.room_estado_id = re.id
         WHERE r.id = ? && r.deleted_at IS NULL';
 
         $rooms = DB::select($query, [$id]);

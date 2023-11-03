@@ -17,9 +17,11 @@ class DatabaseSeeder extends Seeder
             ClienteTipoObligacionSeeder::class,
             ClienteTipoPersonaSeeder::class,
             ClienteTipoRegimenSeeder::class,
-            RoomTipoSeeder::class,
-            TipoPagoSeeder::class,
             ConfiguracionSeeder::class,
+            RoomEstadoSeeder::class,
+            RoomTipoSeeder::class,
+            ReservaEstadoSeeder::class,
+            ReservaPagoSeeder::class,
             UserSeeder::class,
         ]);
     }
