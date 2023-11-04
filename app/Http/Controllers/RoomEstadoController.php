@@ -48,10 +48,12 @@ class RoomEstadoController extends Controller
         estado,
         created_at
         FROM room_estados
-        WHERE deleted_at IS NULL 
+        WHERE id = ? && deleted_at IS NULL 
         ORDER BY created_at DESC';
 
-        $estados = DB::select($query);
+        $estados = DB::select($query, [
+            $id
+        ]);
 
         return response($estados, 200);
     }

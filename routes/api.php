@@ -4,8 +4,8 @@ use App\Http\Controllers\authController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\clientTipoController;
 use App\Http\Controllers\ConfiguracionController;
-use App\Http\Controllers\DayController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\RoomEstadoController;
 use App\Http\Controllers\RoomTipoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +63,19 @@ Route::controller(RoomController::class)->group(function () {
 
 Route::controller(RoomTipoController::class)->group(function () {
     Route::get('room/type', 'read');
+    Route::post('room/type/create', 'create');
+    Route::get('room/type', 'read');
+    Route::get('room/type/{id}', 'find');
+    Route::patch('room/type/update/{id}', 'update');
+    Route::delete('room/type/delete/{id}', 'delete');
+});
+
+Route::controller(RoomEstadoController::class)->group(function () {
+    Route::post('room/estado/create', 'create');
+    Route::get('room/estado', 'read');
+    Route::get('room/estado/{id}', 'find');
+    Route::patch('room/estado/update/{id}', 'update');
+    Route::delete('room/estado/delete/{id}', 'delete');
 });
 
 Route::controller(ConfiguracionController::class)->group(function () {
