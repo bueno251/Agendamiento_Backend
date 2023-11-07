@@ -74,7 +74,7 @@ class RoomEstadoController extends Controller
             $id
         ]);
 
-        return response('Estado creado exitosamente', 200);
+        return response('Estado actualizado exitosamente', 200);
     }
 
     public function delete($id)

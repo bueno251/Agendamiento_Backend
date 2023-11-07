@@ -14,12 +14,11 @@ return new class extends Migration
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
             $table->string('nombre')->unique();
-            $table->string('descripcion');
+            $table->text('descripcion');
             $table->unsignedBigInteger('room_tipo_id')->nullable();
             $table->foreign('room_tipo_id')->references('id')->on('room_tipos')->onDelete('set null');
             $table->unsignedBigInteger('room_estado_id')->nullable();
             $table->foreign('room_estado_id')->references('id')->on('room_estados')->onDelete('set null');
-            $table->integer('habilitada');
             $table->integer('capacidad');
             $table->softDeletes();
             $table->timestamps();

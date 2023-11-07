@@ -74,7 +74,7 @@ class RoomTipoController extends Controller
             $id
         ]);
 
-        return response('tipo creado exitosamente', 200);
+        return response('tipo actualizado exitosamente', 200);
     }
 
     public function delete($id)

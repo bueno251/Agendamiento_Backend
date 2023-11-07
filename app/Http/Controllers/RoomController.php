@@ -18,12 +18,13 @@ class RoomController extends Controller
             'estado' => 'required',
         ]);
 
+
         $query = 'INSERT INTO rooms
         (nombre,
         descripcion,
         room_tipo_id,
         capacidad,
-        estado,
+        room_estado_id,
         created_at)
         VALUES (?, ?, ?, ?, ?, now())';
 
@@ -34,6 +35,7 @@ class RoomController extends Controller
             $request->capacidad,
             $request->estado,
         ]);
+
 
         return response('Habitacion Creada', 200);
     }
@@ -96,7 +98,7 @@ class RoomController extends Controller
         descripcion = ?,
         room_tipo_id = ?,
         capacidad = ?,
-        estado = ?,
+        room_estado_id = ?,
         updated_at = now()
         WHERE id = ?';
 

@@ -16,6 +16,6 @@ class ConfiguracionSeeder extends Seeder
         (usuario_reserva, created_at)
         VALUES (?, now())';
 
-        DB::insert($query, [0]);
+        DB::insert($query, [1]);
     }
 }

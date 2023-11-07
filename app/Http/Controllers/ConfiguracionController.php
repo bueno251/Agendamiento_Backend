@@ -27,8 +27,8 @@ class ConfiguracionController extends Controller
         tp.id AS id,
         tp.tipo AS tipo,
         sp.estado AS estado
-        FROM tipo_pagos tp
-        LEFT JOIN configuracion_pagos sp ON sp.tipo_pago_id = tp.id
+        FROM reserva_tipo_pagos tp
+        LEFT JOIN configuracion_pagos sp ON sp.reserva_tipo_pago_id = tp.id
         WHERE tp.deleted_at IS NULL';
 
 
@@ -54,7 +54,7 @@ class ConfiguracionController extends Controller
 
         $query = 'INSERT INTO configuracion_pagos
         (configuracion_id,
-        tipo_pago_id,
+        reserva_tipo_pago_id,
         estado,
         created_at)
         VALUES (?, ?, ?, NOW())
