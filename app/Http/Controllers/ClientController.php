@@ -24,6 +24,12 @@ class ClientController extends Controller
             'tipoRegimen' => 'required',
         ]);
 
+        if ($this->obtenerDoc($request->documento)) {
+            return response()->json([
+                'message' => 'Documento ya registrado',
+            ], 500);
+        }
+
         $query = 'INSERT INTO clients
         (nombre1,
         nombre2,
@@ -45,7 +51,7 @@ class ClientController extends Controller
         created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())';
 
-        DB::insert($query, [
+        $cliente = DB::insert($query, [
             $request->nombre1,
             $request->nombre2,
             $request->apellido1,
@@ -65,12 +71,21 @@ class ClientController extends Controller
             $request->observacion,
         ]);
 
-        return response('Cliente creado exitosamente', 200);
+        if ($cliente) {
+            return response()->json([
+                'message' => 'Cliente creado exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al crear',
+            ], 500);
+        }
     }
 
     public function read()
     {
-        $query = 'SELECT id,
+        $query = 'SELECT
+        id,
         nombre1,
         nombre2,
         apellido1,
@@ -134,7 +149,7 @@ class ClientController extends Controller
         nombre2,
         apellido1,
         apellido2,
-        CONCAT(nombre1, " ", nombre2, " ", apellido1, " ", apellido2) as fullname,
+        CONCAT_WS(nombre1, " ", nombre2, " ", apellido1, " ", apellido2) as fullname,
         tipo_documento_id,
         documento,
         direccion,
@@ -154,6 +169,20 @@ class ClientController extends Controller
         $clients = DB::select($query, [$doc]);
 
         return response($clients, 200);
+    }
+
+    public function obtenerDoc($doc)
+    {
+        $query = 'SELECT id,
+        FROM clients WHERE documento = ? && deleted_at IS NULL';
+
+        $clients = DB::select($query, [$doc]);
+
+        if (count($clients) > 0) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public function update(Request $request, $id)
@@ -194,7 +223,7 @@ class ClientController extends Controller
         updated_at = now()
         WHERE id = ?';
 
-        DB::update($query, [
+        $cliente = DB::update($query, [
             $request->nombre1,
             $request->nombre2,
             $request->apellido1,
@@ -215,7 +244,15 @@ class ClientController extends Controller
             $id
         ]);
 
-        return response('Cliente actualizado exitosamente', 200);
+        if ($cliente) {
+            return response()->json([
+                'message' => 'Actualizado exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al actualizar',
+            ], 500);
+        }
     }
 
     public function delete($id)
@@ -224,10 +261,18 @@ class ClientController extends Controller
         deleted_at = now()
         WHERE id = ?';
 
-        DB::update($query, [
+        $cliente = DB::update($query, [
             $id
         ]);
 
-        return response("Cliente Eliminado", 200);
+        if ($cliente) {
+            return response()->json([
+                'message' => 'Eliminado exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al eliminar',
+            ], 500);
+        }
     }
 }

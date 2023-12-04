@@ -62,7 +62,6 @@ Route::controller(RoomController::class)->group(function () {
 });
 
 Route::controller(RoomTipoController::class)->group(function () {
-    Route::get('room/type', 'read');
     Route::post('room/type/create', 'create');
     Route::get('room/type', 'read');
     Route::get('room/type/{id}', 'find');

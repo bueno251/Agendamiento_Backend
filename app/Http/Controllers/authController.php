@@ -21,6 +21,7 @@ class AuthController extends Controller
 
             $json = array(
                 "token" => $token,
+                "user" => $user,
             );
 
             return response($json, 200);
