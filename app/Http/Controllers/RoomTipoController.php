@@ -19,11 +19,19 @@ class RoomTipoController extends Controller
         created_at)
         VALUES (?, NOW())';
 
-        DB::insert($query, [
+        $tipo = DB::insert($query, [
             $request->tipo,
         ]);
 
-        return response('tipo creado exitosamente', 200);
+        if ($tipo) {
+            return response()->json([
+                'message' => 'Tipo creado exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al crear',
+            ], 500);
+        }
     }
 
     public function read()
@@ -34,7 +42,9 @@ class RoomTipoController extends Controller
         created_at
         FROM room_tipos
         WHERE deleted_at IS NULL
-        ORDER BY created_at DESC';
+        ORDER BY 
+        CASE WHEN created_at IS NULL THEN 0 ELSE 1 END, 
+        created_at DESC';
 
         $tipos = DB::select($query);
 
@@ -69,12 +79,20 @@ class RoomTipoController extends Controller
         updated_at = now()
         WHERE id = ?';
 
-        DB::update($query, [
+        $tipo = DB::update($query, [
             $request->tipo,
             $id
         ]);
 
-        return response('tipo actualizado exitosamente', 200);
+        if ($tipo) {
+            return response()->json([
+                'message' => 'Actualizado exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al actualizar',
+            ], 500);
+        }
     }
 
     public function delete($id)
@@ -83,10 +101,18 @@ class RoomTipoController extends Controller
         deleted_at = now()
         WHERE id = ?';
 
-        DB::update($query, [
+        $tipo = DB::update($query, [
             $id
         ]);
 
-        return response("Eliminado", 200);
+        if ($tipo) {
+            return response()->json([
+                'message' => 'Eliminado exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al eliminar',
+            ], 500);
+        }
     }
 }

@@ -13,8 +13,8 @@ class ReservaPagoSeeder extends Seeder
     public function run(): void
     {
         $query = 'INSERT INTO reserva_tipo_pagos
-        (tipo, created_at)
-        VALUES (?, now())';
+        (tipo)
+        VALUES (?)';
 
         DB::insert($query, ['Tranfererencia']);
         DB::insert($query, ['Pasarela de pago']);

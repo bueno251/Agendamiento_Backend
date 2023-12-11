@@ -13,8 +13,8 @@ class ClienteTipoDocumentoSeeder extends Seeder
     public function run(): void
     {
         $query = 'INSERT INTO cliente_tipo_documento
-        (tipo, created_at)
-        VALUES (?, now())';
+        (tipo)
+        VALUES (?)';
 
         DB::insert($query, ['Tarjeta de identidad']);
         DB::insert($query, ['Cedula ciudadanía']);

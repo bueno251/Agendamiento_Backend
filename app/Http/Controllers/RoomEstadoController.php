@@ -19,11 +19,19 @@ class RoomEstadoController extends Controller
         created_at)
         VALUES (?, NOW())';
 
-        DB::insert($query, [
+        $estado = DB::insert($query, [
             $request->estado,
         ]);
 
-        return response('Estado creado exitosamente', 200);
+        if ($estado) {
+            return response()->json([
+                'message' => 'Estado creado exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al crear',
+            ], 500);
+        }
     }
 
     public function read()
@@ -34,7 +42,9 @@ class RoomEstadoController extends Controller
         created_at
         FROM room_estados
         WHERE deleted_at IS NULL
-        ORDER BY created_at DESC';
+        ORDER BY 
+        CASE WHEN created_at IS NULL THEN 0 ELSE 1 END, 
+        created_at DESC';
 
         $estados = DB::select($query);
 
@@ -69,12 +79,20 @@ class RoomEstadoController extends Controller
         updated_at = now()
         WHERE id = ?';
 
-        DB::update($query, [
+        $estado = DB::update($query, [
             $request->estado,
             $id
         ]);
 
-        return response('Estado actualizado exitosamente', 200);
+        if ($estado) {
+            return response()->json([
+                'message' => 'Actualizado exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al actualizar',
+            ], 500);
+        }
     }
 
     public function delete($id)
@@ -83,10 +101,18 @@ class RoomEstadoController extends Controller
         deleted_at = now()
         WHERE id = ?';
 
-        DB::update($query, [
+        $estado = DB::update($query, [
             $id
         ]);
 
-        return response("Eliminado", 200);
+        if ($estado) {
+            return response()->json([
+                'message' => 'Eliminado exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al eliminar',
+            ], 500);
+        }
     }
 }

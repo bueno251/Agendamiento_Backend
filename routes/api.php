@@ -79,5 +79,8 @@ Route::controller(RoomEstadoController::class)->group(function () {
 
 Route::controller(ConfiguracionController::class)->group(function () {
     Route::post('settings/pagos', 'pagos');
+    Route::post('settings/reservar', 'reservar');
+    Route::post('settings/empresa', 'empresa');
     Route::get('settings/read', 'read');
+    Route::get('settings/empresa/types', 'empresaTypes');
 });

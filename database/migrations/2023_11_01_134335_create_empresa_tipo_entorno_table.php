@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('configuracions', function (Blueprint $table) {
+        Schema::create('empresa_tipo_entorno', function (Blueprint $table) {
             $table->id();
-            $table->integer('usuario_reserva');
-            $table->unsignedBigInteger('id_empresa')->nullable();
-            $table->foreign('id_empresa')->references('id')->on('empresa')->onDelete('set null');
+            $table->string('tipo')->unique();
             $table->softDeletes();
             $table->timestamps();
         });
@@ -26,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('configuracions');
+        Schema::dropIfExists('empresa_tipo_entorno');
     }
 };

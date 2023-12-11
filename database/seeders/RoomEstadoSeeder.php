@@ -13,8 +13,8 @@ class RoomEstadoSeeder extends Seeder
     public function run(): void
     {
         $query = 'INSERT INTO room_estados
-        (estado, created_at)
-        VALUES (?, now())';
+        (estado)
+        VALUES (?)';
 
         DB::insert($query, ['Activo']);
         DB::insert($query, ['Inactivo']);

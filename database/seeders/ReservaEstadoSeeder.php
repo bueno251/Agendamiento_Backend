@@ -13,8 +13,8 @@ class ReservaEstadoSeeder extends Seeder
     public function run(): void
     {
         $query = 'INSERT INTO reserva_estados
-        (estado, created_at)
-        VALUES (?, now())';
+        (estado)
+        VALUES (?)';
 
         DB::insert($query, ['Pendiente']);
         DB::insert($query, ['Confirmada']);

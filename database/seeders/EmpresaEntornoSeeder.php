@@ -5,18 +5,16 @@ namespace Database\Seeders;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
 
-class RoomTipoSeeder extends Seeder
+class EmpresaEntornoSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        $query = 'INSERT INTO room_tipos
-        (tipo)
-        VALUES (?)';
+        $query = 'INSERT INTO empresa_tipo_entorno (tipo) VALUES (?)';
 
-        DB::insert($query, ['Cabaña']);
-        DB::insert($query, ['Habitacion']);
+        DB::insert($query, ['Pruebas']);
+        DB::insert($query, ['Producción']);
     }
 }

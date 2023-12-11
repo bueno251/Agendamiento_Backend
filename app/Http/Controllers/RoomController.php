@@ -18,7 +18,6 @@ class RoomController extends Controller
             'estado' => 'required',
         ]);
 
-
         $query = 'INSERT INTO rooms
         (nombre,
         descripcion,
@@ -28,7 +27,7 @@ class RoomController extends Controller
         created_at)
         VALUES (?, ?, ?, ?, ?, now())';
 
-        DB::insert($query, [
+        $room = DB::insert($query, [
             $request->nombre,
             $request->descripcion,
             $request->roomTipo,
@@ -36,8 +35,15 @@ class RoomController extends Controller
             $request->estado,
         ]);
 
-
-        return response('Habitacion Creada', 200);
+        if ($room) {
+            return response()->json([
+                'message' => 'Habitación creada exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al crear',
+            ], 500);
+        }
     }
 
     public function read()
@@ -50,7 +56,8 @@ class RoomController extends Controller
         rt.tipo AS tipo,
         r.room_estado_id AS estadoId,
         re.estado AS estado,
-        r.capacidad AS capacidad
+        r.capacidad AS capacidad,
+        r.habilitada AS habilitada
         FROM rooms r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
@@ -58,6 +65,10 @@ class RoomController extends Controller
         ORDER BY r.created_at DESC';
 
         $rooms = DB::select($query);
+
+        foreach ($rooms as $room) {
+            $room->habilitada = $room->habilitada ? true : false;
+        }
 
         return response($rooms, 200);
     }
@@ -93,7 +104,7 @@ class RoomController extends Controller
             'estado' => 'required',
         ]);
 
-        $query = 'UPDATE rooms SET 
+        $query = 'UPDATE rooms SET
         nombre = ?,
         descripcion = ?,
         room_tipo_id = ?,
@@ -102,7 +113,7 @@ class RoomController extends Controller
         updated_at = now()
         WHERE id = ?';
 
-        DB::update($query, [
+        $room = DB::update($query, [
             $request->nombre,
             $request->descripcion,
             $request->roomTipo,
@@ -111,7 +122,15 @@ class RoomController extends Controller
             $id
         ]);
 
-        return response('Habitacion Actualizada', 200);
+        if ($room) {
+            return response()->json([
+                'message' => 'Actualizada exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al actualizar',
+            ], 500);
+        }
     }
 
     public function delete($id)
@@ -120,10 +139,18 @@ class RoomController extends Controller
         deleted_at = now()
         WHERE id = ?';
 
-        DB::update($query, [
+        $room = DB::update($query, [
             $id
         ]);
 
-        return response("Eliminado", 200);
+        if ($room) {
+            return response()->json([
+                'message' => 'Eliminada exitosamente',
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'Error al actualizar',
+            ], 500);
+        }
     }
 }

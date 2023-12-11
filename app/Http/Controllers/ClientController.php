@@ -173,7 +173,7 @@ class ClientController extends Controller
 
     public function obtenerDoc($doc)
     {
-        $query = 'SELECT id,
+        $query = 'SELECT id
         FROM clients WHERE documento = ? && deleted_at IS NULL';
 
         $clients = DB::select($query, [$doc]);

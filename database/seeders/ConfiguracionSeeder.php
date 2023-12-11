@@ -13,8 +13,8 @@ class ConfiguracionSeeder extends Seeder
     public function run(): void
     {
         $query = 'INSERT INTO configuracions
-        (usuario_reserva, created_at)
-        VALUES (?, now())';
+        (usuario_reserva)
+        VALUES (?)';
 
         DB::insert($query, [1]);
     }

@@ -13,8 +13,8 @@ class ClienteTipoObligacionSeeder extends Seeder
     public function run(): void
     {
         $query = 'INSERT INTO cliente_tipo_obligacion
-        (tipo, created_at)
-        VALUES (?, now())';
+        (tipo)
+        VALUES (?)';
 
         DB::insert($query, ['No responsable']);
         DB::insert($query, ['Responsable']);
