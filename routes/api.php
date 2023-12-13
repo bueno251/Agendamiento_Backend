@@ -4,6 +4,7 @@ use App\Http\Controllers\authController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\clientTipoController;
 use App\Http\Controllers\ConfiguracionController;
+use App\Http\Controllers\RoomBitacoraCambioController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomEstadoController;
 use App\Http\Controllers\RoomTipoController;
@@ -75,6 +76,10 @@ Route::controller(RoomEstadoController::class)->group(function () {
     Route::get('room/estado/{id}', 'find');
     Route::patch('room/estado/update/{id}', 'update');
     Route::delete('room/estado/delete/{id}', 'delete');
+});
+
+Route::controller(RoomBitacoraCambioController::class)->group(function () {
+    Route::get('room/bitacora/{id}', 'read');
 });
 
 Route::controller(ConfiguracionController::class)->group(function () {

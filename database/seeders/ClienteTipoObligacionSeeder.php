@@ -16,7 +16,11 @@ class ClienteTipoObligacionSeeder extends Seeder
         (tipo)
         VALUES (?)';
 
+        DB::insert($query, ['Agente de retención en el impuesto sobre las ventas']);
+        DB::insert($query, ['Autoretenedor']);
+        DB::insert($query, ['Gran contribuyente']);
         DB::insert($query, ['No responsable']);
         DB::insert($query, ['Responsable']);
+        DB::insert($query, ['Régimen simple de tributación - SIMPLE']);
     }
 }
