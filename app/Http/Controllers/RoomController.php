@@ -120,11 +120,89 @@ class RoomController extends Controller
 
         if (count($rooms) > 0) {
             $rooms[0]->habilitada = $rooms[0]->habilitada ? true : false;
-            
+
             return $rooms[0];
         } else {
             return null;
         }
+    }
+
+    public function savePrecios(Request $request, int $id)
+    {
+        $request->validate([
+            'weekdays' => [
+                'required',
+                'array',
+                function ($attribute, $value, $fail) {
+                    foreach ($value as $pago) {
+                        $validate = validator($pago, [
+                            'name' => 'required|string',
+                            'normal' => 'required|integer',
+                            'festivo' => 'required|integer',
+                        ]);
+
+                        if ($validate->fails()) {
+                            $fail('el formato de los dias es incorrecto: { name:string, normal:integer, festivo:integer }');
+                            break;
+                        }
+                    }
+                }
+            ],
+        ]);
+
+        $weekdays = $request->input("weekdays");
+
+        try {
+
+            $query = 'INSERT INTO room_tarifas (
+            room_id,
+            dia_semana,
+            precio,
+            precio_festivo,
+            created_at)
+            VALUES (?, ?, ?, ?, now())
+            ON DUPLICATE KEY UPDATE
+            precio = VALUES(precio),
+            precio_festivo = VALUES(precio_festivo),
+            updated_at = NOW()';
+
+            foreach ($weekdays as $day) {
+                DB::insert($query, [
+                    $id,
+                    $day['name'],
+                    $day['normal'],
+                    $day['festivo'],
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Precios guradados exitosamente',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Error al guardar: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getPrecios(int $id)
+    {
+        $query = 'SELECT
+        rt.id AS id,
+        rt.room_id AS room,
+        rt.dia_semana AS name,
+        rt.precio AS normal,
+        rt.precio_festivo AS festivo,
+        rt.created_at AS created_at
+        FROM room_tarifas rt
+        WHERE rt.room_id = ? && rt.deleted_at IS NULL
+        ORDER BY rt.id ASC';
+
+        $roomprecios = DB::select($query, [$id]);
+
+        return response($roomprecios, 200);
     }
 
     public function update(Request $request, $id)

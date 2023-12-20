@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('departamento')->default('');
             $table->string('municipio')->default('');
             $table->string('direccion')->default('');
+            $table->string('correo')->default('');
             $table->string('telefono')->default('');
             $table->string('lenguaje')->default('');
             $table->string('impuesto')->default('');

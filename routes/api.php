@@ -60,6 +60,8 @@ Route::controller(RoomController::class)->group(function () {
     Route::get('room/find/{id}', 'find');
     Route::patch('room/update/{id}', 'update');
     Route::delete('room/delete/{id}', 'delete');
+    Route::post('room/precios/{id}', 'savePrecios');
+    Route::get('room/precios/{id}', 'getPrecios');
 });
 
 Route::controller(RoomTipoController::class)->group(function () {

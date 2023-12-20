@@ -17,6 +17,7 @@ class RoomTipoSeeder extends Seeder
         VALUES (?)';
 
         DB::insert($query, ['Cabaña']);
+        DB::insert($query, ['Domo']);
         DB::insert($query, ['Habitacion']);
     }
 }

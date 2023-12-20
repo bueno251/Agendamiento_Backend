@@ -50,14 +50,13 @@ class ConfiguracionController extends Controller
         estado,
         created_at)
         VALUES (?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE estado = ?, updated_at = NOW()';
+        ON DUPLICATE KEY UPDATE estado = VALUES(estado), updated_at = NOW()';
 
         try {
             foreach ($pagos as $tipo) {
                 DB::insert($query, [
                     $request->configuracionId,
                     $tipo['id'],
-                    $tipo['estado'],
                     $tipo['estado'],
                 ]);
             }
@@ -115,6 +114,7 @@ class ConfiguracionController extends Controller
             'departamento' => 'required|string',
             'municipio' => 'required|string',
             'direccion' => 'required|string',
+            'correo' => 'required|email',
             'telefono' => 'required',
             'lenguaje' => 'required|string',
             'impuesto' => 'required|string',
@@ -135,6 +135,7 @@ class ConfiguracionController extends Controller
         departamento,
         municipio,
         direccion,
+        correo,
         telefono,
         lenguaje,
         impuesto,
@@ -144,7 +145,7 @@ class ConfiguracionController extends Controller
         id_responsabilidad,
         id_regimen,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         try {
             DB::insert($query, [
@@ -272,6 +273,7 @@ class ConfiguracionController extends Controller
         e.departamento AS departamento,
         e.municipio AS municipio,
         e.direccion AS direccion,
+        e.correo AS correo,
         e.telefono AS telefono,
         e.lenguaje AS lenguaje,
         e.impuesto AS impuesto,

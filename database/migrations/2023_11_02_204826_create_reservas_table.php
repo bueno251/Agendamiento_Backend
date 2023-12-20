@@ -8,21 +8,21 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     */
+    */
     public function up(): void
     {
-        Schema::create('reservas', function (Blueprint $table) {
+        Schema::create('reservas_temporal', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room_id')->nullable();
             $table->foreign('room_id')->references('id')->on('rooms')->onDelete('set null');
+            $table->unsignedBigInteger('cliente_id')->nullable();
+            $table->foreign('cliente_id')->references('id')->on('clients')->onDelete('set null');
             $table->unsignedBigInteger('user_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
-            $table->unsignedBigInteger('user_registro_id')->nullable();
-            $table->foreign('user_registro_id')->references('id')->on('users')->onDelete('set null');
             $table->unsignedBigInteger('reserva_estado_id')->nullable();
             $table->foreign('reserva_estado_id')->references('id')->on('reserva_estados')->onDelete('set null');
-            $table->date('dia_reserva');
-            $table->integer('reagendada');
+            $table->date('fecha_entrada');
+            $table->date('fecha_salida');
             $table->softDeletes();
             $table->timestamps();
         });
