@@ -4,6 +4,8 @@ use App\Http\Controllers\authController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\clientTipoController;
 use App\Http\Controllers\ConfiguracionController;
+use App\Http\Controllers\DecoracionController;
+use App\Http\Controllers\DesayunoController;
 use App\Http\Controllers\RoomBitacoraCambioController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomEstadoController;
@@ -90,4 +92,20 @@ Route::controller(ConfiguracionController::class)->group(function () {
     Route::post('settings/empresa', 'empresa');
     Route::get('settings/read', 'read');
     Route::get('settings/empresa/types', 'empresaTypes');
+});
+
+Route::controller(DesayunoController::class)->group(function () {
+    Route::post('desayunos/create', 'create');
+    Route::get('desayunos/read', 'read');
+    Route::get('desayunos/{id}', 'find');
+    Route::patch('desayunos/update/{id}', 'update');
+    Route::delete('desayunos/delete/{id}', 'delete');
+});
+
+Route::controller(DecoracionController::class)->group(function () {
+    Route::post('decoraciones/create', 'create');
+    Route::get('decoraciones/read', 'read');
+    Route::get('decoraciones/{id}', 'find');
+    Route::patch('decoraciones/update/{id}', 'update');
+    Route::delete('decoraciones/delete/{id}', 'delete');
 });
