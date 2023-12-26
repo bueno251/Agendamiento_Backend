@@ -158,6 +158,7 @@ class ConfiguracionController extends Controller
                 $request->departamento,
                 $request->municipio,
                 $request->direccion,
+                $request->correo,
                 $request->telefono,
                 $request->lenguaje,
                 $request->impuesto,
