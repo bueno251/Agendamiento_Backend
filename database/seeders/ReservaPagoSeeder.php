@@ -16,7 +16,7 @@ class ReservaPagoSeeder extends Seeder
         (tipo)
         VALUES (?)';
 
-        DB::insert($query, ['Tranfererencia']);
+        DB::insert($query, ['Transferencia']);
         DB::insert($query, ['Pasarela de pago']);
     }
 }

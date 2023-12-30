@@ -91,8 +91,14 @@ class RoomController extends Controller
 
         $rooms = DB::select($query, [$id]);
 
-        $rooms[0]->habilitada = $rooms[0]->habilitada ? true : false;
+        if (count($rooms) == 0) {
+            return response()->json([
+                'message' => 'Habitacion inexistente',
+            ], 500);
+        }
 
+        $rooms[0]->habilitada = $rooms[0]->habilitada ? true : false;
+        $rooms[0]->precios = $this->getPrecios($rooms[0]->id);
 
         return response($rooms, 200);
     }
@@ -190,19 +196,18 @@ class RoomController extends Controller
     public function getPrecios(int $id)
     {
         $query = 'SELECT
-        rt.id AS id,
-        rt.room_id AS room,
         rt.dia_semana AS name,
         rt.precio AS normal,
         rt.precio_festivo AS festivo,
         rt.created_at AS created_at
         FROM room_tarifas rt
         WHERE rt.room_id = ? && rt.deleted_at IS NULL
-        ORDER BY rt.id ASC';
+        ORDER BY
+        FIELD(rt.dia_semana, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")';
 
         $roomprecios = DB::select($query, [$id]);
 
-        return response($roomprecios, 200);
+        return $roomprecios;
     }
 
     public function update(Request $request, $id)

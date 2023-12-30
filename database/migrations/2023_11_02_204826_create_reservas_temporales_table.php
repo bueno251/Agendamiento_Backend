@@ -22,7 +22,7 @@ return new class extends Migration
             $table->integer('cantidad_personas');
             $table->integer('precio');
             $table->integer('abono');
-            $table->boolean('comprobante');
+            $table->string('comprobante');
             $table->boolean('verificacion_pago');
             $table->timestamps();
             $table->softDeletes();

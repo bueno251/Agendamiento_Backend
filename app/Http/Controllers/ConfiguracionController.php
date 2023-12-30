@@ -308,4 +308,19 @@ class ConfiguracionController extends Controller
             return null;
         }
     }
+
+    public function getPagos()
+    {
+        $query = 'SELECT
+        tp.id AS id,
+        tp.tipo AS tipo,
+        sp.estado AS estado
+        FROM reserva_tipo_pagos tp
+        LEFT JOIN configuracion_pagos sp ON sp.reserva_tipo_pago_id = tp.id
+        WHERE tp.deleted_at IS NULL';
+
+        $pagos = DB::select($query);
+
+        return response($pagos, 200);
+    }
 }

@@ -27,7 +27,7 @@ return new class extends Migration
             $table->integer('precio');
             $table->integer('abono');
             $table->integer('comoda');
-            $table->boolean('comprobante');
+            $table->string('comprobante');
             $table->boolean('verificacion_pago');
             $table->softDeletes();
             $table->timestamps();

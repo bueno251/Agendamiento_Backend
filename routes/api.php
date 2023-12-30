@@ -92,6 +92,7 @@ Route::controller(ConfiguracionController::class)->group(function () {
     Route::post('settings/empresa', 'empresa');
     Route::get('settings/read', 'read');
     Route::get('settings/empresa/types', 'empresaTypes');
+    Route::get('pagos', 'getPagos');
 });
 
 Route::controller(DesayunoController::class)->group(function () {
