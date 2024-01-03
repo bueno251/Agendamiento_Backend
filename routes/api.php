@@ -6,6 +6,7 @@ use App\Http\Controllers\clientTipoController;
 use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\DecoracionController;
 use App\Http\Controllers\DesayunoController;
+use App\Http\Controllers\ReservasController;
 use App\Http\Controllers\RoomBitacoraCambioController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomEstadoController;
@@ -32,12 +33,14 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login');
 });
 
-// Route::controller(ReservasController::class)->group(function () {
-//     Route::post('reserva/create', 'create');
-//     Route::get('reserva/read', 'read');
-//     Route::get('reserva/find/{id}', 'find');
-//     Route::delete('reserva/delete/{dia}', 'delete');
-// });
+Route::controller(ReservasController::class)->group(function () {
+    Route::post('reserva/temporal/create', 'createTemporal');
+    Route::get('reserva/temporal/read', 'readTemporales');
+    Route::post('reserva/create', 'create');
+    Route::get('reserva/read', 'read');
+    Route::patch('reserva/approve/{id}', 'approve');
+    Route::patch('reserva/reject/{id}', 'reject');
+});
 
 Route::controller(ClientController::class)->group(function () {
     Route::post('client/create', 'create');

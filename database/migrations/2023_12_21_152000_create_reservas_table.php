@@ -23,11 +23,12 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
             $table->unsignedBigInteger('estado_id')->nullable();
             $table->foreign('estado_id')->references('id')->on('reserva_estados')->onDelete('set null');
-            $table->integer('cantidad_personas');
+            $table->integer('huespedes');
+            $table->integer('adultos');
+            $table->integer('niños');
             $table->integer('precio');
             $table->integer('abono');
-            $table->integer('comoda');
-            $table->string('comprobante');
+            $table->string('comprobante')->nullable();
             $table->boolean('verificacion_pago');
             $table->softDeletes();
             $table->timestamps();

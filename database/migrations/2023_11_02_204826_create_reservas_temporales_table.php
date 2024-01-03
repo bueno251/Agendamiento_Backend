@@ -19,10 +19,12 @@ return new class extends Migration
             $table->unsignedBigInteger('cliente_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('estado_id')->nullable();
-            $table->integer('cantidad_personas');
+            $table->integer('huespedes');
+            $table->integer('adultos');
+            $table->integer('niños');
             $table->integer('precio');
             $table->integer('abono');
-            $table->string('comprobante');
+            $table->string('comprobante')->nullable();
             $table->boolean('verificacion_pago');
             $table->timestamps();
             $table->softDeletes();
