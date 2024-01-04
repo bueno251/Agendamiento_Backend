@@ -19,6 +19,8 @@ return new class extends Migration
             $table->unsignedBigInteger('cliente_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('estado_id')->nullable();
+            $table->unsignedBigInteger('desayuno_id')->nullable();
+            $table->unsignedBigInteger('decoracion_id')->nullable();
             $table->integer('huespedes');
             $table->integer('adultos');
             $table->integer('niños');

@@ -15,6 +15,8 @@ class ReservasController extends Controller
             'dateOut' => 'required|string',
             'room' => 'required|integer',
             'user' => 'required|integer',
+            'desayuno' => 'required|integer',
+            'decoracion' => 'required|integer',
             'huespedes' => 'required|integer',
             'adultos' => 'required|integer',
             'niños' => 'required|integer',
@@ -30,6 +32,8 @@ class ReservasController extends Controller
         cliente_id,
         user_id,
         estado_id,
+        desayuno_id,
+        decoracion_id,
         huespedes,
         adultos,
         niños,
@@ -38,7 +42,7 @@ class ReservasController extends Controller
         comprobante,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $rutaArchivo = null;
 
@@ -54,6 +58,8 @@ class ReservasController extends Controller
             isset($request->cliente) ? $request->cliente : null,
             $request->user,
             1,
+            $request->desayuno,
+            $request->decoracion,
             $request->huespedes,
             $request->adultos,
             $request->niños,
@@ -65,7 +71,7 @@ class ReservasController extends Controller
 
         if ($reservaT) {
             return response()->json([
-                'message' => 'reserva en espera por confirmación',
+                'message' => 'reserva por confirmar',
             ]);
         } else {
             return response()->json([
@@ -82,6 +88,8 @@ class ReservasController extends Controller
             'dateOut' => 'required|string',
             'room' => 'required|integer',
             'user' => 'required|integer',
+            'desayuno' => 'required|integer',
+            'decoracion' => 'required|integer',
             'huespedes' => 'required|integer',
             'adultos' => 'required|integer',
             'niños' => 'required|integer',
@@ -97,6 +105,8 @@ class ReservasController extends Controller
         cliente_id,
         user_id,
         estado_id,
+        desayuno_id,
+        decoracion_id,
         huespedes,
         adultos,
         niños,
@@ -105,7 +115,7 @@ class ReservasController extends Controller
         comprobante,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $rutaArchivo = null;
 
@@ -121,6 +131,8 @@ class ReservasController extends Controller
             isset($request->cliente) ? $request->cliente : null,
             $request->user,
             1,
+            $request->desayuno,
+            $request->decoracion,
             $request->huespedes,
             $request->adultos,
             $request->niños,
@@ -152,6 +164,10 @@ class ReservasController extends Controller
         r.user_id AS user,
         r.estado_id AS estadoId,
         re.estado AS estado,
+        r.desayuno_id AS desayunoId,
+        desa.desayuno AS desayuno,
+        r.decoracion_id AS decoracionId,
+        deco.decoracion AS decoracion,
         r.huespedes AS huespedes,
         r.adultos AS adultos,
         r.niños AS niños,
@@ -161,6 +177,8 @@ class ReservasController extends Controller
         r.verificacion_pago AS verificacionPago
         FROM reservas_temporales r
         JOIN reserva_estados re ON r.estado_id = re.id
+        JOIN desayunos desa ON r.desayuno_id = desa.id
+        JOIN decoraciones deco ON r.decoracion_id = deco.id
         WHERE r.deleted_at IS NULL
         ORDER BY r.created_at DESC';
 
@@ -186,6 +204,10 @@ class ReservasController extends Controller
         r.user_id AS user,
         r.estado_id AS estadoId,
         re.estado AS estado,
+        r.desayuno_id AS desayunoId,
+        desa.desayuno AS desayuno,
+        r.decoracion_id AS decoracionId,
+        deco.decoracion AS decoracion,
         r.huespedes AS huespedes,
         r.adultos AS adultos,
         r.niños AS niños,
@@ -195,6 +217,8 @@ class ReservasController extends Controller
         r.verificacion_pago AS verificacionPago
         FROM reservas r
         JOIN reserva_estados re ON r.estado_id = re.id
+        JOIN desayunos desa ON r.desayuno_id = desa.id
+        JOIN decoraciones deco ON r.decoracion_id = deco.id
         WHERE r.deleted_at IS NULL
         ORDER BY r.created_at DESC';
 

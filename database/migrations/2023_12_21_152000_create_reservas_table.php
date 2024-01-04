@@ -23,6 +23,10 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
             $table->unsignedBigInteger('estado_id')->nullable();
             $table->foreign('estado_id')->references('id')->on('reserva_estados')->onDelete('set null');
+            $table->unsignedBigInteger('desayuno_id')->nullable();
+            $table->foreign('desayuno_id')->references('id')->on('desayunos')->onDelete('set null');
+            $table->unsignedBigInteger('decoracion_id')->nullable();
+            $table->foreign('decoracion_id')->references('id')->on('decoraciones')->onDelete('set null');
             $table->integer('huespedes');
             $table->integer('adultos');
             $table->integer('niños');
