@@ -34,10 +34,10 @@ Route::controller(AuthController::class)->group(function () {
 });
 
 Route::controller(ReservasController::class)->group(function () {
-    Route::post('reserva/temporal/create', 'createTemporal');
-    Route::get('reserva/temporal/read', 'readTemporales');
     Route::post('reserva/create', 'create');
+    Route::post('reserva/pagar', 'pagar');
     Route::get('reserva/read', 'read');
+    Route::get('reserva/room/{id}', 'getDates');
     Route::patch('reserva/approve/{id}', 'approve');
     Route::patch('reserva/reject/{id}', 'reject');
 });

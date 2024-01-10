@@ -25,7 +25,7 @@ return new class extends Migration
             $table->integer('adultos');
             $table->integer('niños');
             $table->integer('precio');
-            $table->integer('abono');
+            $table->integer('abono')->default(0);
             $table->string('comprobante')->nullable();
             $table->boolean('verificacion_pago');
             $table->timestamps();
