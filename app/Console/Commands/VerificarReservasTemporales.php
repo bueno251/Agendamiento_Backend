@@ -33,6 +33,8 @@ class VerificarReservasTemporales extends Command
         cliente_id,
         user_id,
         estado_id,
+        desayuno_id,
+        decoracion_id,
         huespedes,
         adultos,
         niños,
@@ -55,6 +57,8 @@ class VerificarReservasTemporales extends Command
         cliente_id,
         user_id,
         estado_id,
+        desayuno_id,
+        decoracion_id,
         huespedes,
         adultos,
         niños,
@@ -63,7 +67,7 @@ class VerificarReservasTemporales extends Command
         comprobante,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $queryDelete = 'UPDATE reservas_temporales SET 
         deleted_at = NOW()
@@ -78,6 +82,8 @@ class VerificarReservasTemporales extends Command
                     $reserva->cliente_id,
                     $reserva->user_id,
                     $reserva->estado_id,
+                    $reserva->desayuno_id,
+                    $reserva->decoracion_id,
                     $reserva->huespedes,
                     $reserva->adultos,
                     $reserva->niños,

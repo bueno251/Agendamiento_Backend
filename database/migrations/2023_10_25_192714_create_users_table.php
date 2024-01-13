@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('nombre');
             $table->string('correo')->unique();
             $table->string('password');
+            $table->unsignedBigInteger('cliente_id')->nullable();
+            $table->foreign('cliente_id')->references('id')->on('clients')->onDelete('set null');
             $table->softDeletes();
             $table->timestamps();
         });
