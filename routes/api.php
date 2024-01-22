@@ -46,10 +46,15 @@ Route::controller(ReservasController::class)->group(function () {
 
 Route::controller(ClientController::class)->group(function () {
     Route::post('client/create', 'create');
+    Route::post('client/register', 'register');
+    Route::get('client/preregister', 'preregister');
     Route::get('client/read', 'read');
     Route::get('client/find/{id}', 'find');
     Route::get('client/find/document/{doc}', 'findDoc');
     Route::patch('client/update/{id}', 'update');
+    Route::patch('client/personal/{id}', 'personalData');
+    Route::patch('client/contacto/{id}', 'contactoData');
+    Route::patch('client/legal/{id}', 'legalData');
     Route::delete('client/delete/{id}', 'delete');
 });
 

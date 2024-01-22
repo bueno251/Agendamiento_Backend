@@ -19,13 +19,12 @@ return new class extends Migration
             $table->string('apellido2')->nullable();
             $table->unsignedBigInteger('tipo_documento_id')->nullable();
             $table->foreign('tipo_documento_id')->references('id')->on('cliente_tipo_documento')->onDelete('set null');
-            $table->string('documento')->unique();
-            $table->string('direccion');
-            $table->string('pais');
+            $table->string('documento')->nullable();
+            $table->string('direccion')->nullable();
+            $table->string('pais')->nullable();
             $table->string('departamento')->nullable();
-            $table->string('ciudad');
-            $table->string('correo')->unique();
-            $table->string('telefono');
+            $table->string('ciudad')->nullable();
+            $table->string('telefono')->nullable();
             $table->string('telefono_alt')->nullable();
             $table->unsignedBigInteger('tipo_persona_id')->nullable();
             $table->foreign('tipo_persona_id')->references('id')->on('cliente_tipo_persona')->onDelete('set null');
