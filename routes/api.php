@@ -71,9 +71,11 @@ Route::controller(RoomController::class)->group(function () {
     Route::get('room/read', 'read');
     Route::get('room/find/{id}', 'find');
     Route::patch('room/update/{id}', 'update');
+    Route::post('room/img/{id}', 'updateImg');
     Route::delete('room/delete/{id}', 'delete');
     Route::post('room/precios/{id}', 'savePrecios');
     Route::get('room/precios/{id}', 'getPrecios');
+    Route::get('jornadas/read', 'getJornadas');
 });
 
 Route::controller(RoomTipoController::class)->group(function () {

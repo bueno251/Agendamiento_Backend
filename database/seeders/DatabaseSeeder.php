@@ -23,7 +23,9 @@ class DatabaseSeeder extends Seeder
             RoomTipoSeeder::class,
             ReservaEstadoSeeder::class,
             ReservaPagoSeeder::class,
+            TarifaJornadaSeeder::class,
             UserSeeder::class,
+            ConfiguracionPagoSeeder::class,
         ]);
     }
 }
