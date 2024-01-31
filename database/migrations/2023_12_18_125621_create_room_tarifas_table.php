@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreign('room_id')->references('id')->on('rooms')->onDelete('set null');
             $table->unsignedBigInteger('jornada_id')->nullable();
             $table->foreign('jornada_id')->references('id')->on('tarifa_jornada')->onDelete('set null');
+            $table->unsignedBigInteger('estado_id')->nullable();
+            $table->foreign('estado_id')->references('id')->on('tarifa_estados')->onDelete('set null');
             $table->string('dia_semana');
             $table->integer('precio');
             $table->unique(['room_id', 'dia_semana'], 'unique_room_day_tarifa');

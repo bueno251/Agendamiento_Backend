@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre')->unique();
+            $table->string('nombre');
             $table->text('descripcion');
             $table->unsignedBigInteger('room_tipo_id')->nullable();
             $table->foreign('room_tipo_id')->references('id')->on('room_tipos')->onDelete('set null');

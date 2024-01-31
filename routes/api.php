@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\authController;
+use App\Http\Controllers\CaracteristicasController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\clientTipoController;
 use App\Http\Controllers\ConfiguracionController;
@@ -69,6 +70,7 @@ Route::controller(clientTipoController::class)->group(function () {
 Route::controller(RoomController::class)->group(function () {
     Route::post('room/create', 'create');
     Route::get('room/read', 'read');
+    Route::get('room/read/client', 'readClient');
     Route::get('room/find/{id}', 'find');
     Route::patch('room/update/{id}', 'update');
     Route::post('room/img/{id}', 'updateImg');
@@ -121,4 +123,12 @@ Route::controller(DecoracionController::class)->group(function () {
     Route::get('decoraciones/{id}', 'find');
     Route::patch('decoraciones/update/{id}', 'update');
     Route::delete('decoraciones/delete/{id}', 'delete');
+});
+
+Route::controller(CaracteristicasController::class)->group(function () {
+    Route::post('room/caracteristicas/create', 'create');
+    Route::get('room/caracteristicas/read', 'read');
+    Route::get('room/caracteristicas/{id}', 'find');
+    Route::patch('room/caracteristicas/update/{id}', 'update');
+    Route::delete('room/caracteristicas/delete/{id}', 'delete');
 });

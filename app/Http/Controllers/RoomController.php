@@ -33,6 +33,12 @@ class RoomController extends Controller
         created_at)
         VALUES (?, ?, NOW())';
 
+        $queryCaracteristicas = 'INSERT INTO room_caracteristica_relacion (
+        room_id,
+        caracteristica_id,
+        created_at)
+        VALUES (?, ?, NOW())';
+
         DB::beginTransaction();
 
         try {
@@ -56,6 +62,15 @@ class RoomController extends Controller
                         $ruta,
                     ]);
                 }
+            }
+
+            $caracteristics = $request->input('caracteristic', []);
+
+            foreach ($caracteristics as $caracteristic) {
+                DB::insert($queryCaracteristicas, [
+                    $roomId,
+                    $caracteristic,
+                ]);
             }
 
             DB::commit();
@@ -90,7 +105,13 @@ class RoomController extends Controller
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
             FROM room_imgs ri 
             WHERE ri.room_id = r.id AND ri.deleted_at IS NULL
-        ) AS imgs
+        ) AS imgs,
+        (
+            SELECT
+            JSON_ARRAYAGG(rcr.caracteristica_id)
+            FROM room_caracteristica_relacion rcr
+            WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
+        ) AS caracteristics
         FROM rooms r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
@@ -101,6 +122,56 @@ class RoomController extends Controller
 
         foreach ($rooms as $room) {
             $room->habilitada = $room->habilitada ? true : false;
+            $room->precios = $this->getPrecios($room->id);
+            $room->imgs = json_decode($room->imgs);
+            $room->caracteristics = json_decode($room->caracteristics);
+        }
+
+        return response($rooms, 200);
+    }
+
+    public function readClient()
+    {
+        $query = 'SELECT
+        r.id AS id,
+        r.nombre AS nombre,
+        r.descripcion AS descripcion,
+        r.room_tipo_id AS tipoId,
+        rt.tipo AS tipo,
+        r.room_estado_id AS estadoId,
+        re.estado AS estado,
+        r.capacidad AS capacidad,
+        r.habilitada AS habilitada,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
+            FROM room_imgs ri 
+            WHERE ri.room_id = r.id AND ri.deleted_at IS NULL
+        ) AS imgs,
+        (
+            SELECT
+            JSON_ARRAYAGG(rcr.caracteristica_id)
+            FROM room_caracteristica_relacion rcr
+            WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
+        ) AS caracteristics
+        FROM rooms r
+        JOIN room_tipos rt ON r.room_tipo_id = rt.id
+        JOIN room_estados re ON r.room_estado_id = re.id
+        WHERE r.deleted_at IS NULL
+        AND EXISTS (
+            SELECT 1
+            FROM room_tarifas rt
+            WHERE rt.room_id = r.id AND rt.deleted_at IS NULL
+        )
+        ORDER BY r.created_at DESC';
+
+        $rooms = DB::select($query);
+
+        foreach ($rooms as $room) {
+            $room->habilitada = $room->habilitada ? true : false;
+            $room->precios = $this->getPrecios($room->id);
+            $room->imgs = json_decode($room->imgs);
+            $room->caracteristics = json_decode($room->caracteristics);
         }
 
         return response($rooms, 200);
@@ -296,24 +367,53 @@ class RoomController extends Controller
         updated_at = now()
         WHERE id = ?';
 
-        $room = DB::update($query, [
-            $request->nombre,
-            $request->descripcion,
-            $request->roomTipo,
-            $request->capacidad,
-            $request->estado,
-            $id
-        ]);
+        $queryCaracteristicasCreate = 'INSERT INTO room_caracteristica_relacion (
+        room_id,
+        caracteristica_id,
+        estado,
+        created_at) 
+        VALUES (?, ?, 1, NOW()) 
+        ON DUPLICATE KEY UPDATE estado = 1';
 
-        RoomBitacoraCambioController::create($request->user, $id, $request->estado, $request->estadoAntiguo);
+        $queryCaracteristicasUpdate = 'UPDATE room_caracteristica_relacion SET estado = 0, updated_at = NOW()
+        WHERE room_id = ? AND caracteristica_id = ?';
 
-        if ($room) {
+        $activar = $request->input('activar');
+        $desactivar = $request->input('desactivar');
+
+        DB::beginTransaction();
+
+        try {
+            DB::update($query, [
+                $request->nombre,
+                $request->descripcion,
+                $request->roomTipo,
+                $request->capacidad,
+                $request->estado,
+                $id
+            ]);
+
+            RoomBitacoraCambioController::create($request->user, $id, $request->estado, $request->estadoAntiguo);
+
+            foreach ($activar as $caracteristicaId) {
+                DB::insert($queryCaracteristicasCreate, [$id, $caracteristicaId]);
+            }
+            
+            foreach ($desactivar as $caracteristicaId) {
+                DB::update($queryCaracteristicasUpdate, [$id, $caracteristicaId]);
+            }
+
+            DB::commit();
+
             return response()->json([
                 'message' => 'Actualizada exitosamente',
             ]);
-        } else {
+        } catch (\Exception $e) {
+            DB::rollBack();
+
             return response()->json([
                 'message' => 'Error al actualizar',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -358,7 +458,7 @@ class RoomController extends Controller
 
             foreach ($urls as $url) {
                 $filePath = public_path('storage/' . $url);
-                
+
                 // Verificar si el archivo existe antes de intentar eliminarlo
                 if (file_exists($filePath)) {
                     unlink($filePath);
@@ -367,13 +467,12 @@ class RoomController extends Controller
 
             return response()->json([
                 'message' => 'Imagenes Guardadas',
-                'urls' => $urls
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
 
             return response()->json([
-                'message' => 'Error al crear',
+                'message' => 'Error Al Guardar',
                 'error' => $e->getMessage(),
             ], 500);
         }
