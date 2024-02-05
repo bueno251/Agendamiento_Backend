@@ -78,6 +78,7 @@ Route::controller(RoomController::class)->group(function () {
     Route::post('room/precios/{id}', 'savePrecios');
     Route::get('room/precios/{id}', 'getPrecios');
     Route::get('jornadas/read', 'getJornadas');
+    Route::patch('room/estados', 'updateEstado');
 });
 
 Route::controller(RoomTipoController::class)->group(function () {

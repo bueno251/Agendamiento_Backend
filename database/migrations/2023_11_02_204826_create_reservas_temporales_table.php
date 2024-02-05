@@ -21,6 +21,8 @@ return new class extends Migration
             $table->unsignedBigInteger('estado_id')->nullable();
             $table->unsignedBigInteger('desayuno_id')->nullable();
             $table->unsignedBigInteger('decoracion_id')->nullable();
+            $table->string('cedula');
+            $table->string('telefono');
             $table->integer('huespedes');
             $table->integer('adultos');
             $table->integer('niños');

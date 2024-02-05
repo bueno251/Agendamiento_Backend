@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('room_caracteristica_relacion', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room_id')->nullable();
-            $table->foreign('room_id')->references('id')->on('rooms')->onDelete('no action');
+            $table->foreign('room_id')->references('id')->on('room_padre')->onDelete('no action');
             $table->unsignedBigInteger('caracteristica_id')->nullable();
             $table->foreign('caracteristica_id')->references('id')->on('room_caracteristicas')->onDelete('set null');
             $table->boolean('estado')->default(1);

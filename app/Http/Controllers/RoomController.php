@@ -8,6 +8,16 @@ use Illuminate\Support\Facades\Storage;
 
 class RoomController extends Controller
 {
+    /**
+     * Crear Habitación
+     *
+     * Este método se encarga de crear una nueva habitación en el sistema de gestión de habitaciones.
+     * La información de la habitación se recibe a través de una solicitud HTTP, se valida y se realiza la inserción de datos en varias tablas de la base de datos.
+     * Además, se realiza un manejo de transacciones para garantizar la integridad de los datos.
+     *
+     * @param Request $request Datos de entrada que incluyen información como 'nombre' (string, obligatorio), 'descripcion' (string, obligatorio), 'roomTipo' (integer, obligatorio), 'capacidad' (integer, obligatorio), 'estado' (integer, obligatorio), 'cantidad' (integer, obligatorio), 'desayuno' (integer, obligatorio), 'decoracion' (integer, obligatorio), 'imgs' (array de archivos, opcional), 'caracteristic' (array de enteros, opcional).
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function create(Request $request)
     {
         $request->validate([
@@ -16,19 +26,37 @@ class RoomController extends Controller
             'roomTipo' => 'required|integer',
             'capacidad' => 'required|integer',
             'estado' => 'required|integer',
+            'cantidad' => 'required|integer',
+            'desayuno' => 'required|integer',
+            'decoracion' => 'required|integer',
         ]);
 
-        $query = 'INSERT INTO rooms (
+        $query = 'INSERT INTO room_padre (
         nombre,
         descripcion,
         room_tipo_id,
         capacidad,
         room_estado_id,
+        cantidad,
+        has_desayuno,
+        has_decoracion,
         created_at)
-        VALUES (?, ?, ?, ?, ?, now())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, now())';
+
+        $queryRooms = 'INSERT INTO rooms (
+        room_padre_id,
+        nombre,
+        descripcion,
+        room_tipo_id,
+        capacidad,
+        room_estado_id,
+        has_desayuno,
+        has_decoracion,
+        created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, now())';
 
         $queryImagenes = 'INSERT INTO room_imgs (
-        room_id,
+        room_padre_id,
         url,
         created_at)
         VALUES (?, ?, NOW())';
@@ -48,6 +76,9 @@ class RoomController extends Controller
                 $request->roomTipo,
                 $request->capacidad,
                 $request->estado,
+                $request->cantidad,
+                $request->desayuno,
+                $request->decoracion,
             ]);
 
             $roomId = DB::getPdo()->lastInsertId();
@@ -62,6 +93,19 @@ class RoomController extends Controller
                         $ruta,
                     ]);
                 }
+            }
+
+            for ($i = 0; $i < $request->cantidad; $i++) {
+                DB::insert($queryRooms, [
+                    $roomId,
+                    $request->nombre . ' - ' . (1 + $i),
+                    $request->descripcion,
+                    $request->roomTipo,
+                    $request->capacidad,
+                    $request->estado,
+                    $request->desayuno,
+                    $request->decoracion,
+                ]);
             }
 
             $caracteristics = $request->input('caracteristic', []);
@@ -100,19 +144,27 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
+        r.has_desayuno AS has_desayuno,
+        r.has_decoracion AS has_decoracion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
             FROM room_imgs ri 
-            WHERE ri.room_id = r.id AND ri.deleted_at IS NULL
+            WHERE ri.room_padre_id = r.id AND ri.deleted_at IS NULL
         ) AS imgs,
         (
             SELECT
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
             WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
-        ) AS caracteristics
-        FROM rooms r
+        ) AS caracteristics,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT("id", rs.id,"nombre", rs.nombre, "estado_id", rs.room_estado_id))
+            FROM rooms rs
+            WHERE rs.room_padre_id = r.id AND rs.deleted_at IS NULL
+        ) AS rooms
+        FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
         WHERE r.deleted_at IS NULL
@@ -125,6 +177,7 @@ class RoomController extends Controller
             $room->precios = $this->getPrecios($room->id);
             $room->imgs = json_decode($room->imgs);
             $room->caracteristics = json_decode($room->caracteristics);
+            $room->rooms = json_decode($room->rooms);
         }
 
         return response($rooms, 200);
@@ -142,11 +195,13 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
+        r.has_desayuno AS has_desayuno,
+        r.has_decoracion AS has_decoracion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
             FROM room_imgs ri 
-            WHERE ri.room_id = r.id AND ri.deleted_at IS NULL
+            WHERE ri.room_padre_id = r.id AND ri.deleted_at IS NULL
         ) AS imgs,
         (
             SELECT
@@ -154,7 +209,7 @@ class RoomController extends Controller
             FROM room_caracteristica_relacion rcr
             WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
         ) AS caracteristics
-        FROM rooms r
+        FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
         WHERE r.deleted_at IS NULL
@@ -189,13 +244,22 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
+        r.cantidad AS cantidad,
+        r.has_desayuno AS has_desayuno,
+        r.has_decoracion AS has_decoracion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
             FROM room_imgs ri 
-            WHERE ri.room_id = r.id AND ri.deleted_at IS NULL
-        ) AS imgs
-        FROM rooms r
+            WHERE ri.room_padre_id = r.id AND ri.deleted_at IS NULL
+        ) AS imgs,
+        (
+            SELECT
+            JSON_ARRAYAGG(rcr.caracteristica_id)
+            FROM room_caracteristica_relacion rcr
+            WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
+        ) AS caracteristics
+        FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
         WHERE r.id = ? && r.deleted_at IS NULL';
@@ -210,6 +274,8 @@ class RoomController extends Controller
 
         $rooms[0]->habilitada = $rooms[0]->habilitada ? true : false;
         $rooms[0]->precios = $this->getPrecios($rooms[0]->id);
+        $rooms[0]->imgs = json_decode($rooms[0]->imgs);
+        $rooms[0]->caracteristics = json_decode($rooms[0]->caracteristics);
 
         return response($rooms, 200);
     }
@@ -226,12 +292,21 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
+        r.cantidad AS cantidad,
+        r.has_desayuno AS has_desayuno,
+        r.has_decoracion AS has_decoracion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
             FROM room_imgs ri 
             WHERE ri.room_id = r.id AND ri.deleted_at IS NULL
-        ) AS imgs
+        ) AS imgs,
+        (
+            SELECT
+            JSON_ARRAYAGG(rcr.caracteristica_id)
+            FROM room_caracteristica_relacion rcr
+            WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
+        ) AS caracteristics 
         FROM rooms r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
@@ -243,6 +318,8 @@ class RoomController extends Controller
 
         if (count($rooms) > 0) {
             $rooms[0]->habilitada = $rooms[0]->habilitada ? true : false;
+            $rooms[0]->imgs = json_decode($rooms[0]->imgs);
+            $rooms[0]->caracteristics = json_decode($rooms[0]->caracteristics);
 
             return $rooms[0];
         } else {
@@ -261,11 +338,10 @@ class RoomController extends Controller
                         $validate = validator($pago, [
                             'name' => 'required|string',
                             'precio' => 'required|integer',
-                            'jornada_id' => 'required|integer',
                         ]);
 
                         if ($validate->fails()) {
-                            $fail('el formato de los dias es incorrecto: { name:string, precio:integer, jornada_id:integer }');
+                            $fail('el formato de los dias es incorrecto: { name:string, precio:integer}');
                             break;
                         }
                     }
@@ -303,7 +379,7 @@ class RoomController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Precios guradados exitosamente',
+                'message' => 'Precios guardados exitosamente',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -324,10 +400,10 @@ class RoomController extends Controller
         rt.jornada_id AS jornada_id,
         rt.created_at AS created_at
         FROM room_tarifas rt
-        JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
+        LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
         WHERE rt.room_id = ? AND rt.deleted_at IS NULL
         ORDER BY
-        FIELD(rt.dia_semana, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")';
+        FIELD(rt.dia_semana, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")';
 
         $roomprecios = DB::select($query, [$id]);
 
@@ -356,16 +432,30 @@ class RoomController extends Controller
             'capacidad' => 'required',
             'estado' => 'required',
             'estadoAntiguo' => 'required',
+            'desayuno' => 'required|integer',
+            'decoracion' => 'required|integer',
         ]);
 
-        $query = 'UPDATE rooms SET
+        $query = 'UPDATE room_padre SET
         nombre = ?,
         descripcion = ?,
         room_tipo_id = ?,
         capacidad = ?,
         room_estado_id = ?,
+        has_desayuno = ?,
+        has_decoracion = ?,
         updated_at = now()
         WHERE id = ?';
+
+        $queryRooms = 'UPDATE rooms SET
+        descripcion = ?,
+        room_tipo_id = ?,
+        capacidad = ?,
+        room_estado_id = ?,
+        has_desayuno = ?,
+        has_decoracion = ?,
+        updated_at = now()
+        WHERE room_padre_id = ?';
 
         $queryCaracteristicasCreate = 'INSERT INTO room_caracteristica_relacion (
         room_id,
@@ -390,6 +480,18 @@ class RoomController extends Controller
                 $request->roomTipo,
                 $request->capacidad,
                 $request->estado,
+                $request->desayuno,
+                $request->decoracion,
+                $id
+            ]);
+
+            DB::update($queryRooms, [
+                $request->descripcion,
+                $request->roomTipo,
+                $request->capacidad,
+                $request->estado,
+                $request->desayuno,
+                $request->decoracion,
                 $id
             ]);
 
@@ -398,7 +500,7 @@ class RoomController extends Controller
             foreach ($activar as $caracteristicaId) {
                 DB::insert($queryCaracteristicasCreate, [$id, $caracteristicaId]);
             }
-            
+
             foreach ($desactivar as $caracteristicaId) {
                 DB::update($queryCaracteristicasUpdate, [$id, $caracteristicaId]);
             }
@@ -413,6 +515,60 @@ class RoomController extends Controller
 
             return response()->json([
                 'message' => 'Error al actualizar',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function updateEstado(Request $request)
+    {
+        $request->validate([
+            'rooms' => [
+                'required',
+                'array',
+                function ($attribute, $value, $fail) {
+                    foreach ($value as $pago) {
+                        $validate = validator($pago, [
+                            'id' => 'required|integer',
+                            'estado_id' => 'required|integer',
+                        ]);
+
+                        if ($validate->fails()) {
+                            $fail('el formato de las habitaciones es incorrecto. { id:integer, estado_id:integer }');
+                            break;
+                        }
+                    }
+                }
+            ],
+        ]);
+
+        $query = 'UPDATE rooms SET
+        room_estado_id = ?,
+        updated_at = now()
+        WHERE id = ?';
+
+        $rooms = $request->input('rooms');
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($rooms as $room) {
+                DB::update($query, [
+                    $room['estado_id'],
+                    $room['id'],
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Guardado Exitosamente',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Error Al Guardar',
                 'error' => $e->getMessage(),
             ], 500);
         }

@@ -11,12 +11,11 @@ class ReservasController extends Controller
     {
 
         $request->validate([
+            'cedula' => 'required|string',
+            'telefono' => 'required|string',
             'dateIn' => 'required|string',
             'dateOut' => 'required|string',
             'room' => 'required|integer',
-            'user' => 'required|integer',
-            'desayuno' => 'required|integer',
-            'decoracion' => 'required|integer',
             'huespedes' => 'required|integer',
             'adultos' => 'required|integer',
             'niños' => 'required|integer',
@@ -53,6 +52,8 @@ class ReservasController extends Controller
         $query = 'INSERT INTO reservas_temporales (
         fecha_entrada,
         fecha_salida,
+        cedula,
+        telefono,
         room_id,
         cliente_id,
         user_id,
@@ -65,17 +66,19 @@ class ReservasController extends Controller
         precio,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $reservaT = DB::insert($query, [
             $request->dateIn,
             $request->dateOut,
+            $request->cedula,
+            $request->telefono,
             $request->room,
             isset($request->cliente) ? $request->cliente : null,
-            $request->user,
+            isset($request->user) ? $request->user : null,
             1,
-            $request->desayuno,
-            $request->decoracion,
+            isset($request->desayuno) ? $request->desayuno : null,
+            isset($request->decoracion) ? $request->decoracion : null,
             $request->huespedes,
             $request->adultos,
             $request->niños,
@@ -87,7 +90,7 @@ class ReservasController extends Controller
 
         if ($reservaT) {
             return response()->json([
-                'message' => 'esperando pago',
+                'message' => 'Se espera el pago de su reserva dentro de los siguientes 10 minutos o sera eliminada su reserva',
                 'reserva' => $id,
             ]);
         } else {

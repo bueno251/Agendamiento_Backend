@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('room_tarifas', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room_id')->nullable();
-            $table->foreign('room_id')->references('id')->on('rooms')->onDelete('set null');
+            $table->foreign('room_id')->references('id')->on('room_padre')->onDelete('set null');
             $table->unsignedBigInteger('jornada_id')->nullable();
             $table->foreign('jornada_id')->references('id')->on('tarifa_jornada')->onDelete('set null');
             $table->unsignedBigInteger('estado_id')->nullable();

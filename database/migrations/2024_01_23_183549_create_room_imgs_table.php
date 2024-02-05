@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('room_imgs', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('room_id')->nullable();
-            $table->foreign('room_id')->references('id')->on('rooms')->onDelete('set null');
+            $table->unsignedBigInteger('room_padre_id')->nullable();
+            $table->foreign('room_padre_id')->references('id')->on('room_padre')->onDelete('set null');
             $table->string('url');
             $table->timestamps();
             $table->softDeletes();
