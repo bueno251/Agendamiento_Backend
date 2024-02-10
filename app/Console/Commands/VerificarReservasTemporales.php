@@ -45,7 +45,7 @@ class VerificarReservasTemporales extends Command
         FROM reservas_temporales
         WHERE
             deleted_at IS NULL
-            AND TIMESTAMPDIFF(MINUTE, created_at, NOW()) >= 5
+            AND TIMESTAMPDIFF(MINUTE, created_at, NOW()) >= 10
         ORDER BY created_at ASC';
 
         $reservasTemporales = DB::select($query);

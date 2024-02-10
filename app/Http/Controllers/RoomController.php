@@ -258,7 +258,13 @@ class RoomController extends Controller
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
             WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
-        ) AS caracteristics
+        ) AS caracteristics,
+        (
+            SELECT
+            COUNT(*)
+            FROM rooms rs
+            WHERE rs.room_padre_id = r.id AND rs.habilitada = 1 AND rs.deleted_at IS NULL
+        ) AS rooms
         FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
@@ -292,21 +298,20 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
-        r.cantidad AS cantidad,
         r.has_desayuno AS has_desayuno,
         r.has_decoracion AS has_decoracion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
             FROM room_imgs ri 
-            WHERE ri.room_id = r.id AND ri.deleted_at IS NULL
+            WHERE ri.room_padre_id = r.room_padre_id AND ri.deleted_at IS NULL
         ) AS imgs,
         (
             SELECT
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
-            WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
-        ) AS caracteristics 
+            WHERE rcr.room_id = r.room_padre_id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
+        ) AS caracteristics
         FROM rooms r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
@@ -577,7 +582,7 @@ class RoomController extends Controller
     public function updateImg(Request $request, $id)
     {
         $queryImagenes = 'INSERT INTO room_imgs (
-        room_id,
+        room_padre_id,
         url,
         created_at)
         VALUES (?, ?, NOW())';

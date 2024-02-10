@@ -12,19 +12,30 @@ class ReservasController extends Controller
 
         $request->validate([
             'cedula' => 'required|string',
+            'nombre' => 'required|string',
+            'apellido' => 'required|string',
+            'correo' => 'required|string',
             'telefono' => 'required|string',
             'dateIn' => 'required|string',
             'dateOut' => 'required|string',
             'room' => 'required|integer',
-            'huespedes' => 'required|integer',
             'adultos' => 'required|integer',
             'niños' => 'required|integer',
             'precio' => 'required|integer',
+            'cantidad_rooms' => 'required|integer',
             'verificacion_pago' => 'required|integer',
         ]);
 
+        if ($request->verificacion_pago) {
+            $table = "reservas";
+            $message = "Reserva Hecha";
+        } else {
+            $table = "reservas_temporales";
+            $message = "Se espera el pago de su reserva dentro de los siguientes 10 minutos o sera eliminada su reserva";
+        }
+
         $query = "SELECT id 
-        FROM reservas_temporales
+        FROM $table
         WHERE room_id = ?
         AND deleted_at IS NULL
         AND (
@@ -49,10 +60,13 @@ class ReservasController extends Controller
             ], 400);
         }
 
-        $query = 'INSERT INTO reservas_temporales (
+        $query = "INSERT INTO $table (
         fecha_entrada,
         fecha_salida,
         cedula,
+        nombre,
+        apellido,
+        correo,
         telefono,
         room_id,
         cliente_id,
@@ -66,12 +80,15 @@ class ReservasController extends Controller
         precio,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $reservaT = DB::insert($query, [
             $request->dateIn,
             $request->dateOut,
             $request->cedula,
+            $request->nombre,
+            $request->apellido,
+            $request->correo,
             $request->telefono,
             $request->room,
             isset($request->cliente) ? $request->cliente : null,
@@ -79,7 +96,7 @@ class ReservasController extends Controller
             1,
             isset($request->desayuno) ? $request->desayuno : null,
             isset($request->decoracion) ? $request->decoracion : null,
-            $request->huespedes,
+            $request->adultos + $request->niños,
             $request->adultos,
             $request->niños,
             $request->precio,
@@ -90,7 +107,7 @@ class ReservasController extends Controller
 
         if ($reservaT) {
             return response()->json([
-                'message' => 'Se espera el pago de su reserva dentro de los siguientes 10 minutos o sera eliminada su reserva',
+                'message' => $message,
                 'reserva' => $id,
             ]);
         } else {
@@ -184,7 +201,6 @@ class ReservasController extends Controller
         $reservas = DB::select($query);
 
         foreach ($reservas as $reserva) {
-            $reserva->user = UserController::getUser($reserva->user);
             $reserva->room = RoomController::getRoom($reserva->room);
             $reserva->verificacionPago = $reserva->verificacionPago ? true : false;
         }

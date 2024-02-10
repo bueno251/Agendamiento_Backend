@@ -23,6 +23,9 @@ return new class extends Migration
             $table->unsignedBigInteger('decoracion_id')->nullable();
             $table->string('cedula');
             $table->string('telefono');
+            $table->string('nombre');
+            $table->string('apellido');
+            $table->string('correo');
             $table->integer('huespedes');
             $table->integer('adultos');
             $table->integer('niños');

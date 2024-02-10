@@ -27,11 +27,16 @@ return new class extends Migration
             $table->foreign('desayuno_id')->references('id')->on('desayunos')->onDelete('set null');
             $table->unsignedBigInteger('decoracion_id')->nullable();
             $table->foreign('decoracion_id')->references('id')->on('decoraciones')->onDelete('set null');
+            $table->string('cedula');
+            $table->string('telefono');
+            $table->string('nombre');
+            $table->string('apellido');
+            $table->string('correo');
             $table->integer('huespedes');
             $table->integer('adultos');
-            $table->integer('niños');
+            $table->integer('niños')->default(0);
             $table->integer('precio');
-            $table->integer('abono');
+            $table->integer('abono')->default(0);
             $table->string('comprobante')->nullable();
             $table->boolean('verificacion_pago');
             $table->softDeletes();
