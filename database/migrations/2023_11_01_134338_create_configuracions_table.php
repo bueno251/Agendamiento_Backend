@@ -13,9 +13,11 @@ return new class extends Migration
     {
         Schema::create('configuracions', function (Blueprint $table) {
             $table->id();
-            $table->integer('usuario_reserva');
+            $table->boolean('usuario_reserva');
             $table->unsignedBigInteger('id_empresa')->nullable();
             $table->foreign('id_empresa')->references('id')->on('empresa')->onDelete('set null');
+            $table->unsignedBigInteger('id_config')->nullable();
+            $table->foreign('id_config')->references('id')->on('config_defecto')->onDelete('set null');
             $table->softDeletes();
             $table->timestamps();
         });

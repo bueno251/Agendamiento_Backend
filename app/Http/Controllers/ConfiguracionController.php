@@ -5,45 +5,92 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
-use function PHPUnit\Framework\isNull;
-
 class ConfiguracionController extends Controller
 {
+    /**
+     * Leer Configuración
+     *
+     * Este método se encarga de leer la configuración actual del sistema. Realiza consultas a la base de datos para obtener información sobre la configuración general, los tipos de pagos y la empresa asociada.
+     *
+     * @return \Illuminate\Http\Response Respuesta JSON con la configuración actual, incluyendo tipos de pagos y detalles de la empresa, o un mensaje de error en caso de fallo.
+     */
     public function read()
     {
+        // Consulta SQL para obtener la configuración general
         $queryConfig = 'SELECT
         id,
         usuario_reserva,
-        id_empresa AS empresa
+        id_empresa AS empresa,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT("id", rtp.id, "tipo", rtp.tipo, "estado", cp.estado))
+            FROM reserva_tipo_pagos rtp
+            LEFT JOIN configuracion_pagos cp ON cp.reserva_tipo_pago_id = rtp.id
+            WHERE rtp.deleted_at IS NULL
+        ) AS pagos
         FROM configuracions';
 
-        $queryTipoPagos = 'SELECT
-        tp.id AS id,
-        tp.tipo AS tipo,
-        sp.estado AS estado
-        FROM reserva_tipo_pagos tp
-        LEFT JOIN configuracion_pagos sp ON sp.reserva_tipo_pago_id = tp.id
-        WHERE tp.deleted_at IS NULL';
+        try {
+            // Ejecutar consulta
+            $configuration = DB::select($queryConfig);
 
-        $pagos = DB::select($queryTipoPagos);
-        $configuration = DB::select($queryConfig);
+            // Decodificar tipos de pagos de la configuración
+            $configuration[0]->pagos = json_decode($configuration[0]->pagos);
 
-        $configuration[0]->pagos = $pagos;
-        $configuration[0]->usuario_reserva = $configuration[0]->usuario_reserva ? true : false;
-        $configuration[0]->empresa = $configuration[0]->empresa ? $this->getEmpresa($configuration[0]->empresa) : null;
+            // Convertir el campo 'usuario_reserva' a un formato booleano
+            $configuration[0]->usuario_reserva = (bool) $configuration[0]->usuario_reserva;
 
-        return response($configuration, 200);
+            // Obtener detalles de la empresa si está asociada
+            $configuration[0]->empresa = $configuration[0]->empresa ? $this->getEmpresa($configuration[0]->empresa) : null;
+
+            // Retornar respuesta exitosa
+            return response($configuration, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles
+            return response()->json([
+                'message' => 'Error al traer la configuracion',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
+    /**
+     * Configurar Tipos de Pagos
+     *
+     * Este método se encarga de configurar los tipos de pagos para una empresa en el sistema. La información de los tipos de pagos se recibe a través de una solicitud HTTP, se valida y se realiza la inserción o actualización de datos en la tabla correspondiente de la base de datos.
+     * Se utiliza la cláusula ON DUPLICATE KEY UPDATE para manejar conflictos en caso de duplicados y se maneja cualquier error que pueda ocurrir durante el proceso.
+     *
+     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'pagos' (array, obligatorio) que contiene información sobre los tipos de pagos a configurar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function pagos(Request $request)
     {
+        // Validar los datos de entrada
         $request->validate([
             'configuracionId' => 'required|integer',
-            'pagos' => 'required',
+            'pagos' => [
+                'required',
+                'array',
+                function ($attribute, $value, $fail) {
+                    foreach ($value as $pago) {
+                        $validate = validator($pago, [
+                            'id' => 'required|integer',
+                            'estado' => 'required|integer',
+                        ]);
+
+                        if ($validate->fails()) {
+                            $fail('el formato de los pagos es incorrecto: { id:integer, estado:integer}');
+                            break;
+                        }
+                    }
+                }
+            ],
         ]);
 
+        // Obtener la información de pagos desde la solicitud
         $pagos = $request->input('pagos');
 
+        // Consulta SQL para insertar o actualizar tipos de pagos
         $query = 'INSERT INTO configuracion_pagos (
         configuracion_id,
         reserva_tipo_pago_id,
@@ -52,7 +99,11 @@ class ConfiguracionController extends Controller
         VALUES (?, ?, ?, NOW())
         ON DUPLICATE KEY UPDATE estado = VALUES(estado), updated_at = NOW()';
 
+        // Iniciar transacción
+        DB::beginTransaction();
+
         try {
+            // Iterar sobre cada tipo de pago y realizar la inserción o actualización
             foreach ($pagos as $tipo) {
                 DB::insert($query, [
                     $request->configuracionId,
@@ -61,48 +112,87 @@ class ConfiguracionController extends Controller
                 ]);
             }
 
+            // Commit de la transacción
+            DB::commit();
+
+            // Retornar respuesta de éxito
             return response()->json([
-                'message' => 'Tipo de pagos guardados',
+                'message' => 'Tipos de pagos guardados con éxito',
             ]);
         } catch (\Exception $e) {
+            // Rollback en caso de error
             DB::rollBack();
 
+            // Retornar respuesta de error con detalles
             return response()->json([
-                'message' => 'Error al crear: ' . $e->getMessage(),
+                'message' => 'Error al guardar',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Reservar Configuración
+     *
+     * Este método se encarga de actualizar la configuración de reserva para un usuario en el sistema. La información de reserva se recibe a través de una solicitud HTTP, se valida y se realiza la actualización de datos en la tabla correspondiente de la base de datos.
+     * Se maneja cualquier error que pueda ocurrir durante el proceso.
+     *
+     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'reservar' (integer, obligatorio).
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function reservar(Request $request)
     {
+        // Validar los datos de entrada
         $request->validate([
             'configuracionId' => 'required|integer',
             'reservar' => 'required',
         ]);
 
-        $query = 'UPDATE configuracions SET 
+        // Consulta SQL para actualizar la configuración de reserva
+        $updateQuery = 'UPDATE configuracions SET 
         usuario_reserva = ?,
-        updated_at = now()
+        updated_at = NOW()
         WHERE id = ?';
 
-        $reservar = DB::update($query, [
-            $request->reservar,
-            $request->configuracionId,
-        ]);
-
-        if ($reservar) {
-            return response()->json([
-                'message' => 'Cambios Guardados',
+        try {
+            // Ejecutar la actualización de la configuración de reserva
+            $reservar = DB::update($updateQuery, [
+                $request->reservar,
+                $request->configuracionId,
             ]);
-        } else {
+
+            if ($reservar) {
+                // Retornar respuesta de éxito
+                return response()->json([
+                    'message' => 'Cambios Guardados',
+                ]);
+            } else {
+                // Retornar respuesta de error
+                return response()->json([
+                    'message' => 'Error al guardar la configuración de reserva',
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles
             return response()->json([
                 'message' => 'Error al guardar',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Crear Empresa
+     *
+     * Este método se encarga de crear una nueva empresa en el sistema. La información de la empresa se recibe a través de una solicitud HTTP, se valida y se realiza la inserción y actualización de datos en las tablas correspondientes de la base de datos.
+     * Se utiliza una transacción para garantizar la consistencia de los datos, y se maneja cualquier error que pueda ocurrir durante el proceso.
+     *
+     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'nombre' (string, obligatorio), 'tipoDocumento' (integer, obligatorio), 'identificacion' (string, obligatorio), 'dv' (string, obligatorio), 'registro' (string, obligatorio), 'pais' (string, obligatorio), 'departamento' (string, obligatorio), 'municipio' (string, obligatorio), 'direccion' (string, obligatorio), 'correo' (string, obligatorio), 'telefono' (string, obligatorio), 'lenguaje' (string, obligatorio), 'impuesto' (string, obligatorio), 'tipoOperacion' (integer, obligatorio), 'tipoEntorno' (integer, obligatorio), 'tipoOrganizacion' (integer, obligatorio), 'tipoResponsabilidad' (integer, obligatorio), 'tipoRegimen' (integer, obligatorio).
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function empresa(Request $request)
     {
+        // Validar los datos de entrada
         $request->validate([
             'configuracionId' => 'required|integer',
             'nombre' => 'required|string',
@@ -125,7 +215,8 @@ class ConfiguracionController extends Controller
             'tipoRegimen' => 'required|integer',
         ]);
 
-        $query = 'INSERT INTO empresa (
+        // Consulta SQL para insertar la empresa
+        $insertQuery = 'INSERT INTO empresa (
         nombre,
         id_tipo_documento,
         identificacion,
@@ -147,8 +238,12 @@ class ConfiguracionController extends Controller
         created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
+        // Iniciar transacción
+        DB::beginTransaction();
+
         try {
-            DB::insert($query, [
+            // Ejecutar la inserción de la empresa
+            DB::insert($insertQuery, [
                 $request->nombre,
                 $request->tipoDocumento,
                 $request->identificacion,
@@ -169,97 +264,224 @@ class ConfiguracionController extends Controller
                 $request->tipoRegimen,
             ]);
 
+            // Obtener el ID de la empresa recién creada
             $empresaId = DB::getPdo()->lastInsertId();
 
-            $query = 'UPDATE configuracions SET 
+            // Consulta SQL para actualizar la configuración principal
+            $updateQuery = 'UPDATE configuracions SET 
             id_empresa = ?,
-            updated_at = now()
+            updated_at = NOW()
             WHERE id = ?';
 
-            $gardar = DB::update($query, [
+            // Ejecutar la actualización de la configuración principal
+            DB::update($updateQuery, [
                 $empresaId,
                 $request->configuracionId,
             ]);
 
-            if ($gardar) {
-                return response()->json([
-                    'message' => 'Empresa guardada',
-                ]);
-            } else {
-                return response()->json([
-                    'message' => 'Error al guardar',
-                ], 500);
-            }
+            // Commit de la transacción
+            DB::commit();
+
+            // Retornar respuesta de éxito
+            return response()->json([
+                'message' => 'Empresa guardada con éxito',
+            ]);
         } catch (\Exception $e) {
+            // Rollback en caso de error
             DB::rollBack();
 
+            // Retornar respuesta de error con detalles
             return response()->json([
-                'message' => 'Error al guardar: ' . $e->getMessage(),
+                'message' => 'Error al guardar la configuración por defecto',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    public function empresaTypes()
+    /**
+     * Configuración por Defecto
+     *
+     * Este método se encarga de establecer o actualizar la configuración por defecto para los datos del cliente en el sistema.
+     * La información de configuración se recibe a través de una solicitud HTTP, se valida y se realiza la inserción o actualización de datos en las tablas correspondientes de la base de datos.
+     * Se utiliza una transacción para garantizar la consistencia de los datos, y se maneja cualquier error que pueda ocurrir durante el proceso.
+     *
+     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'pais' (string, obligatorio), 'departamento' (string, obligatorio), 'municipio' (string, obligatorio), 'tipoDocumento' (integer, obligatorio), 'tipoPersona' (integer, obligatorio), 'tipoResponsabilidad' (integer, obligatorio), 'tipoRegimen' (integer, obligatorio).
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
+    public function defaultConfig(Request $request)
     {
-        $queryTipoDocumento = 'SELECT
-        id,
-        tipo,
-        created_at
-        FROM cliente_tipo_documento
-        WHERE deleted_at IS NULL';
-
-        $queryTipoPersona = 'SELECT
-        id,
-        tipo,
-        created_at
-        FROM cliente_tipo_persona
-        WHERE deleted_at IS NULL';
-
-        $queryTipoRegimen = 'SELECT
-        id,
-        tipo,
-        created_at
-        FROM cliente_tipo_regimen
-        WHERE deleted_at IS NULL';
-
-        $queryTipoResponsabilidad = 'SELECT
-        id,
-        tipo,
-        created_at
-        FROM cliente_tipo_obligacion
-        WHERE deleted_at IS NULL';
-
-        $queryTipoOperacion = 'SELECT
-        id,
-        tipo,
-        created_at
-        FROM empresa_tipo_operacion
-        WHERE deleted_at IS NULL';
-
-        $queryTipoEntorno = 'SELECT
-        id,
-        tipo,
-        created_at
-        FROM empresa_tipo_entorno
-        WHERE deleted_at IS NULL';
-
-        $documentos = DB::select($queryTipoDocumento);
-        $organizaciones = DB::select($queryTipoPersona);
-        $responsabilidades = DB::select($queryTipoResponsabilidad);
-        $regimenes = DB::select($queryTipoRegimen);
-        $operaciones = DB::select($queryTipoOperacion);
-        $entornos = DB::select($queryTipoEntorno);
-
-        return response()->json([
-            'documentos' => $documentos,
-            'organizaciones' => $organizaciones,
-            'responsabilidades' => $responsabilidades,
-            'regimenes' => $regimenes,
-            'operaciones' => $operaciones,
-            'entornos' => $entornos,
+        // Validar los datos de entrada
+        $request->validate([
+            'configuracionId' => 'required|integer',
+            'pais' => 'required|string',
+            'departamento' => 'required|string',
+            'municipio' => 'required|string',
+            'tipoDocumento' => 'required|integer',
+            'tipoPersona' => 'required|integer',
+            'tipoResponsabilidad' => 'required|integer',
+            'tipoRegimen' => 'required|integer',
         ]);
+
+        // Consulta SQL para verificar si ya existe una configuración por defecto para la configuración principal
+        $existingConfigQuery = 'SELECT id FROM config_defecto WHERE deleted_at IS NULL';
+
+        // Consulta SQL para insertar la configuración por defecto
+        $insertQuery = 'INSERT INTO config_defecto (
+        pais,
+        departamento,
+        ciudad,
+        tipo_documento_id,
+        tipo_persona_id,
+        tipo_obligacion_id,
+        tipo_regimen_id,
+        created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
+
+        // Consulta SQL para actualizar la configuración por defecto
+        $updateConfig = 'UPDATE config_defecto SET 
+        pais = ?,
+        departamento = ?,
+        ciudad = ?,
+        tipo_documento_id = ?,
+        tipo_persona_id = ?,
+        tipo_obligacion_id = ?,
+        tipo_regimen_id = ?,
+        updated_at = NOW()';
+
+        // Consulta SQL para actualizar la configuración principal
+        $updateQuery = 'UPDATE configuracions SET 
+        id_config = ?,
+        updated_at = NOW()
+        WHERE id = ?';
+
+        DB::beginTransaction();
+
+        try {
+            // Verificar si ya existe una configuración por defecto
+            $existingConfig = DB::selectOne($existingConfigQuery);
+
+            if ($existingConfig) {
+                // Si ya existe, actualizar la configuración existente
+                $configId = $existingConfig->id;
+
+                DB::update($updateConfig, [
+                    $request->pais,
+                    $request->departamento,
+                    $request->municipio,
+                    $request->tipoDocumento,
+                    $request->tipoPersona,
+                    $request->tipoResponsabilidad,
+                    $request->tipoRegimen,
+                ]);
+            } else {
+                // Si no existe, insertar una nueva configuración
+                DB::insert($insertQuery, [
+                    $request->pais,
+                    $request->departamento,
+                    $request->municipio,
+                    $request->tipoDocumento,
+                    $request->tipoPersona,
+                    $request->tipoResponsabilidad,
+                    $request->tipoRegimen,
+                ]);
+
+                // Obtener el ID de la configuración por defecto recién creada
+                $configId = DB::getPdo()->lastInsertId();
+            }
+
+            // Ejecutar la actualización de la configuración principal
+            DB::update($updateQuery, [
+                $configId,
+                $request->configuracionId,
+            ]);
+
+            // Commit de la transacción
+            DB::commit();
+
+            // Retornar respuesta de éxito
+            return response()->json([
+                'message' => 'Configuración por defecto guardada o actualizada con éxito',
+            ]);
+        } catch (\Exception $e) {
+            // Rollback en caso de error
+            DB::rollBack();
+
+            // Retornar respuesta de error con detalles
+            return response()->json([
+                'message' => 'Error al guardar o actualizar la configuración por defecto',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
+
+    /**
+     * Obtener Tipos de Empresas
+     *
+     * Este método se encarga de obtener diversos tipos de empresas desde la base de datos en una sola consulta.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con los diferentes tipos de empresas, o un mensaje de error en caso de fallo.
+     */
+    public function empresaTypes()
+    {
+        $query = 'SELECT id, tipo, created_at, "documentos" AS table_name
+        FROM cliente_tipo_documento
+        WHERE deleted_at IS NULL
+        UNION
+        SELECT id, tipo, created_at, "entornos" AS table_name 
+        FROM empresa_tipo_entorno 
+        WHERE deleted_at IS NULL
+        UNION
+        SELECT id, tipo, created_at, "operaciones" AS table_name 
+        FROM empresa_tipo_operacion 
+        WHERE deleted_at IS NULL
+        UNION
+        SELECT id, tipo, created_at, "organizaciones" AS table_name
+        FROM cliente_tipo_persona 
+        WHERE deleted_at IS NULL
+        UNION
+        SELECT id, tipo, created_at, "regimenes" AS table_name
+        FROM cliente_tipo_regimen
+        WHERE deleted_at IS NULL
+        UNION
+        SELECT id, tipo, created_at, "responsabilidades" AS table_name
+        FROM cliente_tipo_obligacion 
+        WHERE deleted_at IS NULL';
+
+        try {
+            // Ejecutar la consulta
+            $results = DB::select($query);
+
+            $types = [];
+
+            foreach ($results as $result) {
+                // Organizar resultados por nombre de la tabla
+                $types[$result->table_name][] = (object) [
+                    'id' => $result->id,
+                    'tipo' => $result->tipo,
+                    'created_at' => $result->created_at,
+                ];
+            }
+
+            // Retornar respuesta exitosa
+            return response()->json($types);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles
+            return response()->json([
+                'message' => 'Error al traer los datos',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener Detalles de la Empresa por ID
+     *
+     * Este método se encarga de obtener los detalles de una empresa en base a su ID desde la base de datos.
+     *
+     * @param int $id ID de la empresa.
+     * @return \stdClass|null Detalles de la empresa o null si no se encuentra.
+     */
     public function getEmpresa($id)
     {
         $query = 'SELECT
@@ -296,32 +518,53 @@ class ConfiguracionController extends Controller
         LEFT JOIN cliente_tipo_regimen ctr ON e.id_regimen = ctr.id
         LEFT JOIN cliente_tipo_documento ctd ON e.id_tipo_documento = ctd.id
         LEFT JOIN cliente_tipo_obligacion cto ON e.id_responsabilidad = cto.id
-        WHERE e.id = ? && e.deleted_at IS NULL';
+        WHERE e.id = ? AND e.deleted_at IS NULL';
 
-        $empresas = DB::select($query, [
-            $id
-        ]);
+        try {
+            // Ejecutar la consulta
+            $empresa = DB::selectOne($query, [$id]);
 
-        if (count($empresas) > 0) {
-            return $empresas[0];
-        } else {
+            return $empresa;
+        } catch (\Exception $e) {
+            // Retornar null en caso de error
             return null;
         }
     }
 
-    public function getPagos()
+    /**
+     * Obtener Configuración por Defecto
+     *
+     * Este método se encarga de obtener la configuración por defecto desde la base de datos.
+     *
+     * @return \Illuminate\Http\Response Respuesta JSON con la configuración por defecto, o un mensaje de error en caso de fallo.
+     */
+    public function getDefaultConfig()
     {
         $query = 'SELECT
-        tp.id AS id,
-        tp.tipo AS tipo,
-        sp.estado AS estado
-        FROM reserva_tipo_pagos tp
-        LEFT JOIN configuracion_pagos sp ON sp.reserva_tipo_pago_id = tp.id
-        WHERE sp.estado = 1
-        AND tp.deleted_at IS NULL';
+            id,
+            pais, 
+            departamento, 
+            ciudad, 
+            tipo_documento_id AS tipo_documento, 
+            tipo_persona_id AS tipo_persona, 
+            tipo_obligacion_id AS tipo_obligacion, 
+            tipo_regimen_id AS tipo_regimen, 
+            created_at
+        FROM config_defecto
+        WHERE deleted_at IS NULL';
 
-        $pagos = DB::select($query);
+        try {
+            // Ejecutar la consulta
+            $configuration = DB::selectOne($query);
 
-        return response($pagos, 200);
+            // Retornar respuesta exitosa
+            return response()->json($configuration, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles
+            return response()->json([
+                'message' => 'Error al traer la configuración por defecto',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
