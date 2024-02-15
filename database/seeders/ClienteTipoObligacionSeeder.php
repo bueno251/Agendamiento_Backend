@@ -12,15 +12,15 @@ class ClienteTipoObligacionSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO cliente_tipo_obligacion
-        (tipo)
-        VALUES (?)';
+        $data = [
+            ['tipo' => 'Agente de retención en el impuesto sobre las ventas'],
+            ['tipo' => 'Autoretenedor'],
+            ['tipo' => 'Gran contribuyente'],
+            ['tipo' => 'No responsable'],
+            ['tipo' => 'Responsable'],
+            ['tipo' => 'Régimen simple de tributación - SIMPLE'],
+        ];
 
-        DB::insert($query, ['Agente de retención en el impuesto sobre las ventas']);
-        DB::insert($query, ['Autoretenedor']);
-        DB::insert($query, ['Gran contribuyente']);
-        DB::insert($query, ['No responsable']);
-        DB::insert($query, ['Responsable']);
-        DB::insert($query, ['Régimen simple de tributación - SIMPLE']);
+        DB::table('cliente_tipo_obligacion')->insert($data);
     }
 }

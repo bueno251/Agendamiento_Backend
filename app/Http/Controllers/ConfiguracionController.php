@@ -532,6 +532,29 @@ class ConfiguracionController extends Controller
     }
 
     /**
+     * Obtiene la configuración de pagos, incluyendo el estado de cada tipo de pago.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con la configuración de pagos.
+     */
+    public function getPagos()
+    {
+        // Consulta SQL para obtener la configuración de pagos y sus estados
+        $query = 'SELECT
+        tp.id AS id,
+        tp.tipo AS tipo,
+        sp.estado AS estado
+        FROM reserva_tipo_pagos tp
+        LEFT JOIN configuracion_pagos sp ON sp.reserva_tipo_pago_id = tp.id
+        WHERE tp.deleted_at IS NULL';
+
+        // Ejecutar la consulta y obtener resultados
+        $pagos = DB::select($query);
+
+        // Devolver la respuesta JSON con la configuración de pagos
+        return response()->json($pagos, 200);
+    }
+
+    /**
      * Obtener Configuración por Defecto
      *
      * Este método se encarga de obtener la configuración por defecto desde la base de datos.

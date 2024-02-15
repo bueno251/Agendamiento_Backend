@@ -12,19 +12,19 @@ class ClienteTipoDocumentoSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO cliente_tipo_documento
-        (tipo)
-        VALUES (?)';
+        $data = [
+            ['tipo' => 'Cedula ciudadanía'],
+            ['tipo' => 'Cédula de extranjería'],
+            ['tipo' => 'Documento de identificación extranjero'],
+            ['tipo' => 'NIT'],
+            ['tipo' => 'NIT de otro país'],
+            ['tipo' => 'NUIP'],
+            ['tipo' => 'Pasaporte'],
+            ['tipo' => 'Registro civil'],
+            ['tipo' => 'Tarjeta de extranjería'],
+            ['tipo' => 'Tarjeta de identidad'],
+        ];
 
-        DB::insert($query, ['Cedula ciudadanía']);
-        DB::insert($query, ['Cédula de extranjería']);
-        DB::insert($query, ['Documento de identificación extranjero']);
-        DB::insert($query, ['NIT']);
-        DB::insert($query, ['NIT de otro país']);
-        DB::insert($query, ['NUIP']);
-        DB::insert($query, ['Pasaporte']);
-        DB::insert($query, ['Registro civil']);
-        DB::insert($query, ['Tarjeta de extranjería']);
-        DB::insert($query, ['Tarjeta de identidad']);
+        DB::table('cliente_tipo_documento')->insert($data);
     }
 }

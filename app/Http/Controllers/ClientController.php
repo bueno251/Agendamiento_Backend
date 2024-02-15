@@ -7,29 +7,40 @@ use Illuminate\Support\Facades\DB;
 
 class ClientController extends Controller
 {
+    /**
+     * Crear Cliente
+     *
+     * Este método se encarga de crear un nuevo cliente en la base de datos.
+     * La información del cliente se recibe a través de una solicitud HTTP, se valida y se realiza la inserción de datos en la tabla correspondiente.
+     * Además, se verifica si el documento ya está registrado antes de la inserción.
+     *
+     * @param Request $request Datos de entrada que incluyen información sobre el cliente.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function create(Request $request)
     {
         $request->validate([
-            'nombre1' => 'required',
-            'apellido1' => 'required',
-            'tipoDocumento' => 'required',
-            'documento' => 'required',
-            'direccion' => 'required',
-            'pais' => 'required',
-            'ciudad' => 'required',
-            'correo' => 'required | email',
-            'telefono' => 'required',
-            'tipoPersona' => 'required',
-            'tipoObligacion' => 'required',
-            'tipoRegimen' => 'required',
+            'nombre1' => 'required|string',
+            'apellido1' => 'required|string',
+            'tipoDocumento' => 'required|integer',
+            'documento' => 'required|integer',
+            'direccion' => 'required|string',
+            'pais' => 'required|string',
+            'ciudad' => 'required|string',
+            'telefono' => 'required|string',
+            'tipoPersona' => 'required|integer',
+            'tipoObligacion' => 'required|integer',
+            'tipoRegimen' => 'required|integer',
         ]);
 
-        if ($this->obtenerDoc($request->documento)) {
+        // Verificar si el documento ya está registrado
+        if ($this->documentoExistente($request->documento)) {
             return response()->json([
                 'message' => 'Documento ya registrado',
             ], 500);
         }
 
+        // Consulta SQL para insertar el cliente
         $query = 'INSERT INTO clients
         (nombre1,
         nombre2,
@@ -41,7 +52,6 @@ class ClientController extends Controller
         pais,
         departamento,
         ciudad,
-        correo,
         telefono,
         telefono_alt,
         tipo_persona_id,
@@ -49,39 +59,50 @@ class ClientController extends Controller
         tipo_regimen_id,
         observacion,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
-        $cliente = DB::insert($query, [
-            $request->nombre1,
-            $request->nombre2,
-            $request->apellido1,
-            $request->apellido2,
-            $request->tipoDocumento,
-            $request->documento,
-            $request->direccion,
-            $request->pais,
-            $request->departamento,
-            $request->ciudad,
-            $request->correo,
-            $request->telefono,
-            $request->telefonoAlt,
-            $request->tipoPersona,
-            $request->tipoObligacion,
-            $request->tipoRegimen,
-            $request->observacion,
-        ]);
+        try {
+            // Ejecutar la inserción del cliente
+            DB::insert($query, [
+                $request->nombre1,
+                $request->nombre2,
+                $request->apellido1,
+                $request->apellido2,
+                $request->tipoDocumento,
+                $request->documento,
+                $request->direccion,
+                $request->pais,
+                $request->departamento,
+                $request->ciudad,
+                $request->telefono,
+                $request->telefonoAlt,
+                $request->tipoPersona,
+                $request->tipoObligacion,
+                $request->tipoRegimen,
+                $request->observacion,
+            ]);
 
-        if ($cliente) {
+            // Retornar respuesta de éxito
             return response()->json([
                 'message' => 'Cliente creado exitosamente',
             ]);
-        } else {
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles
             return response()->json([
-                'message' => 'Error al crear',
+                'message' => 'Error al crear el cliente',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Obtener Lista de Clientes
+     *
+     * Este método se encarga de obtener la lista de clientes desde la base de datos.
+     * Los clientes se seleccionan de la tabla correspondiente, y la respuesta se devuelve en formato JSON.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON que contiene la lista de clientes o un mensaje de error en caso de fallo.
+     */
     public function read()
     {
         $query = 'SELECT
@@ -97,7 +118,6 @@ class ClientController extends Controller
         c.pais AS pais,
         c.departamento AS departamento,
         c.ciudad AS ciudad,
-        u.correo AS correo,
         c.telefono AS telefono,
         c.telefono_alt AS telefono_alt,
         c.tipo_persona_id AS tipo_persona_id,
@@ -106,15 +126,33 @@ class ClientController extends Controller
         c.observacion AS observacion,
         c.created_at AS created_at
         FROM clients c
-        JOIN users u ON u.cliente_id = c.id
         WHERE c.deleted_at IS NULL
         ORDER BY c.created_at DESC';
 
-        $clients = DB::select($query);
+        try {
+            // Ejecutar la consulta para obtener la lista de clientes
+            $clients = DB::select($query);
 
-        return response($clients, 200);
+            // Retornar la lista de clientes en formato JSON
+            return response()->json($clients, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al obtener la lista de clientes',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
+    /**
+     * Obtener el Cliente por ID
+     *
+     * Este método se encarga de obtener el cliente específico mediante su ID desde la base de datos.
+     * Los detalles incluyen información sobre el cliente y se devuelven en formato JSON.
+     *
+     * @param int $id ID del cliente que se desea obtener.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON que contiene el cliente o un mensaje de error en caso de fallo.
+     */
     public function find($id)
     {
         $query = 'SELECT 
@@ -131,7 +169,6 @@ class ClientController extends Controller
         c.pais AS pais,
         c.departamento AS departamento,
         c.ciudad AS ciudad,
-        c.correo AS correo,
         c.telefono AS telefono,
         c.telefono_alt AS telefono_alt,
         c.tipo_persona_id AS tipo_persona_id,
@@ -147,28 +184,47 @@ class ClientController extends Controller
         LEFT JOIN cliente_tipo_persona tp ON c.tipo_persona_id = tp.id
         LEFT JOIN cliente_tipo_obligacion cto ON c.tipo_obligacion_id = cto.id
         LEFT JOIN cliente_tipo_regimen tr ON c.tipo_regimen_id = tr.id
-        WHERE c.id = ? && c.deleted_at IS NULL';
+        WHERE c.id = ? AND c.deleted_at IS NULL';
 
-        $clients = DB::select($query, [$id]);
+        try {
+            // Ejecutar la consulta para obtener el cliente por ID
+            $clientDetails = DB::select($query, [$id]);
 
-        return response($clients, 200);
+            // Retornar el cliente en formato JSON
+            return response()->json($clientDetails, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al obtener los el cliente',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
+    /**
+     * Buscar Cliente por Documento
+     *
+     * Este método se encarga de buscar un cliente mediante su número de documento en la base de datos.
+     * Retorna los detalles del cliente en formato JSON.
+     *
+     * @param string $doc Número de documento del cliente.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON que contiene los detalles del cliente o un mensaje de error en caso de fallo.
+     */
     public function findDoc($doc)
     {
-        $query = 'SELECT id,
+        $query = 'SELECT
+        id,
         nombre1,
         nombre2,
         apellido1,
         apellido2,
-        CONCAT_WS(nombre1, " ", nombre2, " ", apellido1, " ", apellido2) as fullname,
+        CONCAT_WS(" ", nombre1, nombre2, apellido1, apellido2) as fullname,
         tipo_documento_id,
         documento,
         direccion,
         pais,
         departamento,
         ciudad,
-        correo,
         telefono,
         telefono_alt,
         tipo_persona_id,
@@ -176,44 +232,71 @@ class ClientController extends Controller
         tipo_regimen_id,
         observacion,
         created_at
-        FROM clients WHERE documento = ? && deleted_at IS NULL';
+        FROM clients
+        WHERE documento = ? AND deleted_at IS NULL';
 
-        $clients = DB::select($query, [$doc]);
+        try {
+            // Ejecutar la consulta para buscar el cliente por número de documento
+            $clients = DB::select($query, [$doc]);
 
-        return response($clients, 200);
-    }
-
-    public function obtenerDoc($doc)
-    {
-        $query = 'SELECT id
-        FROM clients WHERE documento = ? && deleted_at IS NULL';
-
-        $clients = DB::select($query, [$doc]);
-
-        if (count($clients) > 0) {
-            return true;
-        } else {
-            return false;
+            // Retornar los detalles del cliente en formato JSON
+            return response()->json($clients, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al buscar el cliente por documento',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 
+    /**
+     * Verificar Documento Existente
+     *
+     * Este método se encarga de verificar si un documento ya está registrado en la base de datos.
+     *
+     * @param int $documento Número de documento a verificar.
+     * @return bool Devuelve true si el documento existe, false si no.
+     */
+    public function documentoExistente($documento)
+    {
+        // Consulta SQL para verificar si el documento existe
+        $query = 'SELECT id FROM clients WHERE documento = ? AND deleted_at IS NULL';
+
+        // Obtener resultados de la consulta
+        $clients = DB::select($query, [$documento]);
+
+        // Devolver true si hay al menos un resultado, indicando que el documento ya existe
+        return count($clients) > 0;
+    }
+
+    /**
+     * Actualizar Cliente
+     *
+     * Este método se encarga de actualizar la información de un cliente en la base de datos.
+     * La información del cliente se recibe a través de una solicitud HTTP, se valida y se realiza la actualización de datos en la tabla correspondiente.
+     *
+     * @param Request $request Datos de entrada que incluyen la información actualizada del cliente.
+     * @param int $id ID del cliente que se actualizará.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function update(Request $request, $id)
     {
         $request->validate([
-            'nombre1' => 'required',
-            'apellido1' => 'required',
-            'tipoDocumento' => 'required',
-            'documento' => 'required',
-            'direccion' => 'required',
-            'pais' => 'required',
-            'ciudad' => 'required',
-            'correo' => 'required | email',
-            'telefono' => 'required',
-            'tipoPersona' => 'required',
-            'tipoObligacion' => 'required',
-            'tipoRegimen' => 'required',
+            'nombre1' => 'required|string',
+            'apellido1' => 'required|string',
+            'tipoDocumento' => 'required|integer',
+            'documento' => 'required|integer',
+            'direccion' => 'required|string',
+            'pais' => 'required|string',
+            'ciudad' => 'required|string',
+            'telefono' => 'required|string',
+            'tipoPersona' => 'required|integer',
+            'tipoObligacion' => 'required|integer',
+            'tipoRegimen' => 'required|integer',
         ]);
 
+        // Consulta SQL para actualizar el cliente
         $query = 'UPDATE clients SET 
         nombre1 = ?,
         nombre2 = ?,
@@ -231,57 +314,82 @@ class ClientController extends Controller
         tipo_obligacion_id = ?,
         tipo_regimen_id = ?,
         observacion = ?,
-        updated_at = now()
+        updated_at = NOW()
         WHERE id = ?';
 
-        $cliente = DB::update($query, [
-            $request->nombre1,
-            $request->nombre2,
-            $request->apellido1,
-            $request->apellido2,
-            $request->tipoDocumento,
-            $request->documento,
-            $request->direccion,
-            $request->pais,
-            $request->departamento,
-            $request->ciudad,
-            $request->telefono,
-            $request->telefonoAlt,
-            $request->tipoPersona,
-            $request->tipoObligacion,
-            $request->tipoRegimen,
-            $request->observacion,
-            $id
-        ]);
-
-        if ($cliente) {
-            return response()->json([
-                'message' => 'Actualizado exitosamente',
+        try {
+            // Ejecutar la actualización de los detalles del cliente
+            $result = DB::update($query, [
+                $request->nombre1,
+                $request->nombre2,
+                $request->apellido1,
+                $request->apellido2,
+                $request->tipoDocumento,
+                $request->documento,
+                $request->direccion,
+                $request->pais,
+                $request->departamento,
+                $request->ciudad,
+                $request->telefono,
+                $request->telefonoAlt,
+                $request->tipoPersona,
+                $request->tipoObligacion,
+                $request->tipoRegimen,
+                $request->observacion,
+                $id
             ]);
-        } else {
+
+            // Verificar si la actualización fue exitosa
+            if ($result) {
+                return response()->json([
+                    'message' => 'Cliente actualizado exitosamente',
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Error al actualizar el cliente',
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
-                'message' => 'Error al actualizar',
+                'message' => 'Error al actualizar el cliente',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Eliminar Cliente
+     *
+     * Este método se encarga de marcar un cliente como eliminado en la base de datos.
+     *
+     * @param int $id ID del cliente que se eliminará.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function delete($id)
     {
-        $query = 'UPDATE clients SET 
-        deleted_at = now()
-        WHERE id = ?';
+        // Consulta SQL para marcar al cliente como eliminado
+        $query = 'UPDATE clients SET deleted_at = NOW() WHERE id = ?';
 
-        $cliente = DB::update($query, [
-            $id
-        ]);
+        try {
+            // Ejecutar la actualización para marcar al cliente como eliminado
+            $result = DB::update($query, [$id]);
 
-        if ($cliente) {
+            // Verificar si la eliminación fue exitosa
+            if ($result) {
+                return response()->json([
+                    'message' => 'Cliente eliminado exitosamente',
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Error al eliminar el cliente',
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
-                'message' => 'Eliminado exitosamente',
-            ]);
-        } else {
-            return response()->json([
-                'message' => 'Error al eliminar',
+                'message' => 'Error al eliminar el cliente',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

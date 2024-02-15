@@ -12,16 +12,11 @@ class TarifaJornadaSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO tarifa_jornada
-        (nombre)
-        VALUES (?)';
+        $data = [
+            ['nombre' => 'Semana'],
+            ['nombre' => 'Fin de semana'],
+        ];
 
-        DB::insert($query, [
-            'Semana'
-        ]);
-
-        DB::insert($query, [
-            'Fin de semana'
-        ]);
+        DB::table('tarifa_jornada')->insert($data);
     }
 }

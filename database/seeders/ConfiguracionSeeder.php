@@ -12,10 +12,11 @@ class ConfiguracionSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO configuracions
-        (usuario_reserva)
-        VALUES (?)';
+        $data = [
+            'usuario_reserva' => 1,
+            'created_at' => now(),
+        ];
 
-        DB::insert($query, [1]);
+        DB::table('configuracions')->insert($data);
     }
 }

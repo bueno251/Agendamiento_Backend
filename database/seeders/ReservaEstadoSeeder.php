@@ -12,12 +12,12 @@ class ReservaEstadoSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO reserva_estados
-        (estado)
-        VALUES (?)';
+        $data = [
+            ['estado' => 'Pendiente'],
+            ['estado' => 'Confirmada'],
+            ['estado' => 'Cancelada'],
+        ];
 
-        DB::insert($query, ['Pendiente']);
-        DB::insert($query, ['Confirmada']);
-        DB::insert($query, ['Cancelada']);
+        DB::table('reserva_estados')->insert($data);
     }
 }

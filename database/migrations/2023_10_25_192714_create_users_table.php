@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->string('correo')->unique();
-            $table->string('password');
+            $table->string('correo')->unique()->nullable();
+            $table->string('password')->nullable();
             $table->unsignedBigInteger('cliente_id')->nullable();
             $table->foreign('cliente_id')->references('id')->on('clients')->onDelete('set null');
             $table->softDeletes();

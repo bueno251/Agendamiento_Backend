@@ -12,11 +12,11 @@ class CaracteristicaEstadoSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = "INSERT INTO room_caracteristica_estados
-        (estado)
-        VALUES (?)";
+        $data = [
+            ['estado' => 'Activo'],
+            ['estado' => 'Inactivo'],
+        ];
 
-        DB::insert($query, ['Activo']);
-        DB::insert($query, ['Inactivo']);
+        DB::table('room_caracteristica_estados')->insert($data);
     }
 }

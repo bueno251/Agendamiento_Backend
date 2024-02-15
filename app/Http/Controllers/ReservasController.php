@@ -7,9 +7,17 @@ use Illuminate\Support\Facades\DB;
 
 class ReservasController extends Controller
 {
+    /**
+     * Crear Reserva
+     *
+     * Este método se encarga de crear una nueva reserva en la base de datos.
+     * La información de la reserva se recibe a través de una solicitud HTTP, se valida y se realiza la inserción de datos en la tabla correspondiente.
+     *
+     * @param Request $request Datos de entrada que incluyen información sobre la reserva.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function create(Request $request)
     {
-
         $request->validate([
             'cedula' => 'required|string',
             'nombre' => 'required|string',
@@ -26,135 +34,180 @@ class ReservasController extends Controller
             'verificacion_pago' => 'required|integer',
         ]);
 
+        // Determinar la tabla y mensaje según la verificación de pago
         if ($request->verificacion_pago) {
             $table = "reservas";
             $message = "Reserva Hecha";
         } else {
             $table = "reservas_temporales";
-            $message = "Se espera el pago de su reserva dentro de los siguientes 10 minutos o sera eliminada su reserva";
+            $message = "Se espera el pago de su reserva dentro de los siguientes 10 minutos o será eliminada su reserva";
         }
 
-        $query = "SELECT id 
+        // Consulta SQL para verificar disponibilidad de fechas
+        $availabilityQuery = "SELECT id
         FROM $table
         WHERE room_id = ?
         AND deleted_at IS NULL
         AND (
-        fecha_entrada BETWEEN ? AND ?
-        OR fecha_salida BETWEEN ? AND ?
-        OR (fecha_entrada <= ? AND fecha_salida >= ?)
+            fecha_entrada BETWEEN ? AND ?
+            OR fecha_salida BETWEEN ? AND ?
+            OR (fecha_entrada <= ? AND fecha_salida >= ?)
         )";
 
-        $temporales = DB::select($query, [
-            $request->room,
-            $request->dateIn,
-            $request->dateOut,
-            $request->dateIn,
-            $request->dateOut,
-            $request->dateIn,
-            $request->dateOut,
-        ]);
-
-        if (count($temporales) > 0) {
-            return response()->json([
-                'message' => 'Hay una reserva en proceso con esos dias, por favor, intentelo de nuevo más tarde',
-            ], 400);
-        }
-
-        $query = "INSERT INTO $table (
-        fecha_entrada,
-        fecha_salida,
-        cedula,
-        nombre,
-        apellido,
-        correo,
-        telefono,
-        room_id,
-        cliente_id,
-        user_id,
-        estado_id,
-        desayuno_id,
-        decoracion_id,
-        huespedes,
-        adultos,
-        niños,
-        precio,
-        verificacion_pago,
-        created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-
-        $reservaT = DB::insert($query, [
-            $request->dateIn,
-            $request->dateOut,
-            $request->cedula,
-            $request->nombre,
-            $request->apellido,
-            $request->correo,
-            $request->telefono,
-            $request->room,
-            isset($request->cliente) ? $request->cliente : null,
-            isset($request->user) ? $request->user : null,
-            1,
-            isset($request->desayuno) ? $request->desayuno : null,
-            isset($request->decoracion) ? $request->decoracion : null,
-            $request->adultos + $request->niños,
-            $request->adultos,
-            $request->niños,
-            $request->precio,
-            $request->verificacion_pago,
-        ]);
-
-        $id = DB::getPdo()->lastInsertId();
-
-        if ($reservaT) {
-            return response()->json([
-                'message' => $message,
-                'reserva' => $id,
+        try {
+            // Verificar disponibilidad de fechas
+            $temporales = DB::select($availabilityQuery, [
+                $request->room,
+                $request->dateIn,
+                $request->dateOut,
+                $request->dateIn,
+                $request->dateOut,
+                $request->dateIn,
+                $request->dateOut,
             ]);
-        } else {
+
+            // Si hay reservas en proceso con esas fechas, retornar un error
+            if (count($temporales) > 0) {
+                return response()->json([
+                    'message' => 'Hay una reserva en proceso con esos días, por favor, inténtelo de nuevo más tarde',
+                ], 400);
+            }
+
+            // Consulta SQL para insertar la reserva
+            $insertQuery = "INSERT INTO $table (
+                fecha_entrada,
+                fecha_salida,
+                cedula,
+                nombre,
+                apellido,
+                correo,
+                telefono,
+                room_id,
+                cliente_id,
+                user_id,
+                estado_id,
+                desayuno_id,
+                decoracion_id,
+                huespedes,
+                adultos,
+                niños,
+                precio,
+                verificacion_pago,
+                created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+
+
+            // Ejecutar la inserción de la reserva
+            $reservaT = DB::insert($insertQuery, [
+                $request->dateIn,
+                $request->dateOut,
+                $request->cedula,
+                $request->nombre,
+                $request->apellido,
+                $request->correo,
+                $request->telefono,
+                $request->room,
+                isset($request->cliente) ? $request->cliente : null,
+                isset($request->user) ? $request->user : 1, // Usuario web
+                1, // Estado Pendiente
+                isset($request->desayuno) ? $request->desayuno : null,
+                isset($request->decoracion) ? $request->decoracion : null,
+                $request->adultos + $request->niños,
+                $request->adultos,
+                $request->niños,
+                $request->precio,
+                $request->verificacion_pago,
+            ]);
+
+            // Obtener el ID de la reserva recién creada
+            $id = DB::getPdo()->lastInsertId();
+
+            // Verificar si la inserción fue exitosa
+            if ($reservaT) {
+                return response()->json([
+                    'message' => $message,
+                    'reserva' => $id,
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Error al crear la reserva',
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
-                'message' => 'Error al crear',
+                'message' => 'Error al crear la reserva',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    public function pagar(Request $request)
+    /**
+     * Pagar Reserva
+     *
+     * Este método se encarga de registrar un pago para una reserva temporal en la base de datos.
+     *
+     * @param Request $request Datos de entrada que incluyen información sobre el pago.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
+    public function pagar(Request $request, int $id)
     {
-
         $request->validate([
             'reserva' => 'required|integer',
             'abono' => 'required|integer',
             'verificacion_pago' => 'required|integer',
         ]);
 
+        // Consulta SQL para actualizar la reserva temporal con el pago
         $query = 'UPDATE reservas_temporales SET
         abono = ?,
         comprobante = ?,
         verificacion_pago = ?,
-        updated_at = now()
+        updated_at = NOW()
         WHERE id = ? 
         AND deleted_at IS NULL';
 
         $rutaArchivo = null;
 
-        if ($request->hasFile('comprobante')) {
-            $file = $request->file('comprobante');
-            $rutaArchivo = $file->store('comprobantes', 'public'); // Almacenar el archivo en la carpeta 'comprobantes' del almacenamiento público
+        try {
+            // Verificar si se adjuntó un comprobante de pago
+            if ($request->hasFile('comprobante')) {
+                $file = $request->file('comprobante');
+                $rutaArchivo = $file->store('comprobantes', 'public'); // Almacenar el archivo en la carpeta 'comprobantes' del almacenamiento público
+            }
+
+            // Ejecutar la actualización de la reserva temporal con el pago
+            DB::update($query, [
+                $request->abono,
+                $rutaArchivo,
+                $request->verificacion_pago,
+                $request->reserva,
+            ]);
+
+            return response()->json([
+                'message' => 'Pago registrado exitosamente',
+            ]);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al registrar el pago',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        DB::update($query, [
-            $request->abono,
-            $rutaArchivo,
-            $request->verificacion_pago,
-            $request->reserva,
-        ]);
-
-        return response()->json([
-            'message' => 'Aprobando Reserva',
-        ]);
     }
 
-    public function getDates(Request $request)
+    /**
+     * Obtener Fechas de Reservas para una Habitación
+     *
+     * Este método se encarga de obtener las fechas de entrada y salida de las reservas asociadas a una habitación específica.
+     *
+     * @param Request $request Datos de entrada que incluyen la ID de la habitación.
+     * @param int $id ID de la habitación.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON que contiene las fechas de entrada y salida de las reservas.
+     */
+    public function getDates(Request $request, int $id)
     {
+        // Consulta SQL para obtener las fechas de reservas asociadas a la habitación
         $query = 'SELECT fecha_entrada, fecha_salida
         FROM reservas
         WHERE room_id = ?
@@ -162,15 +215,33 @@ class ReservasController extends Controller
         AND YEAR(fecha_entrada) >= YEAR(CURDATE()) 
         AND YEAR(fecha_salida) >= YEAR(CURDATE())';
 
-        $dates = DB::select($query, [
-            $request->id,
-        ]);
+        try {
+            // Obtener las fechas de las reservas
+            $dates = DB::select($query, [
+                $id,
+            ]);
 
-        return response($dates);
+            // Retornar las fechas como respuesta JSON
+            return response()->json($dates);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al obtener las fechas de las reservas',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
+    /**
+     * Obtener Todas las Reservas
+     *
+     * Este método se encarga de obtener todas las reservas de la base de datos con información adicional de las habitaciones y estados asociados.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON que contiene la información detallada de las reservas.
+     */
     public function read()
     {
+        // Consulta SQL para obtener las reservas con información adicional
         $query = 'SELECT
         r.id AS id,
         r.fecha_entrada AS fechaEntrada,
@@ -198,142 +269,95 @@ class ReservasController extends Controller
         WHERE r.deleted_at IS NULL
         ORDER BY r.created_at DESC';
 
-        $reservas = DB::select($query);
+        try {
+            // Obtener las reservas desde la base de datos
+            $reservas = DB::select($query);
 
-        foreach ($reservas as $reserva) {
-            $reserva->room = RoomController::getRoom($reserva->room);
-            $reserva->verificacionPago = $reserva->verificacionPago ? true : false;
+            // Iterar sobre las reservas para agregar información adicional
+            foreach ($reservas as $reserva) {
+                $reserva->verificacionPago = (bool) $reserva->verificacionPago;
+            }
+
+            // Retornar las reservas con la información adicional como respuesta JSON
+            return response()->json($reservas, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al obtener las reservas',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        return response($reservas, 200);
     }
 
-    public function getReservaTemporal(int $room, int $user)
-    {
-        $query = 'SELECT
-        id,
-        fecha_entrada,
-        fecha_salida,
-        desayuno_id,
-        decoracion_id,
-        huespedes,
-        adultos,
-        niños,
-        verificacion_pago
-        FROM reservas_temporales
-        WHERE user_id = ?
-        AND room_id = ?
-        AND deleted_at IS NULL';
-
-        $reservaTemporal = DB::select($query, [
-            $user,
-            $room,
-        ]);
-
-        if (count($reservaTemporal) > 0) {
-            $reservaTemporal[0]->verificacion_pago = $reservaTemporal[0]->verificacion_pago ? true : false;
-        }
-
-        return response($reservaTemporal);
-    }
-
-    public function reservaUser(int $id)
-    {
-        $query = 'SELECT
-        r.id AS id,
-        r.fecha_entrada AS fechaEntrada,
-        r.fecha_salida AS fechaSalida,
-        r.room_id AS room,
-        r.cliente_id AS cliente,
-        r.user_id AS user,
-        r.estado_id AS estadoId,
-        re.estado AS estado,
-        r.desayuno_id AS desayunoId,
-        desa.desayuno AS desayuno,
-        r.decoracion_id AS decoracionId,
-        deco.decoracion AS decoracion,
-        r.huespedes AS huespedes,
-        r.adultos AS adultos,
-        r.niños AS niños,
-        r.precio AS precio,
-        r.abono AS abono,
-        r.comprobante AS comprobante,
-        r.verificacion_pago AS verificacionPago
-        FROM reservas r
-        JOIN reserva_estados re ON r.estado_id = re.id
-        LEFT JOIN desayunos desa ON r.desayuno_id = desa.id
-        LEFT JOIN decoraciones deco ON r.decoracion_id = deco.id
-        WHERE r.user_id = ?
-        AND r.deleted_at IS NULL
-        ORDER BY r.fecha_entrada';
-
-        $queryTemporales = 'SELECT
-        r.id AS id,
-        r.fecha_entrada AS fechaEntrada,
-        r.fecha_salida AS fechaSalida,
-        r.room_id AS room,
-        r.cliente_id AS cliente,
-        r.user_id AS user,
-        r.estado_id AS estadoId,
-        re.estado AS estado,
-        r.desayuno_id AS desayunoId,
-        desa.desayuno AS desayuno,
-        r.decoracion_id AS decoracionId,
-        deco.decoracion AS decoracion,
-        r.huespedes AS huespedes,
-        r.adultos AS adultos,
-        r.niños AS niños,
-        r.precio AS precio,
-        r.abono AS abono,
-        r.comprobante AS comprobante,
-        r.verificacion_pago AS verificacionPago
-        FROM reservas_temporales r
-        JOIN reserva_estados re ON r.estado_id = re.id
-        LEFT JOIN desayunos desa ON r.desayuno_id = desa.id
-        LEFT JOIN decoraciones deco ON r.decoracion_id = deco.id
-        WHERE r.user_id = ?
-        AND r.deleted_at IS NULL';
-
-        $reservas = DB::select($query, [$id]);
-        $reservasTemporales = DB::select($queryTemporales, [$id]);
-
-        return response()->json([
-            'reservas' => $reservas,
-            'temporales' => $reservasTemporales,
-        ]);
-    }
-
+    /**
+     * Aprobar Reserva
+     *
+     * Este método se encarga de aprobar una reserva en la base de datos cambiando su estado.
+     *
+     * @param int $id ID de la reserva que se va a aprobar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function approve(int $id)
     {
-        $query = 'UPDATE reservas SET
-        estado_id = ?,
-        updated_at = now()
-        WHERE id = ?';
+        try {
+            // Consulta SQL para actualizar el estado de la reserva a "Confirmada"
+            $query = 'UPDATE reservas SET
+            estado_id = ?,
+            updated_at = NOW()
+            WHERE id = ?';
 
-        DB::update($query, [
-            2,
-            $id
-        ]);
+            // Ejecutar la actualización del estado de la reserva
+            DB::update($query, [
+                2,  // ID del estado "Confirmada"
+                $id
+            ]);
 
-        return response()->json([
-            'message' => 'Reserva Aprobada',
-        ]);
+            // Retornar respuesta de éxito
+            return response()->json([
+                'message' => 'Reserva Aprobada',
+            ]);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al aprobar la reserva',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
+    /**
+     * Rechazar Reserva
+     *
+     * Este método se encarga de rechazar una reserva en la base de datos cambiando su estado.
+     *
+     * @param int $id ID de la reserva que se va a rechazar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function reject(int $id)
     {
-        $query = 'UPDATE reservas SET
-        estado_id = ?,
-        updated_at = now()
-        WHERE id = ?';
+        try {
+            // Consulta SQL para actualizar el estado de la reserva a "Cancelada"
+            $query = 'UPDATE reservas SET
+            estado_id = ?,
+            updated_at = NOW()
+            WHERE id = ?';
 
-        DB::update($query, [
-            3,
-            $id
-        ]);
+            // Ejecutar la actualización del estado de la reserva
+            DB::update($query, [
+                3,  // ID del estado "Cancelada"
+                $id
+            ]);
 
-        return response()->json([
-            'message' => 'Reserva Rechazada',
-        ]);
+            // Retornar respuesta de éxito
+            return response()->json([
+                'message' => 'Reserva Rechazada',
+            ]);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al rechazar la reserva',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

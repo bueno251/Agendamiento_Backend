@@ -23,9 +23,15 @@ class VerificarReservasTemporales extends Command
 
     /**
      * Execute the console command.
+     * 
+     * Procesar Reservas Temporales.
+     *
+     * Este método se encarga de procesar las reservas temporales que han estado activas por al menos 10 minutos.
+     * Se mueven las reservas temporales verificadas de la tabla 'reservas_temporales' a la tabla 'reservas' y se eliminan de 'reservas_temporales'.
      */
     public function handle()
     {
+        // Consulta para seleccionar reservas temporales que han estado activas por al menos 10 minutos
         $query = 'SELECT id,
         fecha_entrada,
         fecha_salida,
@@ -48,8 +54,10 @@ class VerificarReservasTemporales extends Command
             AND TIMESTAMPDIFF(MINUTE, created_at, NOW()) >= 10
         ORDER BY created_at ASC';
 
+        // Obtener las reservas temporales que cumplen con los criterios
         $reservasTemporales = DB::select($query);
 
+        // Consulta para insertar una reserva en la tabla 'reservas'
         $queryInsert = 'INSERT INTO reservas (
         fecha_entrada,
         fecha_salida,
@@ -69,12 +77,16 @@ class VerificarReservasTemporales extends Command
         created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
+        // Consulta para eliminar una reserva temporal de la tabla 'reservas_temporales'
         $queryDelete = 'UPDATE reservas_temporales SET 
         deleted_at = NOW()
         WHERE id = ?';
 
+        // Procesar cada reserva temporal
         foreach ($reservasTemporales as $reserva) {
+            // Verificar si la reserva tiene verificación de pago
             if ($reserva->verificacion_pago == 1) {
+                // Insertar la reserva en la tabla 'reservas'
                 DB::insert($queryInsert, [
                     $reserva->fecha_entrada,
                     $reserva->fecha_salida,
@@ -94,6 +106,7 @@ class VerificarReservasTemporales extends Command
                 ]);
             }
 
+            // Eliminar la reserva temporal de 'reservas_temporales'
             DB::update($queryDelete, [
                 $reserva->id
             ]);

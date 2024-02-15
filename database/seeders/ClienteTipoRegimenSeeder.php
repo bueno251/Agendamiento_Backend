@@ -12,11 +12,11 @@ class ClienteTipoRegimenSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO cliente_tipo_regimen
-        (tipo)
-        VALUES (?)';
+        $data = [
+            ['tipo' => 'No responsable de IVA'],
+            ['tipo' => 'Responsable de IVA'],
+        ];
 
-        DB::insert($query, ['No responsable de IVA']);
-        DB::insert($query, ['Responsable de IVA']);
+        DB::table('cliente_tipo_regimen')->insert($data);
     }
 }

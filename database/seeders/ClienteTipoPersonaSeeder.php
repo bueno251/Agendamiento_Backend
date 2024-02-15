@@ -12,11 +12,11 @@ class ClienteTipoPersonaSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO cliente_tipo_persona
-        (tipo)
-        VALUES (?)';
+        $data = [
+            ['tipo' => 'Persona natural'],
+            ['tipo' => 'Persona jurídica'],
+        ];
 
-        DB::insert($query, ['Persona natural']);
-        DB::insert($query, ['Persona jurídica']);
+        DB::table('cliente_tipo_persona')->insert($data);
     }
 }

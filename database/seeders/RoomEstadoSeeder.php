@@ -12,12 +12,12 @@ class RoomEstadoSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO room_estados
-        (estado)
-        VALUES (?)';
+        $data = [
+            ['estado' => 'Activo'],
+            ['estado' => 'Inactivo'],
+            ['estado' => 'Mantenimiento'],
+        ];
 
-        DB::insert($query, ['Activo']);
-        DB::insert($query, ['Inactivo']);
-        DB::insert($query, ['Mantenimiento']);
+        DB::table('room_estados')->insert($data);
     }
 }

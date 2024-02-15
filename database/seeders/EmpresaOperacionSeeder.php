@@ -12,8 +12,10 @@ class EmpresaOperacionSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO empresa_tipo_operacion (tipo) VALUES (?)';
+        $data = [
+            ['tipo' => 'Estandar'],
+        ];
 
-        DB::insert($query, ['Estandar']);
+        DB::table('empresa_tipo_operacion')->insert($data);
     }
 }

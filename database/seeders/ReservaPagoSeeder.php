@@ -12,11 +12,11 @@ class ReservaPagoSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO reserva_tipo_pagos
-        (tipo)
-        VALUES (?)';
+        $data = [
+            ['tipo' => 'Transferencia'],
+            ['tipo' => 'Pasarela de pago'],
+        ];
 
-        DB::insert($query, ['Transferencia']);
-        DB::insert($query, ['Pasarela de pago']);
+        DB::table('reserva_tipo_pagos')->insert($data);
     }
 }

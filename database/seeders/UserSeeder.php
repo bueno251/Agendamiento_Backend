@@ -13,9 +13,9 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO users
-        (nombre, correo, password, created_at)
-        VALUES (?, ?, ?, now())';
+        $query = 'INSERT INTO users (nombre, correo, password, created_at) VALUES (?, ?, ?, NOW())';
+
+        DB::insert($query, ['web', null, null]);
 
         DB::insert($query, [
             'juan',

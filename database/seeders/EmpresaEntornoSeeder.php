@@ -12,9 +12,11 @@ class EmpresaEntornoSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO empresa_tipo_entorno (tipo) VALUES (?)';
+        $data = [
+            ['tipo' => 'Pruebas'],
+            ['tipo' => 'Producción'],
+        ];
 
-        DB::insert($query, ['Pruebas']);
-        DB::insert($query, ['Producción']);
+        DB::table('empresa_tipo_entorno')->insert($data);
     }
 }

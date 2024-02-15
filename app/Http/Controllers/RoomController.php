@@ -9,13 +9,11 @@ use Illuminate\Support\Facades\Storage;
 class RoomController extends Controller
 {
     /**
-     * Crear Habitación
+     * Crear Habitación y Habitaciones Asociadas
      *
-     * Este método se encarga de crear una nueva habitación en el sistema de gestión de habitaciones.
-     * La información de la habitación se recibe a través de una solicitud HTTP, se valida y se realiza la inserción de datos en varias tablas de la base de datos.
-     * Además, se realiza un manejo de transacciones para garantizar la integridad de los datos.
+     * Este método se encarga de crear una habitación principal y las habitaciones asociadas.
      *
-     * @param Request $request Datos de entrada que incluyen información como 'nombre' (string, obligatorio), 'descripcion' (string, obligatorio), 'roomTipo' (integer, obligatorio), 'capacidad' (integer, obligatorio), 'estado' (integer, obligatorio), 'cantidad' (integer, obligatorio), 'desayuno' (integer, obligatorio), 'decoracion' (integer, obligatorio), 'imgs' (array de archivos, opcional), 'caracteristic' (array de enteros, opcional).
+     * @param Request $request Datos de entrada que incluyen información sobre la habitación.
      * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
      */
     public function create(Request $request)
@@ -31,7 +29,7 @@ class RoomController extends Controller
             'decoracion' => 'required|integer',
         ]);
 
-        $query = 'INSERT INTO room_padre (
+        $queryRoomPadre = 'INSERT INTO room_padre (
         nombre,
         descripcion,
         room_tipo_id,
@@ -41,7 +39,7 @@ class RoomController extends Controller
         has_desayuno,
         has_decoracion,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, now())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $queryRooms = 'INSERT INTO rooms (
         room_padre_id,
@@ -53,15 +51,15 @@ class RoomController extends Controller
         has_desayuno,
         has_decoracion,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, now())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
-        $queryImagenes = 'INSERT INTO room_imgs (
+        $queryImages = 'INSERT INTO room_imgs (
         room_padre_id,
         url,
         created_at)
         VALUES (?, ?, NOW())';
 
-        $queryCaracteristicas = 'INSERT INTO room_caracteristica_relacion (
+        $queryCharacteristics = 'INSERT INTO room_caracteristica_relacion (
         room_id,
         caracteristica_id,
         created_at)
@@ -70,7 +68,8 @@ class RoomController extends Controller
         DB::beginTransaction();
 
         try {
-            DB::insert($query, [
+            // Insertar la habitación principal
+            DB::insert($queryRoomPadre, [
                 $request->nombre,
                 $request->descripcion,
                 $request->roomTipo,
@@ -81,20 +80,23 @@ class RoomController extends Controller
                 $request->decoracion,
             ]);
 
+            // Obtener el ID de la habitación principal
             $roomId = DB::getPdo()->lastInsertId();
 
+            // Insertar imágenes asociadas a la habitación principal
             if ($request->hasFile('imgs')) {
                 $images = $request->file('imgs');
 
                 foreach ($images as $image) {
-                    $ruta = $image->store('imgs', 'public');
-                    DB::insert($queryImagenes, [
+                    $path = $image->store('imgs', 'public');
+                    DB::insert($queryImages, [
                         $roomId,
-                        $ruta,
+                        $path,
                     ]);
                 }
             }
 
+            // Insertar habitaciones asociadas
             for ($i = 0; $i < $request->cantidad; $i++) {
                 DB::insert($queryRooms, [
                     $roomId,
@@ -108,30 +110,40 @@ class RoomController extends Controller
                 ]);
             }
 
-            $caracteristics = $request->input('caracteristic', []);
+            // Insertar características asociadas a la habitación principal
+            $characteristics = $request->input('caracteristic', []);
 
-            foreach ($caracteristics as $caracteristic) {
-                DB::insert($queryCaracteristicas, [
+            foreach ($characteristics as $characteristic) {
+                DB::insert($queryCharacteristics, [
                     $roomId,
-                    $caracteristic,
+                    $characteristic,
                 ]);
             }
 
+            // Confirmar la transacción
             DB::commit();
 
             return response()->json([
                 'message' => 'Habitación creada exitosamente',
             ]);
         } catch (\Exception $e) {
+            // Deshacer la transacción en caso de error
             DB::rollBack();
 
             return response()->json([
-                'message' => 'Error al crear',
+                'message' => 'Error al crear la habitación',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Obtener información detallada sobre las habitaciones.
+     *
+     * Este método se encarga de recuperar información detallada sobre las habitaciones, incluyendo imágenes, características y habitaciones asociadas.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con detalles sobre las habitaciones o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function read()
     {
         $query = 'SELECT
@@ -144,8 +156,8 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
-        r.has_desayuno AS has_desayuno,
-        r.has_decoracion AS has_decoracion,
+        r.has_desayuno AS hasDesayuno,
+        r.has_decoracion AS hasDecoracion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
@@ -157,7 +169,7 @@ class RoomController extends Controller
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
             WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
-        ) AS caracteristics,
+        ) AS caracteristicas,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", rs.id,"nombre", rs.nombre, "estado_id", rs.room_estado_id))
@@ -173,16 +185,29 @@ class RoomController extends Controller
         $rooms = DB::select($query);
 
         foreach ($rooms as $room) {
-            $room->habilitada = $room->habilitada ? true : false;
-            $room->precios = $this->getPrecios($room->id);
+            $room->habilitada = (bool) $room->habilitada;
+            $room->hasDesayuno = (bool) $room->hasDesayuno;
+            $room->hasDecoracion = (bool) $room->hasDecoracion;
+
+            // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
-            $room->caracteristics = json_decode($room->caracteristics);
+            $room->caracteristicas = json_decode($room->caracteristicas);
             $room->rooms = json_decode($room->rooms);
+
+            // Obtener precios
+            $room->precios = $this->getPrecios($room->id);
         }
 
-        return response($rooms, 200);
+        return response()->json($rooms, 200);
     }
 
+    /**
+     * Obtener información detallada sobre las habitaciones para clientes.
+     *
+     * Este método se encarga de recuperar información detallada sobre las habitaciones que cumplen con los requisitos para ser mostradas a los clientes, incluyendo imágenes y características.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con detalles sobre las habitaciones o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
     public function readClient()
     {
         $query = 'SELECT
@@ -195,8 +220,8 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
-        r.has_desayuno AS has_desayuno,
-        r.has_decoracion AS has_decoracion,
+        r.has_desayuno AS hasDesayuno,
+        r.has_decoracion AS hasDecoracion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
@@ -208,7 +233,7 @@ class RoomController extends Controller
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
             WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
-        ) AS caracteristics
+        ) AS caracteristicas
         FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
@@ -223,15 +248,30 @@ class RoomController extends Controller
         $rooms = DB::select($query);
 
         foreach ($rooms as $room) {
-            $room->habilitada = $room->habilitada ? true : false;
-            $room->precios = $this->getPrecios($room->id);
+            $room->habilitada = (bool) $room->habilitada;
+            $room->hasDesayuno = (bool) $room->hasDesayuno;
+            $room->hasDecoracion = (bool) $room->hasDecoracion;
+
+            // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
-            $room->caracteristics = json_decode($room->caracteristics);
+            $room->caracteristicas = json_decode($room->caracteristicas);
+
+            // Obtener precios
+            $room->precios = $this->getPrecios($room->id);
         }
 
-        return response($rooms, 200);
+        return response()->json($rooms, 200);
     }
 
+    /**
+     * Obtener información detallada sobre una habitación específica.
+     *
+     * Este método se encarga de recuperar información detallada sobre una habitación específica, incluyendo imágenes, características y cantidad de habitaciones disponibles.
+     *
+     * @param int $id Identificador de la habitación.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con detalles sobre la habitación o un mensaje de error en caso de que la habitación no exista, con detalles sobre el error.
+     */
     public function find($id)
     {
         $query = 'SELECT
@@ -245,8 +285,8 @@ class RoomController extends Controller
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
         r.cantidad AS cantidad,
-        r.has_desayuno AS has_desayuno,
-        r.has_decoracion AS has_decoracion,
+        r.has_desayuno AS hasDesayuno,
+        r.has_decoracion AS hasDecoracion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
@@ -258,7 +298,7 @@ class RoomController extends Controller
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
             WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
-        ) AS caracteristics,
+        ) AS caracteristicas,
         (
             SELECT
             COUNT(*)
@@ -272,68 +312,38 @@ class RoomController extends Controller
 
         $rooms = DB::select($query, [$id]);
 
-        if (count($rooms) == 0) {
+        if (empty($rooms)) {
             return response()->json([
-                'message' => 'Habitacion inexistente',
-            ], 500);
+                'message' => 'Habitación inexistente',
+            ], 404);
         }
 
-        $rooms[0]->habilitada = $rooms[0]->habilitada ? true : false;
-        $rooms[0]->precios = $this->getPrecios($rooms[0]->id);
-        $rooms[0]->imgs = json_decode($rooms[0]->imgs);
-        $rooms[0]->caracteristics = json_decode($rooms[0]->caracteristics);
+        $room = $rooms[0];
+        $room->habilitada = (bool) $room->habilitada;
 
-        return response($rooms, 200);
+        // Decodificar datos JSON
+        $room->imgs = json_decode($room->imgs);
+        $room->caracteristicas = json_decode($room->caracteristicas);
+
+        // Obtener precios
+        $room->precios = $this->getPrecios($room->id);
+
+        return response()->json($room, 200);
     }
 
-    public static function getRoom(int $id)
-    {
-        $query = 'SELECT
-        r.id AS id,
-        r.nombre AS nombre,
-        r.descripcion AS descripcion,
-        r.room_tipo_id AS tipoId,
-        rt.tipo AS tipo,
-        r.room_estado_id AS estadoId,
-        re.estado AS estado,
-        r.capacidad AS capacidad,
-        r.habilitada AS habilitada,
-        r.has_desayuno AS has_desayuno,
-        r.has_decoracion AS has_decoracion,
-        (
-            SELECT
-            JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
-            FROM room_imgs ri 
-            WHERE ri.room_padre_id = r.room_padre_id AND ri.deleted_at IS NULL
-        ) AS imgs,
-        (
-            SELECT
-            JSON_ARRAYAGG(rcr.caracteristica_id)
-            FROM room_caracteristica_relacion rcr
-            WHERE rcr.room_id = r.room_padre_id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
-        ) AS caracteristics
-        FROM rooms r
-        JOIN room_tipos rt ON r.room_tipo_id = rt.id
-        JOIN room_estados re ON r.room_estado_id = re.id
-        WHERE r.id = ? && r.deleted_at IS NULL';
-
-        $rooms = DB::select($query, [
-            $id
-        ]);
-
-        if (count($rooms) > 0) {
-            $rooms[0]->habilitada = $rooms[0]->habilitada ? true : false;
-            $rooms[0]->imgs = json_decode($rooms[0]->imgs);
-            $rooms[0]->caracteristics = json_decode($rooms[0]->caracteristics);
-
-            return $rooms[0];
-        } else {
-            return null;
-        }
-    }
-
+    /**
+     * Guardar o actualizar precios para una habitación específica.
+     *
+     * Este método se encarga de guardar o actualizar los precios para una habitación específica en diferentes días de la semana y jornadas.
+     *
+     * @param \Illuminate\Http\Request $request Datos de la solicitud.
+     * @param int $id Identificador de la habitación.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación o detalles sobre un error inesperado.
+     */
     public function savePrecios(Request $request, int $id)
     {
+        // Validar la solicitud
         $request->validate([
             'weekdays' => [
                 'required',
@@ -346,7 +356,7 @@ class RoomController extends Controller
                         ]);
 
                         if ($validate->fails()) {
-                            $fail('el formato de los dias es incorrecto: { name:string, precio:integer}');
+                            $fail('El formato de los días es incorrecto: { name: string, precio: integer }');
                             break;
                         }
                     }
@@ -354,12 +364,14 @@ class RoomController extends Controller
             ],
         ]);
 
+        // Obtener los datos de los días y jornadas
         $weekdays = $request->input("weekdays");
 
+        // Iniciar la transacción de la base de datos
         DB::beginTransaction();
 
         try {
-
+            // Consulta SQL para insertar o actualizar los precios
             $query = 'INSERT INTO room_tarifas (
             room_id,
             dia_semana,
@@ -372,6 +384,7 @@ class RoomController extends Controller
             jornada_id = VALUES(jornada_id),
             updated_at = NOW()';
 
+            // Iterar sobre los días y ejecutar la consulta
             foreach ($weekdays as $day) {
                 DB::insert($query, [
                     $id,
@@ -381,14 +394,18 @@ class RoomController extends Controller
                 ]);
             }
 
+            // Confirmar la transacción
             DB::commit();
 
+            // Respuesta exitosa
             return response()->json([
                 'message' => 'Precios guardados exitosamente',
             ]);
         } catch (\Exception $e) {
+            // Revertir la transacción en caso de error
             DB::rollBack();
 
+            // Respuesta de error
             return response()->json([
                 'message' => 'Error inesperado al guardar',
                 'error' => $e->getMessage()
@@ -396,7 +413,15 @@ class RoomController extends Controller
         }
     }
 
-    public function getPrecios(int $id)
+    /**
+     * Obtener precios de habitación
+     *
+     * Este método se encarga de obtener los precios de una habitación específica.
+     *
+     * @param int $roomId Identificador de la habitación.
+     * @return array Resultado de la consulta con los precios de la habitación.
+     */
+    public function getPrecios(int $roomId)
     {
         $query = 'SELECT
         rt.dia_semana AS name,
@@ -410,25 +435,42 @@ class RoomController extends Controller
         ORDER BY
         FIELD(rt.dia_semana, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")';
 
-        $roomprecios = DB::select($query, [$id]);
+        $roomPrices = DB::select($query, [$roomId]);
 
-        return $roomprecios;
+        return $roomPrices;
     }
 
+    /**
+     * Obtener Jornadas de Tarifas
+     *
+     * Este método recupera las jornadas de tarifas disponibles.
+     *
+     * @return array Devuelve un array de objetos con las jornadas de tarifas.
+     */
     public function getJornadas()
     {
-        $query = 'SELECT
-        id,
-        nombre
-        FROM tarifa_jornada';
+        // Consulta SQL para obtener las jornadas de tarifas
+        $query = 'SELECT id, nombre FROM tarifa_jornada';
 
+        // Obtener resultados de la consulta
         $tarifas = DB::select($query);
 
+        // Devolver el array de objetos con las jornadas de tarifas
         return $tarifas;
     }
 
+    /**
+     * Actualizar Habitación
+     *
+     * Este método se encarga de actualizar la información de una habitación y sus detalles asociados.
+     *
+     * @param \Illuminate\Http\Request $request Objeto Request con los datos de la actualización.
+     * @param int $id Identificador de la habitación a actualizar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function update(Request $request, $id)
     {
+        // Validación de los datos del formulario
         $request->validate([
             'user' => 'required',
             'nombre' => 'required',
@@ -441,6 +483,7 @@ class RoomController extends Controller
             'decoracion' => 'required|integer',
         ]);
 
+        // Consultas SQL para la actualización de la habitación y sus detalles asociados
         $query = 'UPDATE room_padre SET
         nombre = ?,
         descripcion = ?,
@@ -473,12 +516,14 @@ class RoomController extends Controller
         $queryCaracteristicasUpdate = 'UPDATE room_caracteristica_relacion SET estado = 0, updated_at = NOW()
         WHERE room_id = ? AND caracteristica_id = ?';
 
+        // Obtener datos de activación y desactivación de características
         $activar = $request->input('activar');
         $desactivar = $request->input('desactivar');
 
         DB::beginTransaction();
 
         try {
+            // Actualizar la habitación principal
             DB::update($query, [
                 $request->nombre,
                 $request->descripcion,
@@ -490,6 +535,7 @@ class RoomController extends Controller
                 $id
             ]);
 
+            // Actualizar las habitaciones asociadas
             DB::update($queryRooms, [
                 $request->descripcion,
                 $request->roomTipo,
@@ -500,24 +546,31 @@ class RoomController extends Controller
                 $id
             ]);
 
+            // Registrar el cambio en la bitácora de cambios
             RoomBitacoraCambioController::create($request->user, $id, $request->estado, $request->estadoAntiguo);
 
+            // Activar características seleccionadas
             foreach ($activar as $caracteristicaId) {
                 DB::insert($queryCaracteristicasCreate, [$id, $caracteristicaId]);
             }
 
+            // Desactivar características seleccionadas
             foreach ($desactivar as $caracteristicaId) {
                 DB::update($queryCaracteristicasUpdate, [$id, $caracteristicaId]);
             }
 
+            // Confirmar la transacción
             DB::commit();
 
+            // Respuesta exitosa
             return response()->json([
                 'message' => 'Actualizada exitosamente',
             ]);
         } catch (\Exception $e) {
+            // Revertir la transacción en caso de error
             DB::rollBack();
 
+            // Respuesta de error
             return response()->json([
                 'message' => 'Error al actualizar',
                 'error' => $e->getMessage(),
@@ -525,8 +578,17 @@ class RoomController extends Controller
         }
     }
 
+    /**
+     * Actualizar Estado de Habitaciones
+     *
+     * Este método se encarga de actualizar el estado de una lista de habitaciones.
+     *
+     * @param \Illuminate\Http\Request $request Objeto Request con los datos de actualización.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function updateEstado(Request $request)
     {
+        // Validación de los datos del formulario
         $request->validate([
             'rooms' => [
                 'required',
@@ -539,7 +601,7 @@ class RoomController extends Controller
                         ]);
 
                         if ($validate->fails()) {
-                            $fail('el formato de las habitaciones es incorrecto. { id:integer, estado_id:integer }');
+                            $fail('El formato de las habitaciones es incorrecto. { id:integer, estado_id:integer }');
                             break;
                         }
                     }
@@ -547,16 +609,19 @@ class RoomController extends Controller
             ],
         ]);
 
+        // Consulta SQL para la actualización del estado de las habitaciones
         $query = 'UPDATE rooms SET
         room_estado_id = ?,
         updated_at = now()
         WHERE id = ?';
 
+        // Obtener datos de las habitaciones a actualizar
         $rooms = $request->input('rooms');
 
         DB::beginTransaction();
 
         try {
+            // Actualizar el estado de cada habitación en la lista
             foreach ($rooms as $room) {
                 DB::update($query, [
                     $room['estado_id'],
@@ -564,14 +629,18 @@ class RoomController extends Controller
                 ]);
             }
 
+            // Confirmar la transacción
             DB::commit();
 
+            // Respuesta exitosa
             return response()->json([
                 'message' => 'Guardado Exitosamente',
             ]);
         } catch (\Exception $e) {
+            // Revertir la transacción en caso de error
             DB::rollBack();
 
+            // Respuesta de error
             return response()->json([
                 'message' => 'Error Al Guardar',
                 'error' => $e->getMessage(),
@@ -579,27 +648,40 @@ class RoomController extends Controller
         }
     }
 
+    /**
+     * Actualizar Imágenes de Habitación
+     *
+     * Este método se encarga de actualizar las imágenes de una habitación.
+     *
+     * @param \Illuminate\Http\Request $request Objeto Request con los datos de actualización.
+     * @param int $id Identificador de la habitación.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function updateImg(Request $request, $id)
     {
+        // Consulta SQL para la inserción de nuevas imágenes
         $queryImagenes = 'INSERT INTO room_imgs (
         room_padre_id,
         url,
         created_at)
         VALUES (?, ?, NOW())';
 
+        // Consulta SQL para el borrado de imágenes existentes
         $queryDelImgs = 'UPDATE room_imgs SET 
         deleted_at = now()
         WHERE id = ?';
 
+        // Iniciar una transacción de base de datos
         DB::beginTransaction();
 
         try {
-
+            // Procesar las imágenes enviadas para ser guardadas
             if ($request->hasFile('imgs')) {
                 $images = $request->file('imgs');
 
                 foreach ($images as $image) {
                     $ruta = $image->store('imgs', 'public');
+                    // Insertar la nueva imagen en la base de datos
                     DB::insert($queryImagenes, [
                         $id,
                         $ruta,
@@ -607,14 +689,18 @@ class RoomController extends Controller
                 }
             }
 
+            // Obtener las IDs de imágenes a eliminar
             $toDelete = $request->input('toDelete', []);
 
+            // Eliminar las imágenes seleccionadas de la base de datos
             foreach ($toDelete as $imgID) {
                 DB::update($queryDelImgs, [$imgID]);
             }
 
+            // Confirmar la transacción
             DB::commit();
 
+            // Eliminar los archivos físicos de las imágenes eliminadas
             $urls = $request->input('urls', []);
 
             foreach ($urls as $url) {
@@ -626,12 +712,15 @@ class RoomController extends Controller
                 }
             }
 
+            // Respuesta exitosa
             return response()->json([
-                'message' => 'Imagenes Guardadas',
+                'message' => 'Imágenes Guardadas',
             ]);
         } catch (\Exception $e) {
+            // Revertir la transacción en caso de error
             DB::rollBack();
 
+            // Respuesta de error
             return response()->json([
                 'message' => 'Error Al Guardar',
                 'error' => $e->getMessage(),
@@ -639,21 +728,32 @@ class RoomController extends Controller
         }
     }
 
+    /**
+     * Eliminar Habitación
+     *
+     * Este método se encarga de marcar una habitación como eliminada en la base de datos.
+     *
+     * @param int $id Identificador de la habitación a eliminar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function delete($id)
     {
+        // Consulta SQL para marcar la habitación como eliminada
         $query = 'UPDATE rooms SET 
         deleted_at = now()
         WHERE id = ?';
 
-        $room = DB::update($query, [
-            $id
-        ]);
+        // Ejecutar la consulta de actualización
+        $room = DB::update($query, [$id]);
 
+        // Verificar si la actualización fue exitosa
         if ($room) {
+            // Respuesta exitosa
             return response()->json([
                 'message' => 'Eliminada exitosamente',
             ]);
         } else {
+            // Respuesta de error
             return response()->json([
                 'message' => 'Error al actualizar',
             ], 500);

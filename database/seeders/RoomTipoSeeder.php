@@ -12,22 +12,22 @@ class RoomTipoSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO room_tipos
-        (tipo)
-        VALUES (?)';
+        $data = [
+            ['tipo' => 'Apartamento'],
+            ['tipo' => 'Cabaña'],
+            ['tipo' => 'Cuádruple'],
+            ['tipo' => 'Doble'],
+            ['tipo' => 'Domo'],
+            ['tipo' => 'Dormitorio Compartido'],
+            ['tipo' => 'Familiar'],
+            ['tipo' => 'Habitacion'],
+            ['tipo' => 'Sencilla'],
+            ['tipo' => 'Suite'],
+            ['tipo' => 'Twin'],
+            ['tipo' => 'Triple'],
+            ['tipo' => 'Otro'],
+        ];
 
-        DB::insert($query, ['Apartamento']);
-        DB::insert($query, ['Cabaña']);
-        DB::insert($query, ['Cuádruple']);
-        DB::insert($query, ['Doble']);
-        DB::insert($query, ['Domo']);
-        DB::insert($query, ['Dormitorio Compartido']);
-        DB::insert($query, ['Familiar']);
-        DB::insert($query, ['Habitacion']);
-        DB::insert($query, ['Sencilla']);
-        DB::insert($query, ['Suite']);
-        DB::insert($query, ['Twin']);
-        DB::insert($query, ['Triple']);
-        DB::insert($query, ['Otro']);
+        DB::table('room_tipos')->insert($data);
     }
 }

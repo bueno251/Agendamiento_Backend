@@ -12,14 +12,21 @@ class ConfiguracionPagoSeeder extends Seeder
      */
     public function run(): void
     {
-        $query = 'INSERT INTO configuracion_pagos
-        (configuracion_id,
-        reserva_tipo_pago_id,
-        estado,
-        created_at)
-        VALUES (?, ?, ?, now())';
+        $data = [
+            [
+                'configuracion_id' => 1,
+                'reserva_tipo_pago_id' => 1,
+                'estado' => 1,
+                'created_at' => now(),
+            ],
+            [
+                'configuracion_id' => 1,
+                'reserva_tipo_pago_id' => 2,
+                'estado' => 0,
+                'created_at' => now(),
+            ],
+        ];
 
-        DB::insert($query, [1, 1, 1]);
-        DB::insert($query, [1, 2, 0]);
+        DB::table('configuracion_pagos')->insert($data);
     }
 }

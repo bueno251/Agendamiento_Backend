@@ -39,8 +39,6 @@ Route::controller(ReservasController::class)->group(function () {
     Route::post('reserva/pagar', 'pagar');
     Route::get('reserva/read', 'read');
     Route::get('reserva/room/{id}', 'getDates');
-    Route::get('reserva/room/{id}/{user}', 'getReservaTemporal');
-    Route::get('reserva/{id}', 'reservaUser');
     Route::patch('reserva/approve/{id}', 'approve');
     Route::patch('reserva/reject/{id}', 'reject');
 });
