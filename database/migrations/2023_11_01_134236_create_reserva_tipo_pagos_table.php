@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('reserva_tipo_pagos', function (Blueprint $table) {
             $table->id();
-            $table->string('tipo')->unique();
-            $table->softDeletes();
+            $table->string('tipo');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
