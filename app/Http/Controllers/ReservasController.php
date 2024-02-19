@@ -267,7 +267,8 @@ class ReservasController extends Controller
         r.precio AS precio,
         r.abono AS abono,
         r.comprobante AS comprobante,
-        r.verificacion_pago AS verificacionPago
+        r.verificacion_pago AS verificacionPago,
+        r.created_at AS created_at
         FROM reservas r
         JOIN reserva_estados re ON r.estado_id = re.id
         LEFT JOIN desayunos desa ON r.desayuno_id = desa.id
