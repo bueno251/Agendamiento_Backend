@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('reserva_tipo_pagos', function (Blueprint $table) {
+        Schema::create('reserva_metodo_pagos', function (Blueprint $table) {
             $table->id();
-            $table->string('tipo');
+            $table->string('metodo');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('reserva_tipo_pagos');
+        Schema::dropIfExists('reserva_metodo_pagos');
     }
 };

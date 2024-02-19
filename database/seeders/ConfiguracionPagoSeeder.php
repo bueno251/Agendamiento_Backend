@@ -15,13 +15,13 @@ class ConfiguracionPagoSeeder extends Seeder
         $data = [
             [
                 'configuracion_id' => 1,
-                'reserva_tipo_pago_id' => 1,
+                'reserva_metodo_pago_id' => 1,
                 'estado' => 1,
                 'created_at' => now(),
             ],
             [
                 'configuracion_id' => 1,
-                'reserva_tipo_pago_id' => 2,
+                'reserva_metodo_pago_id' => 2,
                 'estado' => 0,
                 'created_at' => now(),
             ],
