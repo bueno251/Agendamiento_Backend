@@ -17,6 +17,6 @@ class ReservaPagoSeeder extends Seeder
             ['tipo' => 'Pasarela de pago'],
         ];
 
-        DB::table('reserva_tipo_pagos')->insert($data);
+        DB::table('reserva_metodo_pagos')->insert($data);
     }
 }

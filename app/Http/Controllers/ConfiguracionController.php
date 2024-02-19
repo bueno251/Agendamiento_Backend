@@ -10,9 +10,9 @@ class ConfiguracionController extends Controller
     /**
      * Leer Configuración
      *
-     * Este método se encarga de leer la configuración actual del sistema. Realiza consultas a la base de datos para obtener información sobre la configuración general, los tipos de pagos y la empresa asociada.
+     * Este método se encarga de leer la configuración actual del sistema. Realiza consultas a la base de datos para obtener información sobre la configuración general, los metodos de pagos y la empresa asociada.
      *
-     * @return \Illuminate\Http\Response Respuesta JSON con la configuración actual, incluyendo tipos de pagos y detalles de la empresa, o un mensaje de error en caso de fallo.
+     * @return \Illuminate\Http\Response Respuesta JSON con la configuración actual, incluyendo metodos de pagos y detalles de la empresa, o un mensaje de error en caso de fallo.
      */
     public function read()
     {
@@ -23,9 +23,9 @@ class ConfiguracionController extends Controller
         id_empresa AS empresa,
         (
             SELECT
-            JSON_ARRAYAGG(JSON_OBJECT("id", rtp.id, "tipo", rtp.tipo, "estado", cp.estado))
-            FROM reserva_tipo_pagos rtp
-            LEFT JOIN configuracion_pagos cp ON cp.reserva_tipo_pago_id = rtp.id
+            JSON_ARRAYAGG(JSON_OBJECT("id", rtp.id, "nombre", rtp.nombre, "estado", cp.estado))
+            FROM reserva_metodo_pagos rtp
+            LEFT JOIN configuracion_pagos cp ON cp.reserva_metodo_pago_id = rtp.id
             WHERE rtp.deleted_at IS NULL
         ) AS pagos
         FROM configuracions';
@@ -34,7 +34,7 @@ class ConfiguracionController extends Controller
             // Ejecutar consulta
             $configuration = DB::select($queryConfig);
 
-            // Decodificar tipos de pagos de la configuración
+            // Decodificar metodos de pagos de la configuración
             $configuration[0]->pagos = json_decode($configuration[0]->pagos);
 
             // Convertir el campo 'usuario_reserva' a un formato booleano
@@ -55,12 +55,12 @@ class ConfiguracionController extends Controller
     }
 
     /**
-     * Configurar Tipos de Pagos
+     * Configurar metodos de Pagos
      *
-     * Este método se encarga de configurar los tipos de pagos para una empresa en el sistema. La información de los tipos de pagos se recibe a través de una solicitud HTTP, se valida y se realiza la inserción o actualización de datos en la tabla correspondiente de la base de datos.
+     * Este método se encarga de configurar los metodos de pagos para una empresa en el sistema. La información de los metodos de pagos se recibe a través de una solicitud HTTP, se valida y se realiza la inserción o actualización de datos en la tabla correspondiente de la base de datos.
      * Se utiliza la cláusula ON DUPLICATE KEY UPDATE para manejar conflictos en caso de duplicados y se maneja cualquier error que pueda ocurrir durante el proceso.
      *
-     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'pagos' (array, obligatorio) que contiene información sobre los tipos de pagos a configurar.
+     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'pagos' (array, obligatorio) que contiene información sobre los metodos de pagos a configurar.
      * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
      */
     public function pagos(Request $request)
@@ -68,7 +68,7 @@ class ConfiguracionController extends Controller
         // Validar los datos de entrada
         $request->validate([
             'configuracionId' => 'required|integer',
-            'pagos' => [
+            'metodosPago' => [
                 'required',
                 'array',
                 function ($attribute, $value, $fail) {
@@ -79,7 +79,7 @@ class ConfiguracionController extends Controller
                         ]);
 
                         if ($validate->fails()) {
-                            $fail('el formato de los pagos es incorrecto: { id:integer, estado:integer}');
+                            $fail('el formato de los metodosPago es incorrecto: { id:integer, estado:integer}');
                             break;
                         }
                     }
@@ -87,13 +87,13 @@ class ConfiguracionController extends Controller
             ],
         ]);
 
-        // Obtener la información de pagos desde la solicitud
-        $pagos = $request->input('pagos');
+        // Obtener la información de metodos pago desde la solicitud
+        $metodosPago = $request->input('metodosPago');
 
-        // Consulta SQL para insertar o actualizar tipos de pagos
+        // Consulta SQL para insertar o actualizar metodos de pagos
         $query = 'INSERT INTO configuracion_pagos (
         configuracion_id,
-        reserva_tipo_pago_id,
+        reserva_metodo_pago_id,
         estado,
         created_at)
         VALUES (?, ?, ?, NOW())
@@ -103,12 +103,12 @@ class ConfiguracionController extends Controller
         DB::beginTransaction();
 
         try {
-            // Iterar sobre cada tipo de pago y realizar la inserción o actualización
-            foreach ($pagos as $tipo) {
+            // Iterar sobre cada metodo de pago y realizar la inserción o actualización
+            foreach ($metodosPago as $metodoPago) {
                 DB::insert($query, [
                     $request->configuracionId,
-                    $tipo['id'],
-                    $tipo['estado'],
+                    $metodoPago['id'],
+                    $metodoPago['estado'],
                 ]);
             }
 
@@ -117,7 +117,7 @@ class ConfiguracionController extends Controller
 
             // Retornar respuesta de éxito
             return response()->json([
-                'message' => 'Tipos de pagos guardados con éxito',
+                'message' => 'Metodos de pagos guardados con éxito',
             ]);
         } catch (\Exception $e) {
             // Rollback en caso de error
@@ -126,6 +126,56 @@ class ConfiguracionController extends Controller
             // Retornar respuesta de error con detalles
             return response()->json([
                 'message' => 'Error al guardar',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Configurar Método de Pago
+     *
+     * Este método se encarga de configurar un método de pago para el sistema de reservas. La información del método de pago se recibe a través de una solicitud HTTP, se valida y se realiza la inserción en la tabla correspondiente de la base de datos.
+     * Se utiliza una transacción para garantizar la integridad de los datos y se manejan posibles errores durante el proceso.
+     *
+     * @param  \Illuminate\Http\Request  $request Datos de entrada que incluyen información como 'nombre' (string, obligatorio) que representa el nombre del método de pago.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
+     */
+    public function metodoPago(Request $request)
+    {
+        // Validar la solicitud del cliente
+        $request->validate([
+            'nombre' => 'required|string',
+        ]);
+
+        // Consulta de inserción
+        $insertQuery = 'INSERT INTO reserva_metodo_pagos (
+        nombre,
+        created_at)
+        VALUES (?, NOW())';
+
+        // Iniciar transacción
+        DB::beginTransaction();
+
+        try {
+            // Ejecutar la inserción del método de pago
+            DB::insert($insertQuery, [
+                $request->nombre,
+            ]);
+
+            // Confirmar la transacción
+            DB::commit();
+
+            // Retornar respuesta de éxito
+            return response()->json([
+                'message' => 'Método de pago guardado con éxito',
+            ]);
+        } catch (\Exception $e) {
+            // Rollback en caso de error
+            DB::rollBack();
+
+            // Retornar respuesta de error con detalles
+            return response()->json([
+                'message' => 'Error al guardar el método de pago',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -541,11 +591,10 @@ class ConfiguracionController extends Controller
         // Consulta SQL para obtener la configuración de pagos y sus estados
         $query = 'SELECT
         tp.id AS id,
-        tp.tipo AS tipo,
-        sp.estado AS estado
-        FROM reserva_tipo_pagos tp
-        LEFT JOIN configuracion_pagos sp ON sp.reserva_tipo_pago_id = tp.id
-        WHERE tp.deleted_at IS NULL';
+        tp.nombre AS nombre
+        FROM reserva_metodo_pagos tp
+        LEFT JOIN configuracion_pagos sp ON sp.reserva_metodo_pago_id = tp.id
+        WHERE sp.estado = 1 AND tp.deleted_at IS NULL';
 
         // Ejecutar la consulta y obtener resultados
         $pagos = DB::select($query);
