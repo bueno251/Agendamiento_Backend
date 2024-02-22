@@ -49,7 +49,7 @@ Route::controller(ReservasController::class)->group(function () {
     Route::post('reserva/pagar', 'pagar');
 
     // Obtener información de las reservas
-    Route::get('reserva/read', 'read');
+    Route::get('reserva/read/{estado?}', 'read');
 
     // Obtener fechas disponibles para una habitación específica
     Route::get('reserva/room/{id}', 'getDates');

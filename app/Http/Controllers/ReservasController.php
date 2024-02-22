@@ -237,12 +237,24 @@ class ReservasController extends Controller
      *
      * Este método se encarga de obtener todas las reservas de la base de datos con información adicional de las habitaciones y estados asociados.
      *
+     * @param string $estado Estado de las reservas a obtener (por defecto, las no confirmadas).
      * @return \Illuminate\Http\JsonResponse Respuesta JSON que contiene la información detallada de las reservas.
      */
-    public function read()
+    public function read($estado = 'No Confirmada')
     {
+        $estados = [
+            'Pendiente' => 1,
+            'Confirmada' => 2,
+            'Cancelada' => 3,
+        ];
+
+        // Validar si el estado proporcionado es válido
+        if ($estado != 'No Confirmada' && !in_array($estado, array_keys($estados))) {
+            return response()->json(['message' => 'Estado no válido'], 400);
+        }
+
         // Consulta SQL para obtener las reservas con información adicional
-        $query = 'SELECT
+        $query = "SELECT
         r.id AS id,
         r.fecha_entrada AS fechaEntrada,
         r.fecha_salida AS fechaSalida,
@@ -259,7 +271,7 @@ class ReservasController extends Controller
         r.telefono AS telefono,
         r.nombre AS nombre,
         r.apellido AS apellido,
-        CONCAT_WS(" ", r.nombre, r.apellido) AS fullname,
+        CONCAT_WS(' ', r.nombre, r.apellido) AS fullname,
         r.correo AS correo,
         r.huespedes AS huespedes,
         r.adultos AS adultos,
@@ -267,13 +279,14 @@ class ReservasController extends Controller
         r.precio AS precio,
         r.abono AS abono,
         r.comprobante AS comprobante,
-        r.verificacion_pago AS verificacionPago
+        r.verificacion_pago AS verificacionPago,
+        r.created_at AS created_at
         FROM reservas r
         JOIN reserva_estados re ON r.estado_id = re.id
         LEFT JOIN desayunos desa ON r.desayuno_id = desa.id
         LEFT JOIN decoraciones deco ON r.decoracion_id = deco.id
-        WHERE r.deleted_at IS NULL
-        ORDER BY r.created_at DESC';
+        WHERE r.deleted_at IS NULL AND r.estado_id " . ($estado === 'No Confirmada' ? '!=' : '=') . " $estados[Confirmada]
+        ORDER BY r.created_at DESC";
 
         try {
             // Obtener las reservas desde la base de datos
