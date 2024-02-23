@@ -479,8 +479,8 @@ class RoomController extends Controller
             'capacidad' => 'required',
             'estado' => 'required',
             'estadoAntiguo' => 'required',
-            'desayuno' => 'required|integer',
-            'decoracion' => 'required|integer',
+            'desayuno' => 'required',
+            'decoracion' => 'required',
         ]);
 
         // Consultas SQL para la actualización de la habitación y sus detalles asociados
@@ -530,8 +530,8 @@ class RoomController extends Controller
                 $request->roomTipo,
                 $request->capacidad,
                 $request->estado,
-                $request->desayuno,
-                $request->decoracion,
+                $request->desayuno ? 1: 0,
+                $request->decoracion ? 1: 0,
                 $id
             ]);
 

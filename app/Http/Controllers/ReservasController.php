@@ -240,12 +240,15 @@ class ReservasController extends Controller
      * @param string $estado Estado de las reservas a obtener (por defecto, las no confirmadas).
      * @return \Illuminate\Http\JsonResponse Respuesta JSON que contiene la información detallada de las reservas.
      */
-    public function read($estado = 'No Confirmada')
+    public function read($estado = 'TODO')
     {
         $estados = [
-            'Pendiente' => 1,
-            'Confirmada' => 2,
-            'Cancelada' => 3,
+            'TODO' => '',
+            'Pendiente' => "AND r.estado_id = 1",
+            'Confirmada' => "AND r.estado_id = 2",
+            'No Confirmada' => "AND r.estado_id != 2 AND r.estado_id != 4",
+            'Rechazada' => "AND r.estado_id = 3",
+            'Cancelada' => "AND r.estado_id = 4",
         ];
 
         // Validar si el estado proporcionado es válido
@@ -285,7 +288,7 @@ class ReservasController extends Controller
         JOIN reserva_estados re ON r.estado_id = re.id
         LEFT JOIN desayunos desa ON r.desayuno_id = desa.id
         LEFT JOIN decoraciones deco ON r.decoracion_id = deco.id
-        WHERE r.deleted_at IS NULL AND r.estado_id " . ($estado === 'No Confirmada' ? '!=' : '=') . " $estados[Confirmada]
+        WHERE r.deleted_at IS NULL $estados[$estado]
         ORDER BY r.created_at DESC";
 
         try {
