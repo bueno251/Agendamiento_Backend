@@ -205,7 +205,7 @@ class ReservasController extends Controller
      * @param int $id ID de la habitación.
      * @return \Illuminate\Http\JsonResponse Respuesta JSON que contiene las fechas de entrada y salida de las reservas.
      */
-    public function getDates(Request $request, int $id)
+    public function getDates(int $id)
     {
         // Consulta SQL para obtener las fechas de reservas asociadas a la habitación
         $query = 'SELECT fecha_entrada, fecha_salida
@@ -358,7 +358,7 @@ class ReservasController extends Controller
     public function reject(int $id)
     {
         try {
-            // Consulta SQL para actualizar el estado de la reserva a "Cancelada"
+            // Consulta SQL para actualizar el estado de la reserva a "Rechazada"
             $query = 'UPDATE reservas SET
             estado_id = ?,
             updated_at = NOW()
@@ -366,7 +366,7 @@ class ReservasController extends Controller
 
             // Ejecutar la actualización del estado de la reserva
             DB::update($query, [
-                3,  // ID del estado "Cancelada"
+                3,  // ID del estado "Rechazada"
                 $id
             ]);
 
@@ -378,6 +378,59 @@ class ReservasController extends Controller
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
                 'message' => 'Error al rechazar la reserva',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function cancelar(Request $request, int $id)
+    {
+        $request->validate([
+            'tipo' => 'required|integer',
+            'user' => 'required|integer',
+            'motivo' => 'required|string',
+        ]);
+
+        $queryInsert = 'INSERT INTO cancelacion_bitacora (
+        tipo_id,
+        user_id,
+        nota_cancelacion,
+        reserva_id,
+        created_at)
+        VALUES (?, ?, ?, ?, NOW())';
+
+        $queryUpdate = 'UPDATE reservas SET
+        estado_id = ?,
+        updated_at = NOW()
+        WHERE id = ?';
+
+        DB::beginTransaction();
+
+        try {
+
+            DB::insert($queryInsert, [
+                $request->tipo,
+                $request->user,
+                $request->motivo,
+                $id,
+            ]);
+
+            DB::update($queryUpdate, [
+                4,  // ID del estado "Cancelada"
+                $id
+            ]);
+
+            DB::commit();
+
+            // Retornar respuesta de éxito
+            return response()->json([
+                'message' => 'Reserva Cancelada',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al cancelar la reserva',
                 'error' => $e->getMessage(),
             ], 500);
         }

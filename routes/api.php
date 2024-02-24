@@ -12,6 +12,7 @@ use App\Http\Controllers\RoomBitacoraCambioController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomEstadoController;
 use App\Http\Controllers\RoomTipoController;
+use App\Http\Controllers\CancelacionTipoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -59,6 +60,9 @@ Route::controller(ReservasController::class)->group(function () {
 
     // Rechazar una reserva existente
     Route::patch('reserva/reject/{id}', 'reject');
+
+    //Cancelar una reserva existente
+    Route::post('reserva/cancelar/{id}', 'cancelar');
 });
 
 /**
@@ -212,4 +216,12 @@ Route::controller(CaracteristicasController::class)->group(function () {
     Route::get('room/caracteristicas/{id}', 'find');
     Route::patch('room/caracteristicas/update/{id}', 'update');
     Route::delete('room/caracteristicas/delete/{id}', 'delete');
+});
+
+Route::controller(CancelacionTipoController::class)->group(function () {
+    Route::post('cancelar/tipo/create', 'create');
+    Route::get('cancelar/tipo/read', 'read');
+    Route::get('cancelar/tipo/{id}', 'find');
+    Route::patch('cancelar/tipo/update/{id}', 'update');
+    Route::delete('cancelar/tipo/delete/{id}', 'delete');
 });
