@@ -24,6 +24,7 @@ return new class extends Migration
             $table->boolean('habilitada')->default(1);
             $table->boolean('has_desayuno');
             $table->boolean('has_decoracion');
+            $table->boolean('incluye_desayuno');
             $table->timestamps();
             $table->softDeletes();
         });

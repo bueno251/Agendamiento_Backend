@@ -7,6 +7,39 @@ use Illuminate\Support\Facades\DB;
 
 class CancelacionTipoController extends Controller
 {
+    public static function cancelacionByReserva(int $id)
+    {
+        $query = 'SELECT
+        cb.id AS id,
+        cb.tipo_id AS tipo_id,
+        ct.tipo AS tipo,
+        cb.user_id AS user_id,
+        us.nombre AS user,
+        cb.nota_cancelacion AS motivo
+        FROM cancelacion_bitacora cb
+        LEFT JOIN cancelacion_tipos ct ON ct.id = cb.tipo_id
+        LEFT JOIN users us ON us.id = cb.user_id
+        WHERE cb.deleted_at IS NULL AND cb.reserva_id = ?
+        ORDER BY cb.created_at DESC';
+
+        try {
+            $cancelaciones = DB::select($query, [$id]);
+
+            if (empty($cancelaciones)) {
+                return response()->json([
+                    'message' => 'Cancelación inexistente',
+                ], 404);
+            }
+
+            return response()->json($cancelaciones[0], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al obtener la cancelación',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function create(Request $request)
     {
         $request->validate([

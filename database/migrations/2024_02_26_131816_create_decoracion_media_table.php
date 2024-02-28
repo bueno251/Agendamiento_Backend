@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('desayunos', function (Blueprint $table) {
+        Schema::create('decoracion_media', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->integer('precio');
-            $table->text('descripcion');
+            $table->unsignedBigInteger('decoracion_id')->nullable();
+            $table->foreign('decoracion_id')->references('id')->on('decoraciones')->onDelete('set null');
+            $table->string('url');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('desayunos');
+        Schema::dropIfExists('decoracion_media');
     }
 };

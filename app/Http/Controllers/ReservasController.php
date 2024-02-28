@@ -251,8 +251,29 @@ class ReservasController extends Controller
             'Cancelada' => "AND r.estado_id = 4",
         ];
 
+        $getBitacoraCancelacion = '';
+
+        if ($estado == 'Cancelada') {
+            $getBitacoraCancelacion = "(
+                SELECT
+                JSON_ARRAYAGG(JSON_OBJECT(
+                    'id', cb.id,
+                    'tipoId', cb.tipo_id,
+                    'tipo', ct.tipo,
+                    'userId', cb.user_id,
+                    'user', us.nombre,
+                    'motivo', cb.nota_cancelacion,
+                    'created_at', cb.created_at
+                    ))
+                FROM cancelacion_bitacora cb
+                LEFT JOIN cancelacion_tipos ct ON ct.id = cb.tipo_id
+                LEFT JOIN users us ON us.id = cb.user_id
+                WHERE cb.deleted_at IS NULL AND cb.reserva_id = r.id
+            ) AS bitacora,";
+        }
+
         // Validar si el estado proporcionado es válido
-        if ($estado != 'No Confirmada' && !in_array($estado, array_keys($estados))) {
+        if (!in_array($estado, array_keys($estados))) {
             return response()->json(['message' => 'Estado no válido'], 400);
         }
 
@@ -267,9 +288,7 @@ class ReservasController extends Controller
         r.estado_id AS estadoId,
         re.estado AS estado,
         r.desayuno_id AS desayunoId,
-        desa.desayuno AS desayuno,
         r.decoracion_id AS decoracionId,
-        deco.decoracion AS decoracion,
         r.cedula AS cedula,
         r.telefono AS telefono,
         r.nombre AS nombre,
@@ -283,11 +302,10 @@ class ReservasController extends Controller
         r.abono AS abono,
         r.comprobante AS comprobante,
         r.verificacion_pago AS verificacionPago,
+        $getBitacoraCancelacion
         r.created_at AS created_at
         FROM reservas r
         JOIN reserva_estados re ON r.estado_id = re.id
-        LEFT JOIN desayunos desa ON r.desayuno_id = desa.id
-        LEFT JOIN decoraciones deco ON r.decoracion_id = deco.id
         WHERE r.deleted_at IS NULL $estados[$estado]
         ORDER BY r.created_at DESC";
 
@@ -298,6 +316,10 @@ class ReservasController extends Controller
             // Iterar sobre las reservas para agregar información adicional
             foreach ($reservas as $reserva) {
                 $reserva->verificacionPago = (bool) $reserva->verificacionPago;
+                if($estado == 'Cancelada'){
+                    $reserva->bitacora = json_decode($reserva->bitacora);
+                    $reserva->bitacora = $reserva->bitacora[0];
+                }
             }
 
             // Retornar las reservas con la información adicional como respuesta JSON

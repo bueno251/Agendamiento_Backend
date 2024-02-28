@@ -13,6 +13,10 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomEstadoController;
 use App\Http\Controllers\RoomTipoController;
 use App\Http\Controllers\CancelacionTipoController;
+use App\Http\Controllers\DepartamentoController;
+use App\Http\Controllers\DivisasController;
+use App\Http\Controllers\MunicipioController;
+use App\Http\Controllers\PaisController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -185,6 +189,7 @@ Route::controller(RoomBitacoraCambioController::class)->group(function () {
 Route::controller(ConfiguracionController::class)->group(function () {
     Route::post('settings/pagos', 'pagos');
     Route::post('settings/reservar', 'reservar');
+    Route::get('reservar', 'getReservaConfig');
     Route::post('settings/empresa', 'empresa');
     Route::get('settings/read', 'read');
     Route::get('settings/empresa/types', 'empresaTypes');
@@ -206,7 +211,7 @@ Route::controller(DecoracionController::class)->group(function () {
     Route::post('decoraciones/create', 'create');
     Route::get('decoraciones/read', 'read');
     Route::get('decoraciones/{id}', 'find');
-    Route::patch('decoraciones/update/{id}', 'update');
+    Route::post('decoraciones/update/{id}', 'update');
     Route::delete('decoraciones/delete/{id}', 'delete');
 });
 
@@ -222,6 +227,31 @@ Route::controller(CancelacionTipoController::class)->group(function () {
     Route::post('cancelar/tipo/create', 'create');
     Route::get('cancelar/tipo/read', 'read');
     Route::get('cancelar/tipo/{id}', 'find');
+    Route::get('cancelacion/{id}','cancelacionByReserva');
     Route::patch('cancelar/tipo/update/{id}', 'update');
     Route::delete('cancelar/tipo/delete/{id}', 'delete');
+});
+
+Route::controller(PaisController::class)->group(function (){
+    Route::post('pais', 'create');
+    Route::get('paises', 'read');
+});
+
+Route::controller(DepartamentoController::class)->group(function (){
+    Route::post('departamento', 'create');
+    Route::get('departamentos/{id}', 'read');
+});
+
+Route::controller(MunicipioController::class)->group(function (){
+    Route::post('municipio', 'create');
+    Route::get('municipios/{id}', 'read');
+});
+
+Route::controller(DivisasController::class)->group(function (){
+    Route::post('divisa', 'create');
+    Route::get('divisas', 'read');
+    Route::get('divisa/{id}', 'find');
+    Route::get('divisa', 'default');
+    Route::patch('divisa/{id}', 'update');
+    Route::delete('divisa/{id}', 'delete');
 });

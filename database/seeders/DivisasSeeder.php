@@ -5,19 +5,21 @@ namespace Database\Seeders;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
 
-class ConfiguracionSeeder extends Seeder
+class DivisasSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
+
         $data = [
-            'usuario_reserva' => 1,
-            'correo_obligatorio' => 1,
-            'created_at' => now(),
+            [
+                'nombre' => 'Peso Colombiano',
+                'codigo' => 'COP',
+            ],
         ];
 
-        DB::table('configuracions')->insert($data);
+        DB::table('divisas')->insert($data);
     }
 }

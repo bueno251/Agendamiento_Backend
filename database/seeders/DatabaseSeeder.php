@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             ClienteTipoPersonaSeeder::class,
             ClienteTipoRegimenSeeder::class,
             ConfiguracionSeeder::class,
+            DivisasSeeder::class,
             EmpresaEntornoSeeder::class,
             EmpresaOperacionSeeder::class,
             RoomEstadoSeeder::class,

@@ -25,8 +25,9 @@ class RoomController extends Controller
             'capacidad' => 'required|integer',
             'estado' => 'required|integer',
             'cantidad' => 'required|integer',
-            'desayuno' => 'required|integer',
             'decoracion' => 'required|integer',
+            'desayuno' => 'required|integer',
+            'incluyeDesayuno' => 'required|integer',
         ]);
 
         $queryRoomPadre = 'INSERT INTO room_padre (
@@ -36,10 +37,11 @@ class RoomController extends Controller
         capacidad,
         room_estado_id,
         cantidad,
-        has_desayuno,
         has_decoracion,
+        has_desayuno,
+        incluye_desayuno,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $queryRooms = 'INSERT INTO rooms (
         room_padre_id,
@@ -48,10 +50,11 @@ class RoomController extends Controller
         room_tipo_id,
         capacidad,
         room_estado_id,
-        has_desayuno,
         has_decoracion,
+        has_desayuno,
+        incluye_desayuno,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $queryImages = 'INSERT INTO room_imgs (
         room_padre_id,
@@ -76,17 +79,18 @@ class RoomController extends Controller
                 $request->capacidad,
                 $request->estado,
                 $request->cantidad,
-                $request->desayuno,
                 $request->decoracion,
+                $request->desayuno,
+                $request->incluyeDesayuno,
             ]);
-
+            
             // Obtener el ID de la habitación principal
             $roomId = DB::getPdo()->lastInsertId();
-
+            
             // Insertar imágenes asociadas a la habitación principal
             if ($request->hasFile('imgs')) {
                 $images = $request->file('imgs');
-
+                
                 foreach ($images as $image) {
                     $path = $image->store('imgs', 'public');
                     DB::insert($queryImages, [
@@ -95,7 +99,7 @@ class RoomController extends Controller
                     ]);
                 }
             }
-
+            
             // Insertar habitaciones asociadas
             for ($i = 0; $i < $request->cantidad; $i++) {
                 DB::insert($queryRooms, [
@@ -105,8 +109,9 @@ class RoomController extends Controller
                     $request->roomTipo,
                     $request->capacidad,
                     $request->estado,
-                    $request->desayuno,
                     $request->decoracion,
+                    $request->desayuno,
+                    $request->incluyeDesayuno,
                 ]);
             }
 
@@ -156,8 +161,9 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
-        r.has_desayuno AS hasDesayuno,
         r.has_decoracion AS hasDecoracion,
+        r.has_desayuno AS hasDesayuno,
+        r.incluye_desayuno AS incluyeDesayuno,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
@@ -175,7 +181,13 @@ class RoomController extends Controller
             JSON_ARRAYAGG(JSON_OBJECT("id", rs.id,"nombre", rs.nombre, "estado_id", rs.room_estado_id))
             FROM rooms rs
             WHERE rs.room_padre_id = r.id AND rs.deleted_at IS NULL
-        ) AS rooms
+        ) AS rooms,
+        (
+            SELECT
+            COUNT(*)
+            FROM rooms rs
+            WHERE rs.room_padre_id = r.id AND rs.deleted_at IS NULL
+        ) AS countRooms
         FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
@@ -186,8 +198,9 @@ class RoomController extends Controller
 
         foreach ($rooms as $room) {
             $room->habilitada = (bool) $room->habilitada;
-            $room->hasDesayuno = (bool) $room->hasDesayuno;
             $room->hasDecoracion = (bool) $room->hasDecoracion;
+            $room->hasDesayuno = (bool) $room->hasDesayuno;
+            $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
 
             // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
@@ -220,8 +233,9 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
-        r.has_desayuno AS hasDesayuno,
         r.has_decoracion AS hasDecoracion,
+        r.has_desayuno AS hasDesayuno,
+        r.incluye_desayuno AS incluyeDesayuno,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
@@ -251,6 +265,7 @@ class RoomController extends Controller
             $room->habilitada = (bool) $room->habilitada;
             $room->hasDesayuno = (bool) $room->hasDesayuno;
             $room->hasDecoracion = (bool) $room->hasDecoracion;
+            $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
 
             // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
@@ -285,8 +300,9 @@ class RoomController extends Controller
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
         r.cantidad AS cantidad,
-        r.has_desayuno AS hasDesayuno,
         r.has_decoracion AS hasDecoracion,
+        r.has_desayuno AS hasDesayuno,
+        r.incluye_desayuno AS incluyeDesayuno,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
@@ -320,6 +336,9 @@ class RoomController extends Controller
 
         $room = $rooms[0];
         $room->habilitada = (bool) $room->habilitada;
+        $room->hasDecoracion = (bool) $room->hasDecoracion;
+        $room->hasDesayuno = (bool) $room->hasDesayuno;
+        $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
 
         // Decodificar datos JSON
         $room->imgs = json_decode($room->imgs);
@@ -479,8 +498,9 @@ class RoomController extends Controller
             'capacidad' => 'required',
             'estado' => 'required',
             'estadoAntiguo' => 'required',
-            'desayuno' => 'required',
             'decoracion' => 'required',
+            'desayuno' => 'required',
+            'incluyeDesayuno' => 'required',
         ]);
 
         // Consultas SQL para la actualización de la habitación y sus detalles asociados
@@ -490,8 +510,9 @@ class RoomController extends Controller
         room_tipo_id = ?,
         capacidad = ?,
         room_estado_id = ?,
-        has_desayuno = ?,
         has_decoracion = ?,
+        has_desayuno = ?,
+        incluye_desayuno = ?,
         updated_at = now()
         WHERE id = ?';
 
@@ -500,8 +521,9 @@ class RoomController extends Controller
         room_tipo_id = ?,
         capacidad = ?,
         room_estado_id = ?,
-        has_desayuno = ?,
         has_decoracion = ?,
+        has_desayuno = ?,
+        incluye_desayuno = ?,
         updated_at = now()
         WHERE room_padre_id = ?';
 
@@ -530,8 +552,9 @@ class RoomController extends Controller
                 $request->roomTipo,
                 $request->capacidad,
                 $request->estado,
-                $request->desayuno ? 1: 0,
-                $request->decoracion ? 1: 0,
+                $request->decoracion ? 1 : 0,
+                $request->desayuno ? 1 : 0,
+                $request->incluyeDesayuno ? 1 : 0,
                 $id
             ]);
 
@@ -541,8 +564,9 @@ class RoomController extends Controller
                 $request->roomTipo,
                 $request->capacidad,
                 $request->estado,
-                $request->desayuno,
-                $request->decoracion,
+                $request->decoracion ? 1 : 0,
+                $request->desayuno ? 1 : 0,
+                $request->incluyeDesayuno ? 1 : 0,
                 $id
             ]);
 

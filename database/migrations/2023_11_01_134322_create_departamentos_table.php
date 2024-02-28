@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('desayunos', function (Blueprint $table) {
+        Schema::create('departamentos', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->integer('precio');
-            $table->text('descripcion');
+            $table->unsignedBigInteger('pais_id')->nullable();
+            $table->foreign('pais_id')->references('id')->on('paises')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('desayunos');
+        Schema::dropIfExists('departamentos');
     }
 };

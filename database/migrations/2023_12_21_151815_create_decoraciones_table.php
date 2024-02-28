@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('decoraciones', function (Blueprint $table) {
             $table->id();
-            $table->string('decoracion');
+            $table->string('nombre');
+            $table->integer('precio');
+            $table->text('descripcion');
             $table->timestamps();
             $table->softDeletes();
         });

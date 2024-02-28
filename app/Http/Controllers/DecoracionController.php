@@ -19,21 +19,54 @@ class DecoracionController extends Controller
     public function create(Request $request)
     {
         $request->validate([
-            'decoracion' => 'required|string'
+            'nombre' => 'required|string',
+            'precio' => 'required|integer',
         ]);
 
         // Consulta SQL para insertar la decoración
-        $query = 'INSERT INTO decoraciones (decoracion, created_at) VALUES (?, NOW())';
+        $queryInsert = 'INSERT INTO decoraciones (nombre, precio, descripcion, created_at) VALUES (?, ?, ?, NOW())';
+
+        $queryMultimedia = 'INSERT INTO decoracion_media (
+        decoracion_id,
+        url,
+        created_at)
+        VALUES (?, ?, NOW())';
+
+        DB::beginTransaction();
 
         try {
             // Ejecutar la inserción de la decoración
-            DB::insert($query, [$request->decoracion]);
+            DB::insert($queryInsert, [
+                $request->nombre,
+                $request->precio,
+                $request->descripcion ? $request->descripcion : "",
+            ]);
+
+            // Obtener el ID de la decoración
+            $decoracionId = DB::getPdo()->lastInsertId();
+
+            // Insertar archivos Multimedia a la decoración
+            if ($request->hasFile('media')) {
+                $archivos = $request->file('media');
+
+                foreach ($archivos as $archivo) {
+                    $path = $archivo->store('media', 'public');
+                    DB::insert($queryMultimedia, [
+                        $decoracionId,
+                        $path,
+                    ]);
+                }
+            }
+
+            DB::commit();
 
             // Retornar respuesta de éxito
             return response()->json([
                 'message' => 'Decoración creada exitosamente',
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
+
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
                 'message' => 'Error al crear la decoración',
@@ -52,11 +85,30 @@ class DecoracionController extends Controller
     public function read()
     {
         // Consulta SQL para obtener decoraciones
-        $query = 'SELECT id, decoracion, created_at FROM decoraciones WHERE deleted_at IS NULL ORDER BY created_at DESC';
+        $query = 'SELECT
+        d.id, 
+        d.nombre, 
+        d.precio, 
+        d.descripcion,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT("id", dm.id, "url", dm.url))
+            FROM decoracion_media dm 
+            WHERE dm.decoracion_id = d.id AND dm.deleted_at IS NULL
+        ) AS media,
+        created_at
+        FROM decoraciones d
+        WHERE d.deleted_at IS NULL
+        ORDER BY d.created_at DESC';
 
         try {
             // Obtener decoraciones desde la base de datos
             $decoraciones = DB::select($query);
+
+            foreach ($decoraciones as $decoracion) {
+                // Decodificar datos JSON
+                $decoracion->media = json_decode($decoracion->media);
+            }
 
             // Retornar respuesta con la lista de decoraciones
             return response()->json($decoraciones, 200);
@@ -80,7 +132,20 @@ class DecoracionController extends Controller
     public function find($id)
     {
         // Consulta SQL para obtener la decoración por ID
-        $query = 'SELECT id, decoracion, created_at FROM decoraciones WHERE id = ? AND deleted_at IS NULL ORDER BY created_at DESC';
+        $query = 'SELECT
+        d.id, 
+        d.nombre, 
+        d.precio, 
+        d.descripcion,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT("id", dm.id, "url", dm.url))
+            FROM decoracion_media dm 
+            WHERE dm.decoracion_id = d.id AND dm.deleted_at IS NULL
+        ) AS media,
+        created_at
+        FROM decoraciones d
+        WHERE d.id = ? AND d.deleted_at IS NULL';
 
         try {
             // Obtener la decoración por ID desde la base de datos
@@ -89,6 +154,11 @@ class DecoracionController extends Controller
             // Verificar si se encontró la decoración
             if (!empty($decoracion)) {
                 // Retornar respuesta con la información de la decoración
+
+                $decoracion = $decoracion[0];
+
+                $decoracion->media = json_decode($decoracion->media);
+
                 return response()->json($decoracion[0], 200);
             } else {
                 return response()->json([
@@ -116,29 +186,73 @@ class DecoracionController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'decoracion' => 'required|string',
+            'nombre' => 'required|string',
+            'precio' => 'required|integer',
         ]);
 
         // Consulta SQL para actualizar la decoración por ID
-        $query = 'UPDATE decoraciones SET decoracion = ?, updated_at = NOW() WHERE id = ?';
+        $query = 'UPDATE decoraciones SET
+        nombre = ?,
+        precio = ?,
+        descripcion = ?,
+        updated_at = NOW()
+        WHERE id = ?';
+
+        $queryMultimedia = 'INSERT INTO decoracion_media (
+        decoracion_id,
+        url,
+        created_at)
+        VALUES (?, ?, NOW())';
+
+        $queryDelMedia = 'UPDATE decoracion_media SET 
+        deleted_at = now()
+        WHERE id = ?';
+
+        DB::beginTransaction();
 
         try {
             // Ejecutar la actualización de la decoración por ID
-            $result = DB::update($query, [
-                $request->decoracion,
+            DB::update($query, [
+                $request->nombre,
+                $request->precio,
+                $request->descripcion ? $request->descripcion : "",
                 $id,
             ]);
 
-            // Verificar si la actualización fue exitosa
-            if ($result) {
-                return response()->json([
-                    'message' => 'Decoración actualizada exitosamente',
-                ]);
-            } else {
-                return response()->json([
-                    'message' => 'Error al actualizar la decoración',
-                ], 500);
+            if ($request->hasFile('media')) {
+                $archivos = $request->file('media');
+
+                foreach ($archivos as $archivo) {
+                    $path = $archivo->store('media', 'public');
+                    DB::insert($queryMultimedia, [
+                        $id,
+                        $path,
+                    ]);
+                }
             }
+
+            $toDelete = $request->input('toDelete', []);
+
+            foreach ($toDelete as $fileID) {
+                DB::update($queryDelMedia, [$fileID]);
+            }
+
+            DB::commit();
+
+            $urls = $request->input('urls', []);
+
+            foreach ($urls as $url) {
+                $filePath = public_path('storage/' . $url);
+
+                // Verificar si el archivo existe antes de intentar eliminarlo
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
+            }
+
+            return response()->json([
+                'message' => 'Decoración actualizada exitosamente',
+            ]);
         } catch (\Exception $e) {
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
