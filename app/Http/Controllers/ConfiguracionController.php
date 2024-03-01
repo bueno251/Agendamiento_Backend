@@ -21,6 +21,7 @@ class ConfiguracionController extends Controller
         id,
         usuario_reserva AS usuarioReserva,
         correo_obligatorio AS correoObligatorio,
+        porcentaje_separacion AS porcentajeSeparacion,
         id_empresa AS empresa,
         (
             SELECT
@@ -33,20 +34,20 @@ class ConfiguracionController extends Controller
 
         try {
             // Ejecutar consulta
-            $configuration = DB::select($queryConfig);
+            $configuration = DB::selectOne($queryConfig);
 
             // Decodificar metodos de pagos de la configuración
-            $configuration[0]->pagos = json_decode($configuration[0]->pagos);
+            $configuration->pagos = json_decode($configuration->pagos);
 
             // Convertir el campo 'usuario_reserva' a un formato booleano
-            $configuration[0]->usuarioReserva = (bool) $configuration[0]->usuarioReserva;
-            $configuration[0]->correoObligatorio = (bool) $configuration[0]->correoObligatorio;
+            $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
+            $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
 
             // Obtener detalles de la empresa si está asociada
-            $configuration[0]->empresa = $configuration[0]->empresa ? $this->getEmpresa($configuration[0]->empresa) : null;
+            $configuration->empresa = $configuration->empresa ? $this->getEmpresa($configuration->empresa) : null;
 
             // Retornar respuesta exitosa
-            return response($configuration, 200);
+            return response()->json($configuration, 200);
         } catch (\Exception $e) {
             // Retornar respuesta de error con detalles
             return response()->json([
@@ -197,14 +198,16 @@ class ConfiguracionController extends Controller
         // Validar los datos de entrada
         $request->validate([
             'configuracionId' => 'required|integer',
-            'reservar' => 'required',
-            'correo' => 'required',
+            'reservar' => 'required|boolean',
+            'correo' => 'required|boolean',
+            'porcentaje' => 'required|integer',
         ]);
 
         // Consulta SQL para actualizar la configuración de reserva
         $updateQuery = 'UPDATE configuracions SET 
         usuario_reserva = ?,
         correo_obligatorio = ?,
+        porcentaje_separacion = ?,
         updated_at = NOW()
         WHERE id = ?';
 
@@ -213,6 +216,7 @@ class ConfiguracionController extends Controller
             $reservar = DB::update($updateQuery, [
                 $request->reservar,
                 $request->correo,
+                $request->porcentaje,
                 $request->configuracionId,
             ]);
 
@@ -371,6 +375,9 @@ class ConfiguracionController extends Controller
             'pais' => 'required|string',
             'departamento' => 'required|string',
             'municipio' => 'required|string',
+            'priceInDolar' => 'required|boolean',
+            'dolarPriceAuto' => 'required|boolean',
+            'dolarPrice' => 'required|numeric',
             'divisa' => 'required|integer',
             'tipoDocumento' => 'required|integer',
             'tipoPersona' => 'required|integer',
@@ -386,19 +393,25 @@ class ConfiguracionController extends Controller
         pais,
         departamento,
         municipio,
+        price_in_dolar,
+        dolar_price_auto,
+        dolar_price,
         divisa_id,
         tipo_documento_id,
         tipo_persona_id,
         tipo_obligacion_id,
         tipo_regimen_id,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         // Consulta SQL para actualizar la configuración por defecto
         $updateConfig = 'UPDATE config_defecto SET 
         pais = ?,
         departamento = ?,
         municipio = ?,
+        price_in_dolar = ?,
+        dolar_price_auto = ?,
+        dolar_price = ?,
         divisa_id = ?,
         tipo_documento_id = ?,
         tipo_persona_id = ?,
@@ -426,6 +439,9 @@ class ConfiguracionController extends Controller
                     $request->pais,
                     $request->departamento,
                     $request->municipio,
+                    $request->priceInDolar,
+                    $request->dolarPriceAuto,
+                    $request->dolarPrice,
                     $request->divisa,
                     $request->tipoDocumento,
                     $request->tipoPersona,
@@ -438,6 +454,9 @@ class ConfiguracionController extends Controller
                     $request->pais,
                     $request->departamento,
                     $request->municipio,
+                    $request->priceInDolar,
+                    $request->dolarPriceAuto,
+                    $request->dolarPrice,
                     $request->divisa,
                     $request->tipoDocumento,
                     $request->tipoPersona,
@@ -625,13 +644,16 @@ class ConfiguracionController extends Controller
         $query = 'SELECT
         cd.id,
         JSON_OBJECT(
-            "id", d.id,
-            "nombre", d.nombre,
-            "codigo", d.codigo
+            "id", CASE WHEN cd.price_in_dolar = 1 THEN NULL ELSE d.id END,
+            "nombre", CASE WHEN cd.price_in_dolar = 1 THEN NULL ELSE d.nombre END,
+            "codigo", CASE WHEN cd.price_in_dolar = 1 THEN "USD" ELSE d.codigo END
         ) AS divisa,
         cd.pais,
         cd.departamento, 
         cd.municipio, 
+        cd.price_in_dolar AS priceInDolar,
+        cd.dolar_price_auto AS dolarPriceAuto,
+        cd.dolar_price AS dolarPrice,
         cd.tipo_documento_id AS tipo_documento, 
         cd.tipo_persona_id AS tipo_persona, 
         cd.tipo_obligacion_id AS tipo_obligacion, 
@@ -644,7 +666,11 @@ class ConfiguracionController extends Controller
             // Ejecutar la consulta
             $configuration = DB::selectOne($query);
 
-            $configuration->divisa = json_decode($configuration->divisa);
+            if ($configuration) {
+                $configuration->divisa = json_decode($configuration->divisa);
+                $configuration->priceInDolar = (bool) $configuration->priceInDolar;
+                $configuration->dolarPriceAuto = (bool) $configuration->dolarPriceAuto;
+            }
 
             // Retornar respuesta exitosa
             return response()->json($configuration, 200);
@@ -661,7 +687,8 @@ class ConfiguracionController extends Controller
     {
         $query = 'SELECT
         usuario_reserva AS usuarioReserva,
-        correo_obligatorio AS correoObligatorio
+        correo_obligatorio AS correoObligatorio,
+        porcentaje_separacion AS porcentajeSeparacion
         FROM configuracions
         WHERE deleted_at IS NULL';
 

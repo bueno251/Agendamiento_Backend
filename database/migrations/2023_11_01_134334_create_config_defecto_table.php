@@ -15,7 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('pais');
             $table->string('departamento');
-            $table->string('ciudad');
+            $table->string('municipio');
+            $table->boolean('price_in_dolar');
+            $table->boolean('dolar_price_auto');
+            $table->float('dolar_price');
             $table->unsignedBigInteger('tipo_documento_id')->nullable();
             $table->foreign('tipo_documento_id')->references('id')->on('cliente_tipo_documento')->onDelete('set null');
             $table->unsignedBigInteger('tipo_persona_id')->nullable();
