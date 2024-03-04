@@ -254,7 +254,7 @@ class RoomController extends Controller
         WHERE r.deleted_at IS NULL
         AND EXISTS (
             SELECT 1
-            FROM room_tarifas rt
+            FROM tarifas rt
             WHERE rt.room_id = r.id AND rt.deleted_at IS NULL
         )
         ORDER BY r.created_at DESC';
@@ -391,9 +391,9 @@ class RoomController extends Controller
 
         try {
             // Consulta SQL para insertar o actualizar los precios
-            $query = 'INSERT INTO room_tarifas (
+            $query = 'INSERT INTO tarifas (
             room_id,
-            dia_semana,
+            nombre,
             precio,
             jornada_id,
             created_at)
@@ -443,16 +443,16 @@ class RoomController extends Controller
     public function getPrecios(int $roomId)
     {
         $query = 'SELECT
-        rt.dia_semana AS name,
+        rt.nombre AS name,
         rt.precio AS precio,
         tj.nombre AS jornada,
         rt.jornada_id AS jornada_id,
         rt.created_at AS created_at
-        FROM room_tarifas rt
+        FROM tarifas rt
         LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
         WHERE rt.room_id = ? AND rt.deleted_at IS NULL
         ORDER BY
-        FIELD(rt.dia_semana, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")';
+        FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")';
 
         $roomPrices = DB::select($query, [$roomId]);
 

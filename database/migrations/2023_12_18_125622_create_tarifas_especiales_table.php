@@ -11,12 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('decoraciones', function (Blueprint $table) {
+        Schema::create('tarifas_especiales', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
+            $table->date('fecha');
             $table->integer('precio');
             $table->text('descripcion');
-            $table->boolean('has_iva');
+            $table->unsignedBigInteger('room_id')->nullable();
+            $table->foreign('room_id')->references('id')->on('room_padre')->onDelete('set null');
+            $table->unsignedBigInteger('estado_id')->nullable();
+            $table->foreign('estado_id')->references('id')->on('tarifa_estados')->onDelete('set null');
             $table->unsignedBigInteger('impuesto_id')->nullable();
             $table->foreign('impuesto_id')->references('id')->on('impuestos')->onDelete('set null');
             $table->timestamps();
@@ -29,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('decoraciones');
+        Schema::dropIfExists('tarifas_especiales');
     }
 };

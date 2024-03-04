@@ -11,19 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('room_tarifas', function (Blueprint $table) {
+        Schema::create('tarifas_generales', function (Blueprint $table) {
             $table->id();
+            $table->string('nombre');
+            $table->integer('precio');
+            $table->unique(['room_id', 'nombre'], 'unique_nombre_room_tarifa');
             $table->unsignedBigInteger('room_id')->nullable();
             $table->foreign('room_id')->references('id')->on('room_padre')->onDelete('set null');
             $table->unsignedBigInteger('jornada_id')->nullable();
             $table->foreign('jornada_id')->references('id')->on('tarifa_jornada')->onDelete('set null');
             $table->unsignedBigInteger('estado_id')->nullable();
             $table->foreign('estado_id')->references('id')->on('tarifa_estados')->onDelete('set null');
-            $table->string('dia_semana');
-            $table->integer('precio');
-            $table->unique(['room_id', 'dia_semana'], 'unique_room_day_tarifa');
-            $table->softDeletes();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -32,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('room_tarifas');
+        Schema::dropIfExists('tarifas_generales');
     }
 };

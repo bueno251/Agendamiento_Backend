@@ -15,8 +15,10 @@ use App\Http\Controllers\RoomTipoController;
 use App\Http\Controllers\CancelacionTipoController;
 use App\Http\Controllers\DepartamentoController;
 use App\Http\Controllers\DivisasController;
+use App\Http\Controllers\ImpuestoController;
 use App\Http\Controllers\MunicipioController;
 use App\Http\Controllers\PaisController;
+use App\Http\Controllers\TarifasController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -203,7 +205,7 @@ Route::controller(DesayunoController::class)->group(function () {
     Route::post('desayunos/create', 'create');
     Route::get('desayunos/read', 'read');
     Route::get('desayunos/{id}', 'find');
-    Route::patch('desayunos/update/{id}', 'update');
+    Route::post('desayunos/update/{id}', 'update');
     Route::delete('desayunos/delete/{id}', 'delete');
 });
 
@@ -251,7 +253,20 @@ Route::controller(DivisasController::class)->group(function (){
     Route::post('divisa', 'create');
     Route::get('divisas', 'read');
     Route::get('divisa/{id}', 'find');
-    Route::get('divisa', 'default');
     Route::patch('divisa/{id}', 'update');
     Route::delete('divisa/{id}', 'delete');
+});
+
+Route::controller(ImpuestoController::class)->group(function (){
+    Route::post('impuesto', 'create');
+    Route::get('impuestos', 'read');
+    Route::get('impuesto/tipos', 'readTipos');
+    Route::get('impuesto/{id}', 'find');
+    Route::patch('impuesto/{id}', 'update');
+    Route::delete('impuesto/{id}', 'delete');
+});
+
+Route::controller(TarifasController::class)->group(function (){
+    Route::post('tarifa', 'save');
+    Route::delete('tarifa', 'delete');
 });
