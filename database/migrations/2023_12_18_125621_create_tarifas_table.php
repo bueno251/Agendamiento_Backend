@@ -22,6 +22,8 @@ return new class extends Migration
             $table->foreign('jornada_id')->references('id')->on('tarifa_jornada')->onDelete('set null');
             $table->unsignedBigInteger('estado_id')->nullable();
             $table->foreign('estado_id')->references('id')->on('tarifa_estados')->onDelete('set null');
+            $table->unsignedBigInteger('impuesto_id')->nullable();
+            $table->foreign('impuesto_id')->references('id')->on('impuestos')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });

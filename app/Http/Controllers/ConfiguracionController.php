@@ -22,6 +22,7 @@ class ConfiguracionController extends Controller
         usuario_reserva AS usuarioReserva,
         correo_obligatorio AS correoObligatorio,
         porcentaje_separacion AS porcentajeSeparacion,
+        tarifas_generales AS tarifasGenerales,
         id_empresa AS empresa,
         (
             SELECT
@@ -42,6 +43,7 @@ class ConfiguracionController extends Controller
             // Convertir el campo 'usuario_reserva' a un formato booleano
             $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
+            $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
 
             // Obtener detalles de la empresa si está asociada
             $configuration->empresa = $configuration->empresa ? $this->getEmpresa($configuration->empresa) : null;
@@ -200,6 +202,7 @@ class ConfiguracionController extends Controller
             'configuracionId' => 'required|integer',
             'reservar' => 'required|boolean',
             'correo' => 'required|boolean',
+            'tarifasGenerales' => 'required|boolean',
             'porcentaje' => 'required|integer',
         ]);
 
@@ -208,6 +211,7 @@ class ConfiguracionController extends Controller
         usuario_reserva = ?,
         correo_obligatorio = ?,
         porcentaje_separacion = ?,
+        tarifas_generales = ?,
         updated_at = NOW()
         WHERE id = ?';
 
@@ -217,6 +221,7 @@ class ConfiguracionController extends Controller
                 $request->reservar,
                 $request->correo,
                 $request->porcentaje,
+                $request->tarifasGenerales,
                 $request->configuracionId,
             ]);
 

@@ -16,6 +16,7 @@ class ConfiguracionSeeder extends Seeder
             'usuario_reserva' => 1,
             'correo_obligatorio' => 1,
             'porcentaje_separacion' => 0,
+            'tarifas_generales' => 0,
             'created_at' => now(),
         ];
 

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('room_bitacora_cambios', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('room_id')->nullable();
-            $table->foreign('room_id')->references('id')->on('rooms')->onDelete('set null');
+            $table->foreign('room_id')->references('id')->on('room_padre')->onDelete('set null');
             $table->unsignedBigInteger('estado_anterior_id')->nullable();
             $table->foreign('estado_anterior_id')->references('id')->on('room_estados')->onDelete('set null');
             $table->unsignedBigInteger('estado_nuevo_id')->nullable();

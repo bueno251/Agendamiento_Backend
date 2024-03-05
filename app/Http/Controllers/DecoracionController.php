@@ -49,7 +49,7 @@ class DecoracionController extends Controller
                 $request->precio,
                 $request->descripcion ? $request->descripcion : "",
                 $request->hasIva,
-                $request->hasIva ? $request->impuesto : 0,
+                $request->hasIva ? $request->impuesto : null,
             ]);
 
             // Obtener el ID de la decoración
@@ -265,7 +265,7 @@ class DecoracionController extends Controller
                 $request->precio,
                 $request->descripcion ? $request->descripcion : "",
                 $request->hasIva,
-                $request->hasIva ? $request->impuesto : 0,
+                $request->hasIva ? $request->impuesto : null,
                 $id,
             ]);
 
