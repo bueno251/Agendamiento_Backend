@@ -237,10 +237,10 @@ class ClientController extends Controller
 
         try {
             // Ejecutar la consulta para buscar el cliente por número de documento
-            $clients = DB::select($query, [$doc]);
+            $cliente = DB::selectOne($query, [$doc]);
 
             // Retornar los detalles del cliente en formato JSON
-            return response()->json($clients, 200);
+            return response()->json($cliente, 200);
         } catch (\Exception $e) {
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([

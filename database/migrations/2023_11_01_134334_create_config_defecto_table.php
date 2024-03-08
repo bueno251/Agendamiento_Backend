@@ -15,7 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('pais');
             $table->string('departamento');
-            $table->string('ciudad');
+            $table->string('municipio');
+            $table->boolean('price_in_dolar');
+            $table->boolean('dolar_price_auto');
+            $table->float('dolar_price');
             $table->unsignedBigInteger('tipo_documento_id')->nullable();
             $table->foreign('tipo_documento_id')->references('id')->on('cliente_tipo_documento')->onDelete('set null');
             $table->unsignedBigInteger('tipo_persona_id')->nullable();
@@ -24,6 +27,8 @@ return new class extends Migration
             $table->foreign('tipo_obligacion_id')->references('id')->on('cliente_tipo_obligacion')->onDelete('set null');
             $table->unsignedBigInteger('tipo_regimen_id')->nullable();
             $table->foreign('tipo_regimen_id')->references('id')->on('cliente_tipo_regimen')->onDelete('set null');
+            $table->unsignedBigInteger('divisa_id')->nullable();
+            $table->foreign('divisa_id')->references('id')->on('divisas')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });

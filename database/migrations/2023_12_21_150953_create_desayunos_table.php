@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::create('desayunos', function (Blueprint $table) {
             $table->id();
-            $table->string('desayuno');
+            $table->string('nombre');
+            $table->integer('precio');
+            $table->text('descripcion');
+            $table->boolean('has_iva');
+            $table->unsignedBigInteger('impuesto_id')->nullable();
+            $table->foreign('impuesto_id')->references('id')->on('impuestos')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });

@@ -15,6 +15,7 @@ class ReservaEstadoSeeder extends Seeder
         $data = [
             ['estado' => 'Pendiente'],
             ['estado' => 'Confirmada'],
+            ['estado' => 'Rechazada'],
             ['estado' => 'Cancelada'],
         ];
 

@@ -19,7 +19,10 @@ class ConfiguracionController extends Controller
         // Consulta SQL para obtener la configuración general
         $queryConfig = 'SELECT
         id,
-        usuario_reserva,
+        usuario_reserva AS usuarioReserva,
+        correo_obligatorio AS correoObligatorio,
+        porcentaje_separacion AS porcentajeSeparacion,
+        tarifas_generales AS tarifasGenerales,
         id_empresa AS empresa,
         (
             SELECT
@@ -32,19 +35,21 @@ class ConfiguracionController extends Controller
 
         try {
             // Ejecutar consulta
-            $configuration = DB::select($queryConfig);
+            $configuration = DB::selectOne($queryConfig);
 
             // Decodificar metodos de pagos de la configuración
-            $configuration[0]->pagos = json_decode($configuration[0]->pagos);
+            $configuration->pagos = json_decode($configuration->pagos);
 
             // Convertir el campo 'usuario_reserva' a un formato booleano
-            $configuration[0]->usuario_reserva = (bool) $configuration[0]->usuario_reserva;
+            $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
+            $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
+            $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
 
             // Obtener detalles de la empresa si está asociada
-            $configuration[0]->empresa = $configuration[0]->empresa ? $this->getEmpresa($configuration[0]->empresa) : null;
+            $configuration->empresa = $configuration->empresa ? $this->getEmpresa($configuration->empresa) : null;
 
             // Retornar respuesta exitosa
-            return response($configuration, 200);
+            return response()->json($configuration, 200);
         } catch (\Exception $e) {
             // Retornar respuesta de error con detalles
             return response()->json([
@@ -195,12 +200,18 @@ class ConfiguracionController extends Controller
         // Validar los datos de entrada
         $request->validate([
             'configuracionId' => 'required|integer',
-            'reservar' => 'required',
+            'reservar' => 'required|boolean',
+            'correo' => 'required|boolean',
+            'tarifasGenerales' => 'required|boolean',
+            'porcentaje' => 'required|integer',
         ]);
 
         // Consulta SQL para actualizar la configuración de reserva
         $updateQuery = 'UPDATE configuracions SET 
         usuario_reserva = ?,
+        correo_obligatorio = ?,
+        porcentaje_separacion = ?,
+        tarifas_generales = ?,
         updated_at = NOW()
         WHERE id = ?';
 
@@ -208,6 +219,9 @@ class ConfiguracionController extends Controller
             // Ejecutar la actualización de la configuración de reserva
             $reservar = DB::update($updateQuery, [
                 $request->reservar,
+                $request->correo,
+                $request->porcentaje,
+                $request->tarifasGenerales,
                 $request->configuracionId,
             ]);
 
@@ -366,6 +380,10 @@ class ConfiguracionController extends Controller
             'pais' => 'required|string',
             'departamento' => 'required|string',
             'municipio' => 'required|string',
+            'priceInDolar' => 'required|boolean',
+            'dolarPriceAuto' => 'required|boolean',
+            'dolarPrice' => 'required|numeric',
+            'divisa' => 'required|integer',
             'tipoDocumento' => 'required|integer',
             'tipoPersona' => 'required|integer',
             'tipoResponsabilidad' => 'required|integer',
@@ -379,19 +397,27 @@ class ConfiguracionController extends Controller
         $insertQuery = 'INSERT INTO config_defecto (
         pais,
         departamento,
-        ciudad,
+        municipio,
+        price_in_dolar,
+        dolar_price_auto,
+        dolar_price,
+        divisa_id,
         tipo_documento_id,
         tipo_persona_id,
         tipo_obligacion_id,
         tipo_regimen_id,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         // Consulta SQL para actualizar la configuración por defecto
         $updateConfig = 'UPDATE config_defecto SET 
         pais = ?,
         departamento = ?,
-        ciudad = ?,
+        municipio = ?,
+        price_in_dolar = ?,
+        dolar_price_auto = ?,
+        dolar_price = ?,
+        divisa_id = ?,
         tipo_documento_id = ?,
         tipo_persona_id = ?,
         tipo_obligacion_id = ?,
@@ -418,6 +444,10 @@ class ConfiguracionController extends Controller
                     $request->pais,
                     $request->departamento,
                     $request->municipio,
+                    $request->priceInDolar,
+                    $request->dolarPriceAuto,
+                    $request->dolarPrice,
+                    $request->divisa,
                     $request->tipoDocumento,
                     $request->tipoPersona,
                     $request->tipoResponsabilidad,
@@ -429,6 +459,10 @@ class ConfiguracionController extends Controller
                     $request->pais,
                     $request->departamento,
                     $request->municipio,
+                    $request->priceInDolar,
+                    $request->dolarPriceAuto,
+                    $request->dolarPrice,
+                    $request->divisa,
                     $request->tipoDocumento,
                     $request->tipoPersona,
                     $request->tipoResponsabilidad,
@@ -450,7 +484,7 @@ class ConfiguracionController extends Controller
 
             // Retornar respuesta de éxito
             return response()->json([
-                'message' => 'Configuración por defecto guardada o actualizada con éxito',
+                'message' => 'Configuración por defecto guardada con éxito',
             ]);
         } catch (\Exception $e) {
             // Rollback en caso de error
@@ -458,7 +492,7 @@ class ConfiguracionController extends Controller
 
             // Retornar respuesta de error con detalles
             return response()->json([
-                'message' => 'Error al guardar o actualizar la configuración por defecto',
+                'message' => 'Error al guardar la configuración por defecto',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -613,21 +647,35 @@ class ConfiguracionController extends Controller
     public function getDefaultConfig()
     {
         $query = 'SELECT
-            id,
-            pais, 
-            departamento, 
-            ciudad, 
-            tipo_documento_id AS tipo_documento, 
-            tipo_persona_id AS tipo_persona, 
-            tipo_obligacion_id AS tipo_obligacion, 
-            tipo_regimen_id AS tipo_regimen, 
-            created_at
-        FROM config_defecto
-        WHERE deleted_at IS NULL';
+        cd.id,
+        JSON_OBJECT(
+            "id", CASE WHEN cd.price_in_dolar = 1 THEN NULL ELSE d.id END,
+            "nombre", CASE WHEN cd.price_in_dolar = 1 THEN NULL ELSE d.nombre END,
+            "codigo", CASE WHEN cd.price_in_dolar = 1 THEN "USD" ELSE d.codigo END
+        ) AS divisa,
+        cd.pais,
+        cd.departamento, 
+        cd.municipio, 
+        cd.price_in_dolar AS priceInDolar,
+        cd.dolar_price_auto AS dolarPriceAuto,
+        cd.dolar_price AS dolarPrice,
+        cd.tipo_documento_id AS tipo_documento, 
+        cd.tipo_persona_id AS tipo_persona, 
+        cd.tipo_obligacion_id AS tipo_obligacion, 
+        cd.tipo_regimen_id AS tipo_regimen
+        FROM config_defecto cd
+        JOIN divisas d ON cd.divisa_id = d.id
+        WHERE cd.deleted_at IS NULL';
 
         try {
             // Ejecutar la consulta
             $configuration = DB::selectOne($query);
+
+            if ($configuration) {
+                $configuration->divisa = json_decode($configuration->divisa);
+                $configuration->priceInDolar = (bool) $configuration->priceInDolar;
+                $configuration->dolarPriceAuto = (bool) $configuration->dolarPriceAuto;
+            }
 
             // Retornar respuesta exitosa
             return response()->json($configuration, 200);
@@ -635,6 +683,35 @@ class ConfiguracionController extends Controller
             // Retornar respuesta de error con detalles
             return response()->json([
                 'message' => 'Error al traer la configuración por defecto',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getReservaConfig()
+    {
+        $query = 'SELECT
+        usuario_reserva AS usuarioReserva,
+        correo_obligatorio AS correoObligatorio,
+        tarifas_generales AS tarifasGenerales,
+        porcentaje_separacion AS porcentajeSeparacion
+        FROM configuracions
+        WHERE deleted_at IS NULL';
+
+        try {
+            // Ejecutar la consulta
+            $configuration = DB::selectOne($query);
+
+            $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
+            $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
+            $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
+
+            // Retornar respuesta exitosa
+            return response()->json($configuration, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles
+            return response()->json([
+                'message' => 'Error al traer la configuración',
                 'error' => $e->getMessage(),
             ], 500);
         }

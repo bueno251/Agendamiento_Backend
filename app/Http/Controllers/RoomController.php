@@ -21,37 +21,38 @@ class RoomController extends Controller
         $request->validate([
             'nombre' => 'required|string',
             'descripcion' => 'required|string',
-            'roomTipo' => 'required|integer',
+            'hasIva' => 'required|integer',
+            'impuesto' => 'required|integer',
+            'tipo' => 'required|integer',
             'capacidad' => 'required|integer',
             'estado' => 'required|integer',
             'cantidad' => 'required|integer',
-            'desayuno' => 'required|integer',
             'decoracion' => 'required|integer',
+            'desayuno' => 'required|integer',
+            'incluyeDesayuno' => 'required|integer',
         ]);
 
         $queryRoomPadre = 'INSERT INTO room_padre (
         nombre,
         descripcion,
+        has_iva,
+        impuesto_id,
         room_tipo_id,
         capacidad,
         room_estado_id,
         cantidad,
-        has_desayuno,
         has_decoracion,
+        has_desayuno,
+        incluye_desayuno,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $queryRooms = 'INSERT INTO rooms (
         room_padre_id,
         nombre,
-        descripcion,
-        room_tipo_id,
-        capacidad,
         room_estado_id,
-        has_desayuno,
-        has_decoracion,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, NOW())';
 
         $queryImages = 'INSERT INTO room_imgs (
         room_padre_id,
@@ -72,16 +73,38 @@ class RoomController extends Controller
             DB::insert($queryRoomPadre, [
                 $request->nombre,
                 $request->descripcion,
-                $request->roomTipo,
+                $request->hasIva,
+                $request->hasIva ? $request->impuesto : null,
+                $request->tipo,
                 $request->capacidad,
                 $request->estado,
                 $request->cantidad,
-                $request->desayuno,
                 $request->decoracion,
+                $request->desayuno,
+                $request->incluyeDesayuno,
             ]);
 
             // Obtener el ID de la habitación principal
             $roomId = DB::getPdo()->lastInsertId();
+
+            // Insertar habitaciones asociadas
+            for ($i = 0; $i < $request->cantidad; $i++) {
+                DB::insert($queryRooms, [
+                    $roomId,
+                    'Habitacion - ' . (1 + $i),
+                    $request->estado,
+                ]);
+            }
+
+            // Insertar características asociadas a la habitación principal
+            $characteristics = $request->input('caracteristic', []);
+
+            foreach ($characteristics as $characteristic) {
+                DB::insert($queryCharacteristics, [
+                    $roomId,
+                    $characteristic,
+                ]);
+            }
 
             // Insertar imágenes asociadas a la habitación principal
             if ($request->hasFile('imgs')) {
@@ -94,30 +117,6 @@ class RoomController extends Controller
                         $path,
                     ]);
                 }
-            }
-
-            // Insertar habitaciones asociadas
-            for ($i = 0; $i < $request->cantidad; $i++) {
-                DB::insert($queryRooms, [
-                    $roomId,
-                    $request->nombre . ' - ' . (1 + $i),
-                    $request->descripcion,
-                    $request->roomTipo,
-                    $request->capacidad,
-                    $request->estado,
-                    $request->desayuno,
-                    $request->decoracion,
-                ]);
-            }
-
-            // Insertar características asociadas a la habitación principal
-            $characteristics = $request->input('caracteristic', []);
-
-            foreach ($characteristics as $characteristic) {
-                DB::insert($queryCharacteristics, [
-                    $roomId,
-                    $characteristic,
-                ]);
             }
 
             // Confirmar la transacción
@@ -149,6 +148,8 @@ class RoomController extends Controller
         $query = 'SELECT
         r.id AS id,
         r.nombre AS nombre,
+        r.has_iva AS hasIva,
+        r.impuesto_id AS impuestoId,
         r.descripcion AS descripcion,
         r.room_tipo_id AS tipoId,
         rt.tipo AS tipo,
@@ -156,8 +157,9 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
-        r.has_desayuno AS hasDesayuno,
         r.has_decoracion AS hasDecoracion,
+        r.has_desayuno AS hasDesayuno,
+        r.incluye_desayuno AS incluyeDesayuno,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
@@ -175,7 +177,53 @@ class RoomController extends Controller
             JSON_ARRAYAGG(JSON_OBJECT("id", rs.id,"nombre", rs.nombre, "estado_id", rs.room_estado_id))
             FROM rooms rs
             WHERE rs.room_padre_id = r.id AND rs.deleted_at IS NULL
-        ) AS rooms
+        ) AS rooms,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "name", rt.nombre,
+                "jornada", tj.nombre,
+                "jornada_id", rt.jornada_id,
+                "impuestoId", rt.impuesto_id,
+                "precio", rt.precio,
+                "precio_con_iva", 
+                CASE 
+                    WHEN rt.impuesto_id IS NOT NULL
+                        THEN rt.precio * (1 + imp.tasa / 100)
+                        ELSE rt.precio
+                    END
+            ))
+            FROM tarifas rt
+            LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
+            LEFT JOIN impuestos imp ON imp.id = rt.impuesto_id
+            WHERE rt.room_id = r.id
+            ORDER BY
+            FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
+        ) AS precios,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "fechaInicio", te.fecha_inicio,
+                "fechaFin", te.fecha_fin,
+                "precio", te.precio,
+                "precio_con_iva", 
+                CASE 
+                    WHEN te.impuesto_id IS NOT NULL
+                        THEN te.precio * (1 + imp.tasa / 100)
+                        ELSE te.precio
+                    END
+            ))
+            FROM tarifas_especiales te
+            LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+            WHERE te.room_id = r.id AND te.deleted_at IS NULL
+            ORDER BY te.created_at DESC
+        ) AS tarifasEspeciales,
+        (
+            SELECT
+            COUNT(*)
+            FROM rooms rs
+            WHERE rs.room_padre_id = r.id AND rs.deleted_at IS NULL
+        ) AS countRooms
         FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
@@ -186,16 +234,17 @@ class RoomController extends Controller
 
         foreach ($rooms as $room) {
             $room->habilitada = (bool) $room->habilitada;
-            $room->hasDesayuno = (bool) $room->hasDesayuno;
             $room->hasDecoracion = (bool) $room->hasDecoracion;
+            $room->hasDesayuno = (bool) $room->hasDesayuno;
+            $room->hasIva = (bool) $room->hasIva;
+            $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
 
             // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
             $room->caracteristicas = json_decode($room->caracteristicas);
             $room->rooms = json_decode($room->rooms);
-
-            // Obtener precios
-            $room->precios = $this->getPrecios($room->id);
+            $room->precios = json_decode($room->precios);
+            $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
         }
 
         return response()->json($rooms, 200);
@@ -220,14 +269,55 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
-        r.has_desayuno AS hasDesayuno,
         r.has_decoracion AS hasDecoracion,
+        r.has_desayuno AS hasDesayuno,
+        r.incluye_desayuno AS incluyeDesayuno,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
             FROM room_imgs ri 
             WHERE ri.room_padre_id = r.id AND ri.deleted_at IS NULL
         ) AS imgs,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "name", rt.nombre,
+                "jornada", tj.nombre,
+                "jornada_id", rt.jornada_id,
+                "impuestoId", rt.impuesto_id,
+                "precio", rt.precio,
+                "precio_con_iva", 
+                CASE 
+                    WHEN rt.impuesto_id IS NOT NULL
+                        THEN rt.precio * (1 + imp.tasa / 100)
+                        ELSE rt.precio
+                    END
+            ))
+            FROM tarifas rt
+            LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
+            LEFT JOIN impuestos imp ON imp.id = rt.impuesto_id
+            WHERE rt.room_id = r.id
+            ORDER BY
+            FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
+        ) AS precios,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "fechaInicio", te.fecha_inicio,
+                "fechaFin", te.fecha_fin,
+                "precio", te.precio,
+                "precio_con_iva", 
+                CASE 
+                    WHEN te.impuesto_id IS NOT NULL
+                        THEN te.precio * (1 + imp.tasa / 100)
+                        ELSE te.precio
+                    END
+            ))
+            FROM tarifas_especiales te
+            LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+            WHERE te.room_id = r.id AND te.deleted_at IS NULL
+            ORDER BY te.created_at DESC
+        ) AS tarifasEspeciales,
         (
             SELECT
             JSON_ARRAYAGG(rcr.caracteristica_id)
@@ -240,7 +330,7 @@ class RoomController extends Controller
         WHERE r.deleted_at IS NULL
         AND EXISTS (
             SELECT 1
-            FROM room_tarifas rt
+            FROM tarifas rt
             WHERE rt.room_id = r.id AND rt.deleted_at IS NULL
         )
         ORDER BY r.created_at DESC';
@@ -251,13 +341,13 @@ class RoomController extends Controller
             $room->habilitada = (bool) $room->habilitada;
             $room->hasDesayuno = (bool) $room->hasDesayuno;
             $room->hasDecoracion = (bool) $room->hasDecoracion;
+            $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
 
             // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
             $room->caracteristicas = json_decode($room->caracteristicas);
-
-            // Obtener precios
-            $room->precios = $this->getPrecios($room->id);
+            $room->precios = json_decode($room->precios);
+            $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
         }
 
         return response()->json($rooms, 200);
@@ -285,8 +375,10 @@ class RoomController extends Controller
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
         r.cantidad AS cantidad,
-        r.has_desayuno AS hasDesayuno,
         r.has_decoracion AS hasDecoracion,
+        r.has_desayuno AS hasDesayuno,
+        r.incluye_desayuno AS incluyeDesayuno,
+        im.tasa AS iva,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
@@ -301,6 +393,62 @@ class RoomController extends Controller
         ) AS caracteristicas,
         (
             SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "name", rt.nombre,
+                "jornada", tj.nombre,
+                "jornada_id", rt.jornada_id,
+                "impuestoId", rt.impuesto_id,
+                "precio", rt.precio,
+                "precioConIva", 
+                CASE 
+                    WHEN rt.impuesto_id IS NOT NULL
+                        THEN rt.precio * (1 + imp.tasa / 100)
+                        ELSE rt.precio
+                    END
+            ))
+            FROM tarifas rt
+            LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
+            LEFT JOIN impuestos imp ON imp.id = rt.impuesto_id
+            WHERE rt.room_id = r.id
+            ORDER BY
+            FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
+        ) AS precios,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "fechaInicio", te.fecha_inicio,
+                "fechaFin", te.fecha_fin,
+                "precio", te.precio,
+                "precioConIva", 
+                CASE 
+                    WHEN te.impuesto_id IS NOT NULL
+                        THEN te.precio * (1 + imp.tasa / 100)
+                        ELSE te.precio
+                    END
+            ))
+            FROM tarifas_especiales te
+            LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+            WHERE te.room_id = r.id AND te.deleted_at IS NULL
+            ORDER BY te.created_at DESC
+        ) AS tarifasEspeciales,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "nombre", tg.nombre,
+                "precio", tg.precio,
+                "precioConIva", 
+                CASE 
+                    WHEN tg.impuesto_id IS NOT NULL
+                        THEN tg.precio * (1 + imp.tasa / 100)
+                        ELSE tg.precio
+                    END
+            ))
+            FROM tarifas_generales tg
+            LEFT JOIN impuestos imp ON imp.id = tg.impuesto_id
+            ORDER BY tg.created_at DESC
+        ) AS tarifasGenerales,
+        (
+            SELECT
             COUNT(*)
             FROM rooms rs
             WHERE rs.room_padre_id = r.id AND rs.habilitada = 1 AND rs.deleted_at IS NULL
@@ -308,155 +456,32 @@ class RoomController extends Controller
         FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
+        JOIN configuracions config ON config.id = 1
+        LEFT JOIN impuestos im ON im.id = r.impuesto_id
         WHERE r.id = ? && r.deleted_at IS NULL';
 
-        $rooms = DB::select($query, [$id]);
+        $room = DB::selectOne($query, [$id]);
 
-        if (empty($rooms)) {
+        if ($room) {
+
+            $room->habilitada = (bool) $room->habilitada;
+            $room->hasDecoracion = (bool) $room->hasDecoracion;
+            $room->hasDesayuno = (bool) $room->hasDesayuno;
+            $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
+
+            // Decodificar datos JSON
+            $room->imgs = json_decode($room->imgs);
+            $room->caracteristicas = json_decode($room->caracteristicas);
+            $room->precios = json_decode($room->precios);
+            $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
+            $room->tarifasGenerales = json_decode($room->tarifasGenerales);
+
+            return response()->json($room, 200);
+        } else {
             return response()->json([
-                'message' => 'Habitación inexistente',
+                'message' => 'Habitación no encontrada',
             ], 404);
         }
-
-        $room = $rooms[0];
-        $room->habilitada = (bool) $room->habilitada;
-
-        // Decodificar datos JSON
-        $room->imgs = json_decode($room->imgs);
-        $room->caracteristicas = json_decode($room->caracteristicas);
-
-        // Obtener precios
-        $room->precios = $this->getPrecios($room->id);
-
-        return response()->json($room, 200);
-    }
-
-    /**
-     * Guardar o actualizar precios para una habitación específica.
-     *
-     * Este método se encarga de guardar o actualizar los precios para una habitación específica en diferentes días de la semana y jornadas.
-     *
-     * @param \Illuminate\Http\Request $request Datos de la solicitud.
-     * @param int $id Identificador de la habitación.
-     *
-     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación o detalles sobre un error inesperado.
-     */
-    public function savePrecios(Request $request, int $id)
-    {
-        // Validar la solicitud
-        $request->validate([
-            'weekdays' => [
-                'required',
-                'array',
-                function ($attribute, $value, $fail) {
-                    foreach ($value as $pago) {
-                        $validate = validator($pago, [
-                            'name' => 'required|string',
-                            'precio' => 'required|integer',
-                        ]);
-
-                        if ($validate->fails()) {
-                            $fail('El formato de los días es incorrecto: { name: string, precio: integer }');
-                            break;
-                        }
-                    }
-                }
-            ],
-        ]);
-
-        // Obtener los datos de los días y jornadas
-        $weekdays = $request->input("weekdays");
-
-        // Iniciar la transacción de la base de datos
-        DB::beginTransaction();
-
-        try {
-            // Consulta SQL para insertar o actualizar los precios
-            $query = 'INSERT INTO room_tarifas (
-            room_id,
-            dia_semana,
-            precio,
-            jornada_id,
-            created_at)
-            VALUES (?, ?, ?, ?, now())
-            ON DUPLICATE KEY UPDATE
-            precio = VALUES(precio),
-            jornada_id = VALUES(jornada_id),
-            updated_at = NOW()';
-
-            // Iterar sobre los días y ejecutar la consulta
-            foreach ($weekdays as $day) {
-                DB::insert($query, [
-                    $id,
-                    $day['name'],
-                    $day['precio'],
-                    $day['jornada_id'],
-                ]);
-            }
-
-            // Confirmar la transacción
-            DB::commit();
-
-            // Respuesta exitosa
-            return response()->json([
-                'message' => 'Precios guardados exitosamente',
-            ]);
-        } catch (\Exception $e) {
-            // Revertir la transacción en caso de error
-            DB::rollBack();
-
-            // Respuesta de error
-            return response()->json([
-                'message' => 'Error inesperado al guardar',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Obtener precios de habitación
-     *
-     * Este método se encarga de obtener los precios de una habitación específica.
-     *
-     * @param int $roomId Identificador de la habitación.
-     * @return array Resultado de la consulta con los precios de la habitación.
-     */
-    public function getPrecios(int $roomId)
-    {
-        $query = 'SELECT
-        rt.dia_semana AS name,
-        rt.precio AS precio,
-        tj.nombre AS jornada,
-        rt.jornada_id AS jornada_id,
-        rt.created_at AS created_at
-        FROM room_tarifas rt
-        LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
-        WHERE rt.room_id = ? AND rt.deleted_at IS NULL
-        ORDER BY
-        FIELD(rt.dia_semana, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")';
-
-        $roomPrices = DB::select($query, [$roomId]);
-
-        return $roomPrices;
-    }
-
-    /**
-     * Obtener Jornadas de Tarifas
-     *
-     * Este método recupera las jornadas de tarifas disponibles.
-     *
-     * @return array Devuelve un array de objetos con las jornadas de tarifas.
-     */
-    public function getJornadas()
-    {
-        // Consulta SQL para obtener las jornadas de tarifas
-        $query = 'SELECT id, nombre FROM tarifa_jornada';
-
-        // Obtener resultados de la consulta
-        $tarifas = DB::select($query);
-
-        // Devolver el array de objetos con las jornadas de tarifas
-        return $tarifas;
     }
 
     /**
@@ -473,37 +498,60 @@ class RoomController extends Controller
         // Validación de los datos del formulario
         $request->validate([
             'user' => 'required',
-            'nombre' => 'required',
-            'descripcion' => 'required',
-            'roomTipo' => 'required',
-            'capacidad' => 'required',
-            'estado' => 'required',
-            'estadoAntiguo' => 'required',
-            'desayuno' => 'required|integer',
+            'nombre' => 'required|string',
+            'descripcion' => 'required|string',
+            'hasIva' => 'required|integer',
+            'tipo' => 'required|integer',
+            'capacidad' => 'required|integer',
+            'estado' => 'required|integer',
+            'estadoAntiguo' => 'required|integer',
+            'cantidad' => 'required|integer',
             'decoracion' => 'required|integer',
+            'desayuno' => 'required|integer',
+            'incluyeDesayuno' => 'required|integer',
         ]);
 
         // Consultas SQL para la actualización de la habitación y sus detalles asociados
         $query = 'UPDATE room_padre SET
         nombre = ?,
         descripcion = ?,
+        has_iva = ?,
+        impuesto_id = ?,
         room_tipo_id = ?,
         capacidad = ?,
         room_estado_id = ?,
-        has_desayuno = ?,
         has_decoracion = ?,
+        has_desayuno = ?,
+        incluye_desayuno = ?,
         updated_at = now()
         WHERE id = ?';
 
-        $queryRooms = 'UPDATE rooms SET
-        descripcion = ?,
-        room_tipo_id = ?,
-        capacidad = ?,
+        $queryRooms = 'INSERT INTO rooms (
+        room_padre_id,
+        nombre,
+        room_estado_id,
+        created_at)
+        VALUES (?, ?, ?, NOW())';
+
+        $queryGetCountRooms = 'SELECT
+        COUNT(*) AS cantidad
+        FROM rooms rs
+        WHERE rs.room_padre_id = ? AND rs.habilitada = 1 AND rs.deleted_at IS NULL';
+
+        $queryUpdateRooms = 'UPDATE rooms SET
         room_estado_id = ?,
-        has_desayuno = ?,
-        has_decoracion = ?,
         updated_at = now()
-        WHERE room_padre_id = ?';
+        WHERE room_padre_id = ? AND deleted_at IS NULL';
+
+        $queryUpdateTarifas = 'UPDATE tarifas SET
+        impuesto_id = ?,
+        updated_at = now()
+        WHERE room_id = ? AND nombre NOT IN ("Adicional", "Niños") AND deleted_at IS NULL';
+
+        $queryUpdateTarifasEspeciales = 'UPDATE tarifas_especiales SET
+        impuesto_id = ?,
+        updated_at = now()
+        WHERE room_id = ? AND deleted_at IS NULL';
 
         $queryCaracteristicasCreate = 'INSERT INTO room_caracteristica_relacion (
         room_id,
@@ -527,22 +575,43 @@ class RoomController extends Controller
             DB::update($query, [
                 $request->nombre,
                 $request->descripcion,
-                $request->roomTipo,
+                $request->hasIva,
+                $request->hasIva ? $request->impuesto : null,
+                $request->tipo,
                 $request->capacidad,
                 $request->estado,
-                $request->desayuno,
-                $request->decoracion,
+                $request->decoracion ? 1 : 0,
+                $request->desayuno ? 1 : 0,
+                $request->incluyeDesayuno ? 1 : 0,
                 $id
             ]);
 
+            DB::update($queryUpdateTarifas, [
+                $request->hasIva ? $request->impuesto : null,
+                $id
+            ]);
+
+            DB::update($queryUpdateTarifasEspeciales, [
+                $request->hasIva ? $request->impuesto : null,
+                $id
+            ]);
+
+            $result = DB::selectOne($queryGetCountRooms, [$id]);
+
+            $newCountForAdd = $request->cantidad - $result->cantidad;
+
+            // Insertar habitaciones asociadas
+            for ($i = 0; $i < $newCountForAdd; $i++) {
+                DB::insert($queryRooms, [
+                    $id,
+                    'Habitacion - ' . ($result->cantidad + 1 + $i),
+                    $request->estado,
+                ]);
+            }
+
             // Actualizar las habitaciones asociadas
-            DB::update($queryRooms, [
-                $request->descripcion,
-                $request->roomTipo,
-                $request->capacidad,
+            DB::update($queryUpdateRooms, [
                 $request->estado,
-                $request->desayuno,
-                $request->decoracion,
                 $id
             ]);
 
@@ -579,14 +648,14 @@ class RoomController extends Controller
     }
 
     /**
-     * Actualizar Estado de Habitaciones
+     * Actualizar Habitaciones
      *
      * Este método se encarga de actualizar el estado de una lista de habitaciones.
      *
      * @param \Illuminate\Http\Request $request Objeto Request con los datos de actualización.
      * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
      */
-    public function updateEstado(Request $request)
+    public function updateRooms(Request $request)
     {
         // Validación de los datos del formulario
         $request->validate([
@@ -597,11 +666,12 @@ class RoomController extends Controller
                     foreach ($value as $pago) {
                         $validate = validator($pago, [
                             'id' => 'required|integer',
+                            'nombre' => 'required|string',
                             'estado_id' => 'required|integer',
                         ]);
 
                         if ($validate->fails()) {
-                            $fail('El formato de las habitaciones es incorrecto. { id:integer, estado_id:integer }');
+                            $fail('El formato de las habitaciones es incorrecto. { id:integer, nombre:string estado_id:integer }');
                             break;
                         }
                     }
@@ -609,8 +679,9 @@ class RoomController extends Controller
             ],
         ]);
 
-        // Consulta SQL para la actualización del estado de las habitaciones
+        // Consulta SQL para la actualización de las habitaciones
         $query = 'UPDATE rooms SET
+        nombre = ?,
         room_estado_id = ?,
         updated_at = now()
         WHERE id = ?';
@@ -624,6 +695,7 @@ class RoomController extends Controller
             // Actualizar el estado de cada habitación en la lista
             foreach ($rooms as $room) {
                 DB::update($query, [
+                    $room['nombre'],
                     $room['estado_id'],
                     $room['id'],
                 ]);
@@ -739,23 +811,93 @@ class RoomController extends Controller
     public function delete($id)
     {
         // Consulta SQL para marcar la habitación como eliminada
-        $query = 'UPDATE rooms SET 
+        $query = 'UPDATE room_padre SET
         deleted_at = now()
         WHERE id = ?';
 
-        // Ejecutar la consulta de actualización
-        $room = DB::update($query, [$id]);
+        $queryRooms = 'UPDATE rooms SET 
+        deleted_at = now()
+        WHERE room_padre_id = ?';
 
-        // Verificar si la actualización fue exitosa
-        if ($room) {
+        $queryTarifas = 'UPDATE tarifas SET 
+        deleted_at = now()
+        WHERE room_padre_id = ?';
+
+        $queryGetImgs = 'SELECT id, url
+        FROM room_imgs
+        WHERE room_padre_id = ?';
+
+        $queryDelImgs = 'UPDATE room_imgs SET 
+        deleted_at = now()
+        WHERE room_padre_id = ?';
+
+        DB::beginTransaction();
+
+        try {
+            // Ejecutar la consulta de actualización
+            DB::update($query, [$id]);
+            DB::update($queryRooms, [$id]);
+            DB::update($queryTarifas, [$id]);
+            DB::update($queryDelImgs, [$id]);
+            $imgs = DB::select($queryGetImgs, [$id]);
+
+            foreach ($imgs as $img) {
+                $filePath = public_path('storage/' . $img->url);
+
+                // Verificar si el archivo existe antes de intentar eliminarlo
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
+            }
+
+            DB::commit();
+
             // Respuesta exitosa
             return response()->json([
                 'message' => 'Eliminada exitosamente',
             ]);
-        } else {
+        } catch (\Exception $e) {
+            // Revertir la transacción en caso de error
+            DB::rollBack();
+
             // Respuesta de error
             return response()->json([
-                'message' => 'Error al actualizar',
+                'message' => 'Error al eliminar',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function deleteHija($id)
+    {
+        // Consulta SQL para marcar la habitación como eliminada
+        $query = 'UPDATE rooms SET 
+        deleted_at = now()
+        WHERE id = ?';
+
+        try {
+            // Ejecutar la consulta de actualización
+            $result = DB::update($query, [$id]);
+
+            // Verificar si la eliminación fue exitosa
+            if ($result) {
+                return response()->json([
+                    'message' => 'Habitación eliminada exitosamente',
+                    'id' => $id,
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Error al eliminar la habitación',
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            // Revertir la transacción en caso de error
+            DB::rollBack();
+
+            // Respuesta de error
+            return response()->json([
+                'message' => 'Error al eliminar',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

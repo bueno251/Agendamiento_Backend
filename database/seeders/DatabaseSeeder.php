@@ -12,12 +12,14 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            CancelacionTipoSeeder::class,
             CaracteristicaEstadoSeeder::class,
             ClienteTipoDocumentoSeeder::class,
             ClienteTipoObligacionSeeder::class,
             ClienteTipoPersonaSeeder::class,
             ClienteTipoRegimenSeeder::class,
             ConfiguracionSeeder::class,
+            DivisasSeeder::class,
             EmpresaEntornoSeeder::class,
             EmpresaOperacionSeeder::class,
             RoomEstadoSeeder::class,

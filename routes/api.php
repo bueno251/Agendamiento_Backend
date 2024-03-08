@@ -12,6 +12,15 @@ use App\Http\Controllers\RoomBitacoraCambioController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomEstadoController;
 use App\Http\Controllers\RoomTipoController;
+use App\Http\Controllers\CancelacionTipoController;
+use App\Http\Controllers\DepartamentoController;
+use App\Http\Controllers\DivisasController;
+use App\Http\Controllers\ImpuestoController;
+use App\Http\Controllers\MunicipioController;
+use App\Http\Controllers\PaisController;
+use App\Http\Controllers\TarifasController;
+use App\Http\Controllers\TarifasEspecialesController;
+use App\Http\Controllers\TarifasGeneralesController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -43,13 +52,13 @@ Route::controller(AuthController::class)->group(function () {
  */
 Route::controller(ReservasController::class)->group(function () {
     // Crear una nueva reserva
-    Route::post('reserva/create', 'create');
+    Route::post('reserva', 'create');
 
     // Pagar una reserva temporal existente
     Route::post('reserva/pagar', 'pagar');
 
     // Obtener información de las reservas
-    Route::get('reserva/read/{estado?}', 'read');
+    Route::get('reservas/{estado?}', 'read');
 
     // Obtener fechas disponibles para una habitación específica
     Route::get('reserva/room/{id}', 'getDates');
@@ -59,6 +68,9 @@ Route::controller(ReservasController::class)->group(function () {
 
     // Rechazar una reserva existente
     Route::patch('reserva/reject/{id}', 'reject');
+
+    //Cancelar una reserva existente
+    Route::post('reserva/cancelar/{id}', 'cancelar');
 });
 
 /**
@@ -66,22 +78,22 @@ Route::controller(ReservasController::class)->group(function () {
  */
 Route::controller(ClientController::class)->group(function () {
     // Crear un nuevo cliente
-    Route::post('client/create', 'create');
+    Route::post('cliente', 'create');
 
     // Obtener información de los clientes
-    Route::get('client/read', 'read');
+    Route::get('clientes', 'read');
 
     // Encontrar información de un cliente por ID
-    Route::get('client/find/{id}', 'find');
+    Route::get('cliente/{id}', 'find');
 
     // Encontrar información de un cliente por número de documento
-    Route::get('client/find/document/{doc}', 'findDoc');
+    Route::get('cliente/documento/{doc}', 'findDoc');
 
     // Actualizar información de un cliente
-    Route::patch('client/update/{id}', 'update');
+    Route::patch('cliente/{id}', 'update');
 
     // Eliminar un cliente
-    Route::delete('client/delete/{id}', 'delete');
+    Route::delete('cliente/{id}', 'delete');
 });
 
 /**
@@ -89,13 +101,7 @@ Route::controller(ClientController::class)->group(function () {
  */
 Route::controller(clientTipoController::class)->group(function () {
     // Obtener todos los tipos de cliente
-    Route::get('client/type/all', 'read');
-
-    // Obtener tipos específicos de cliente
-    Route::get('client/type/documents', 'readDoc');
-    Route::get('client/type/obligations', 'readObl');
-    Route::get('client/type/people', 'readPer');
-    Route::get('client/type/regimens', 'readReg');
+    Route::get('cliente/tipos', 'read');
 });
 
 /**
@@ -103,35 +109,27 @@ Route::controller(clientTipoController::class)->group(function () {
  */
 Route::controller(RoomController::class)->group(function () {
     // Crear una nueva habitación
-    Route::post('room/create', 'create');
+    Route::post('room', 'create');
 
     // Obtener información de las habitaciones
-    Route::get('room/read', 'read');
-    Route::get('room/read/client', 'readClient');
+    Route::get('rooms/read', 'read');
+    Route::get('rooms', 'readClient');
 
     // Encontrar información de una habitación por ID
-    Route::get('room/find/{id}', 'find');
+    Route::get('room/{id}', 'find');
 
     // Actualizar información de una habitación
-    Route::patch('room/update/{id}', 'update');
+    Route::patch('room/{id}', 'update');
 
     // Actualizar imagenes de una habitación
     Route::post('room/img/{id}', 'updateImg');
 
     // Eliminar una habitación
-    Route::delete('room/delete/{id}', 'delete');
-
-    // Guardar precios de una habitación
-    Route::post('room/precios/{id}', 'savePrecios');
-
-    // Obtener precios de una habitación
-    Route::get('room/precios/{id}', 'getPrecios');
-
-    // Obtener jornadas
-    Route::get('jornadas/read', 'getJornadas');
+    Route::delete('room/{id}', 'delete');
+    Route::delete('room-hija/{id}', 'deleteHija');
 
     // Actualizar estado de las habitaciones similares
-    Route::patch('room/estados', 'updateEstado');
+    Route::patch('rooms', 'updateRooms');
 });
 
 /**
@@ -139,17 +137,17 @@ Route::controller(RoomController::class)->group(function () {
  */
 Route::controller(RoomTipoController::class)->group(function () {
     // Crear un nuevo tipo de habitación
-    Route::post('room/type/create', 'create');
+    Route::post('tipo-room', 'create');
 
     // Obtener información de tipos de habitación
-    Route::get('room/type', 'read');
-    Route::get('room/type/{id}', 'find');
+    Route::get('tipos-room', 'read');
+    Route::get('tipo-room/{id}', 'find');
 
     // Actualizar información de un tipo de habitación
-    Route::patch('room/type/update/{id}', 'update');
+    Route::patch('tipo-room/{id}', 'update');
 
     // Eliminar un tipo de habitación
-    Route::delete('room/type/delete/{id}', 'delete');
+    Route::delete('tipo-room/{id}', 'delete');
 });
 
 /**
@@ -157,17 +155,17 @@ Route::controller(RoomTipoController::class)->group(function () {
  */
 Route::controller(RoomEstadoController::class)->group(function () {
     // Crear un nuevo estado de habitación
-    Route::post('room/estado/create', 'create');
+    Route::post('estado-room', 'create');
 
     // Obtener información de estados de habitación
-    Route::get('room/estado', 'read');
-    Route::get('room/estado/{id}', 'find');
+    Route::get('estados-room', 'read');
+    Route::get('estado-room/{id}', 'find');
 
     // Actualizar información de un estado de habitación
-    Route::patch('room/estado/update/{id}', 'update');
+    Route::patch('estado-room/{id}', 'update');
 
     // Eliminar un estado de habitación
-    Route::delete('room/estado/delete/{id}', 'delete');
+    Route::delete('estado-room/{id}', 'delete');
 });
 
 /**
@@ -181,9 +179,10 @@ Route::controller(RoomBitacoraCambioController::class)->group(function () {
 Route::controller(ConfiguracionController::class)->group(function () {
     Route::post('settings/pagos', 'pagos');
     Route::post('settings/reservar', 'reservar');
+    Route::get('reservar', 'getReservaConfig');
     Route::post('settings/empresa', 'empresa');
-    Route::get('settings/read', 'read');
-    Route::get('settings/empresa/types', 'empresaTypes');
+    Route::get('settings', 'read');
+    Route::get('settings/empresa/tipos', 'empresaTypes');
     Route::get('pagos', 'getPagos');
     Route::post('default', 'defaultConfig');
     Route::get('default', 'getDefaultConfig');
@@ -191,25 +190,88 @@ Route::controller(ConfiguracionController::class)->group(function () {
 });
 
 Route::controller(DesayunoController::class)->group(function () {
-    Route::post('desayunos/create', 'create');
-    Route::get('desayunos/read', 'read');
-    Route::get('desayunos/{id}', 'find');
-    Route::patch('desayunos/update/{id}', 'update');
-    Route::delete('desayunos/delete/{id}', 'delete');
+    Route::post('desayuno', 'create');
+    Route::get('desayunos', 'read');
+    Route::get('desayuno{id}', 'find');
+    Route::post('desayuno/{id}', 'update');
+    Route::delete('desayuno/{id}', 'delete');
 });
 
 Route::controller(DecoracionController::class)->group(function () {
-    Route::post('decoraciones/create', 'create');
-    Route::get('decoraciones/read', 'read');
-    Route::get('decoraciones/{id}', 'find');
-    Route::patch('decoraciones/update/{id}', 'update');
-    Route::delete('decoraciones/delete/{id}', 'delete');
+    Route::post('decoracion', 'create');
+    Route::get('decoraciones', 'read');
+    Route::get('decoracion{id}', 'find');
+    Route::post('decoracion/{id}', 'update');
+    Route::delete('decoracion/{id}', 'delete');
 });
 
 Route::controller(CaracteristicasController::class)->group(function () {
-    Route::post('room/caracteristicas/create', 'create');
-    Route::get('room/caracteristicas/read', 'read');
-    Route::get('room/caracteristicas/{id}', 'find');
-    Route::patch('room/caracteristicas/update/{id}', 'update');
-    Route::delete('room/caracteristicas/delete/{id}', 'delete');
+    Route::post('caracteristica', 'create');
+    Route::get('caracteristicas', 'read');
+    Route::get('caracteristica/{id}', 'find');
+    Route::patch('caracteristica/{id}', 'update');
+    Route::delete('caracteristica/{id}', 'delete');
+});
+
+Route::controller(CancelacionTipoController::class)->group(function () {
+    Route::post('cancelar/tipo', 'create');
+    Route::get('cancelar/tipos', 'read');
+    Route::get('cancelar/tipo/{id}', 'find');
+    Route::get('cancelacion/{id}','cancelacionByReserva');
+    Route::patch('cancelar/tipo{id}', 'update');
+    Route::delete('cancelar/tipo{id}', 'delete');
+});
+
+Route::controller(PaisController::class)->group(function (){
+    Route::post('pais', 'create');
+    Route::get('paises', 'read');
+});
+
+Route::controller(DepartamentoController::class)->group(function (){
+    Route::post('departamento', 'create');
+    Route::get('departamentos/{id}', 'read');
+});
+
+Route::controller(MunicipioController::class)->group(function (){
+    Route::post('municipio', 'create');
+    Route::get('municipios/{id}', 'read');
+});
+
+Route::controller(DivisasController::class)->group(function (){
+    Route::post('divisa', 'create');
+    Route::get('divisas', 'read');
+    Route::get('divisa/{id}', 'find');
+    Route::patch('divisa/{id}', 'update');
+    Route::delete('divisa/{id}', 'delete');
+});
+
+Route::controller(ImpuestoController::class)->group(function (){
+    Route::post('impuesto', 'create');
+    Route::get('impuestos', 'read');
+    Route::get('impuesto/tipos', 'readTipos');
+    Route::get('impuesto/{id}', 'find');
+    Route::patch('impuesto/{id}', 'update');
+    Route::delete('impuesto/{id}', 'delete');
+});
+
+Route::controller(TarifasController::class)->group(function (){
+    Route::post('tarifa', 'save');
+    Route::post('tarifas/{id}', 'saveTarifas');
+    Route::get('tarifas/{id}', 'getTarifas');
+    Route::get('jornadas', 'getJornadas');
+    Route::delete('tarifa/{id}', 'delete');
+});
+
+Route::controller(TarifasGeneralesController::class)->group(function (){
+    Route::post('tarifas-generales', 'save');
+    Route::get('tarifas-generales', 'read');
+    Route::delete('tarifa-general/{id}', 'delete');
+});
+
+Route::controller(TarifasEspecialesController::class)->group(function () {
+    Route::post('tarifa-especial', 'create');
+    Route::get('tarifas-especiales/{id}', 'read');
+    Route::get('tarifa-especial/{id}', 'find');
+    Route::patch('tarifa-especial/{id}', 'update');
+    Route::delete('tarifa-especial/{id}', 'delete');
 });
