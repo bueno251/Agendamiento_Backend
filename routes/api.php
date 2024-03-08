@@ -19,6 +19,8 @@ use App\Http\Controllers\ImpuestoController;
 use App\Http\Controllers\MunicipioController;
 use App\Http\Controllers\PaisController;
 use App\Http\Controllers\TarifasController;
+use App\Http\Controllers\TarifasEspecialesController;
+use App\Http\Controllers\TarifasGeneralesController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -257,5 +259,19 @@ Route::controller(TarifasController::class)->group(function (){
     Route::post('tarifas/{id}', 'saveTarifas');
     Route::get('tarifas/{id}', 'getTarifas');
     Route::get('jornadas', 'getJornadas');
-    Route::delete('tarifa', 'delete');
+    Route::delete('tarifa/{id}', 'delete');
+});
+
+Route::controller(TarifasGeneralesController::class)->group(function (){
+    Route::post('tarifas-generales', 'save');
+    Route::get('tarifas-generales', 'read');
+    Route::delete('tarifa-general/{id}', 'delete');
+});
+
+Route::controller(TarifasEspecialesController::class)->group(function () {
+    Route::post('tarifa-especial', 'create');
+    Route::get('tarifas-especiales/{id}', 'read');
+    Route::get('tarifa-especial/{id}', 'find');
+    Route::patch('tarifa-especial/{id}', 'update');
+    Route::delete('tarifa-especial/{id}', 'delete');
 });

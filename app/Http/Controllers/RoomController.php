@@ -202,6 +202,24 @@ class RoomController extends Controller
         ) AS precios,
         (
             SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "fechaInicio", te.fecha_inicio,
+                "fechaFin", te.fecha_fin,
+                "precio", te.precio,
+                "precio_con_iva", 
+                CASE 
+                    WHEN te.impuesto_id IS NOT NULL
+                        THEN te.precio * (1 + imp.tasa / 100)
+                        ELSE te.precio
+                    END
+            ))
+            FROM tarifas_especiales te
+            LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+            WHERE te.room_id = r.id AND te.deleted_at IS NULL
+            ORDER BY te.created_at DESC
+        ) AS tarifasEspeciales,
+        (
+            SELECT
             COUNT(*)
             FROM rooms rs
             WHERE rs.room_padre_id = r.id AND rs.deleted_at IS NULL
@@ -226,6 +244,7 @@ class RoomController extends Controller
             $room->caracteristicas = json_decode($room->caracteristicas);
             $room->rooms = json_decode($room->rooms);
             $room->precios = json_decode($room->precios);
+            $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
         }
 
         return response()->json($rooms, 200);
@@ -283,6 +302,24 @@ class RoomController extends Controller
         ) AS precios,
         (
             SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "fechaInicio", te.fecha_inicio,
+                "fechaFin", te.fecha_fin,
+                "precio", te.precio,
+                "precio_con_iva", 
+                CASE 
+                    WHEN te.impuesto_id IS NOT NULL
+                        THEN te.precio * (1 + imp.tasa / 100)
+                        ELSE te.precio
+                    END
+            ))
+            FROM tarifas_especiales te
+            LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+            WHERE te.room_id = r.id AND te.deleted_at IS NULL
+            ORDER BY te.created_at DESC
+        ) AS tarifasEspeciales,
+        (
+            SELECT
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
             WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
@@ -310,6 +347,7 @@ class RoomController extends Controller
             $room->imgs = json_decode($room->imgs);
             $room->caracteristicas = json_decode($room->caracteristicas);
             $room->precios = json_decode($room->precios);
+            $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
         }
 
         return response()->json($rooms, 200);
@@ -340,6 +378,7 @@ class RoomController extends Controller
         r.has_decoracion AS hasDecoracion,
         r.has_desayuno AS hasDesayuno,
         r.incluye_desayuno AS incluyeDesayuno,
+        im.tasa AS iva,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
@@ -360,7 +399,7 @@ class RoomController extends Controller
                 "jornada_id", rt.jornada_id,
                 "impuestoId", rt.impuesto_id,
                 "precio", rt.precio,
-                "precio_con_iva", 
+                "precioConIva", 
                 CASE 
                     WHEN rt.impuesto_id IS NOT NULL
                         THEN rt.precio * (1 + imp.tasa / 100)
@@ -376,6 +415,40 @@ class RoomController extends Controller
         ) AS precios,
         (
             SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "fechaInicio", te.fecha_inicio,
+                "fechaFin", te.fecha_fin,
+                "precio", te.precio,
+                "precioConIva", 
+                CASE 
+                    WHEN te.impuesto_id IS NOT NULL
+                        THEN te.precio * (1 + imp.tasa / 100)
+                        ELSE te.precio
+                    END
+            ))
+            FROM tarifas_especiales te
+            LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+            WHERE te.room_id = r.id AND te.deleted_at IS NULL
+            ORDER BY te.created_at DESC
+        ) AS tarifasEspeciales,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "nombre", tg.nombre,
+                "precio", tg.precio,
+                "precioConIva", 
+                CASE 
+                    WHEN tg.impuesto_id IS NOT NULL
+                        THEN tg.precio * (1 + imp.tasa / 100)
+                        ELSE tg.precio
+                    END
+            ))
+            FROM tarifas_generales tg
+            LEFT JOIN impuestos imp ON imp.id = tg.impuesto_id
+            ORDER BY tg.created_at DESC
+        ) AS tarifasGenerales,
+        (
+            SELECT
             COUNT(*)
             FROM rooms rs
             WHERE rs.room_padre_id = r.id AND rs.habilitada = 1 AND rs.deleted_at IS NULL
@@ -383,28 +456,32 @@ class RoomController extends Controller
         FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
+        JOIN configuracions config ON config.id = 1
+        LEFT JOIN impuestos im ON im.id = r.impuesto_id
         WHERE r.id = ? && r.deleted_at IS NULL';
 
-        $rooms = DB::select($query, [$id]);
+        $room = DB::selectOne($query, [$id]);
 
-        if (empty($rooms)) {
+        if ($room) {
+
+            $room->habilitada = (bool) $room->habilitada;
+            $room->hasDecoracion = (bool) $room->hasDecoracion;
+            $room->hasDesayuno = (bool) $room->hasDesayuno;
+            $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
+
+            // Decodificar datos JSON
+            $room->imgs = json_decode($room->imgs);
+            $room->caracteristicas = json_decode($room->caracteristicas);
+            $room->precios = json_decode($room->precios);
+            $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
+            $room->tarifasGenerales = json_decode($room->tarifasGenerales);
+
+            return response()->json($room, 200);
+        } else {
             return response()->json([
-                'message' => 'Habitación inexistente',
+                'message' => 'Habitación no encontrada',
             ], 404);
         }
-
-        $room = $rooms[0];
-        $room->habilitada = (bool) $room->habilitada;
-        $room->hasDecoracion = (bool) $room->hasDecoracion;
-        $room->hasDesayuno = (bool) $room->hasDesayuno;
-        $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
-
-        // Decodificar datos JSON
-        $room->imgs = json_decode($room->imgs);
-        $room->caracteristicas = json_decode($room->caracteristicas);
-        $room->precios = json_decode($room->precios);
-
-        return response()->json($room, 200);
     }
 
     /**
@@ -424,7 +501,6 @@ class RoomController extends Controller
             'nombre' => 'required|string',
             'descripcion' => 'required|string',
             'hasIva' => 'required|integer',
-            'impuesto' => 'required|integer',
             'tipo' => 'required|integer',
             'capacidad' => 'required|integer',
             'estado' => 'required|integer',
@@ -467,6 +543,16 @@ class RoomController extends Controller
         updated_at = now()
         WHERE room_padre_id = ? AND deleted_at IS NULL';
 
+        $queryUpdateTarifas = 'UPDATE tarifas SET
+        impuesto_id = ?,
+        updated_at = now()
+        WHERE room_id = ? AND nombre NOT IN ("Adicional", "Niños") AND deleted_at IS NULL';
+
+        $queryUpdateTarifasEspeciales = 'UPDATE tarifas_especiales SET
+        impuesto_id = ?,
+        updated_at = now()
+        WHERE room_id = ? AND deleted_at IS NULL';
+
         $queryCaracteristicasCreate = 'INSERT INTO room_caracteristica_relacion (
         room_id,
         caracteristica_id,
@@ -497,6 +583,16 @@ class RoomController extends Controller
                 $request->decoracion ? 1 : 0,
                 $request->desayuno ? 1 : 0,
                 $request->incluyeDesayuno ? 1 : 0,
+                $id
+            ]);
+
+            DB::update($queryUpdateTarifas, [
+                $request->hasIva ? $request->impuesto : null,
+                $id
+            ]);
+
+            DB::update($queryUpdateTarifasEspeciales, [
+                $request->hasIva ? $request->impuesto : null,
                 $id
             ]);
 

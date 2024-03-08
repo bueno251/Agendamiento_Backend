@@ -693,6 +693,7 @@ class ConfiguracionController extends Controller
         $query = 'SELECT
         usuario_reserva AS usuarioReserva,
         correo_obligatorio AS correoObligatorio,
+        tarifas_generales AS tarifasGenerales,
         porcentaje_separacion AS porcentajeSeparacion
         FROM configuracions
         WHERE deleted_at IS NULL';
@@ -703,6 +704,7 @@ class ConfiguracionController extends Controller
 
             $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
+            $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
 
             // Retornar respuesta exitosa
             return response()->json($configuration, 200);

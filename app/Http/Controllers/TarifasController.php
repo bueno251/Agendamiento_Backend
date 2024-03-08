@@ -62,19 +62,18 @@ class TarifasController extends Controller
         // Validar la solicitud
         $request->validate([
             'hasIva' => 'required|boolean',
-            'impuesto' => 'required|integer',
-            'weekdays' => [
+            'tarifas' => [
                 'required',
                 'array',
                 function ($attribute, $value, $fail) {
-                    foreach ($value as $pago) {
-                        $validate = validator($pago, [
+                    foreach ($value as $tarifa) {
+                        $validate = validator($tarifa, [
                             'name' => 'required|string',
                             'precio' => 'required|integer',
                         ]);
 
                         if ($validate->fails()) {
-                            $fail('El formato de los días es incorrecto: { name: string, precio: integer }');
+                            $fail('El formato de las tarifas es incorrecto: { name: string, precio: integer }');
                             break;
                         }
                     }
@@ -82,30 +81,31 @@ class TarifasController extends Controller
             ],
         ]);
 
-        // Obtener los datos de los días y jornadas
-        $weekdays = $request->input("weekdays");
+        // Consulta SQL para insertar o actualizar las tarifas
+        $query = 'INSERT INTO tarifas (
+        room_id,
+        nombre,
+        precio,
+        jornada_id,
+        impuesto_id,
+        created_at)
+        VALUES (?, ?, ?, ?, ?, now())
+        ON DUPLICATE KEY UPDATE
+        precio = VALUES(precio),
+        jornada_id = VALUES(jornada_id),
+        impuesto_id = VALUES(impuesto_id),
+        updated_at = NOW()';
+
+        // Obtener los datos de las tarifas
+        $tarifas = $request->input("tarifas");
 
         // Iniciar la transacción de la base de datos
         DB::beginTransaction();
 
         try {
-            // Consulta SQL para insertar o actualizar las tarifas
-            $query = 'INSERT INTO tarifas (
-            room_id,
-            nombre,
-            precio,
-            jornada_id,
-            impuesto_id,
-            created_at)
-            VALUES (?, ?, ?, ?, ?, now())
-            ON DUPLICATE KEY UPDATE
-            precio = VALUES(precio),
-            jornada_id = VALUES(jornada_id),
-            impuesto_id = VALUES(impuesto_id),
-            updated_at = NOW()';
 
-            // Iterar sobre los días y ejecutar la consulta
-            foreach ($weekdays as $day) {
+            // Iterar sobre las tarifas y ejecutar la consulta
+            foreach ($tarifas as $day) {
                 DB::insert($query, [
                     $id,
                     $day['name'],

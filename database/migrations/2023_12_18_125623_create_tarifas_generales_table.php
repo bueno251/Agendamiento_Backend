@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tarifas_generales', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
+            $table->string('nombre')->unique();
             $table->integer('precio');
             $table->unsignedBigInteger('estado_id')->nullable();
             $table->foreign('estado_id')->references('id')->on('tarifa_estados')->onDelete('set null');
