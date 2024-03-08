@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('departamentos', function (Blueprint $table) {
+        Schema::create('room_desayunos_rutas_audiovisual', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->unsignedBigInteger('pais_id')->nullable();
-            $table->foreign('pais_id')->references('id')->on('paises')->onDelete('set null');
+            $table->unsignedBigInteger('desayuno_id')->nullable();
+            $table->foreign('desayuno_id')->references('id')->on('room_desayunos')->onDelete('set null');
+            $table->string('url');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('departamentos');
+        Schema::dropIfExists('room_desayunos_rutas_audiovisual');
     }
 };

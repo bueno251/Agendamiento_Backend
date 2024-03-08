@@ -20,7 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id_empresa')->nullable();
             $table->foreign('id_empresa')->references('id')->on('empresa')->onDelete('set null');
             $table->unsignedBigInteger('id_config')->nullable();
-            $table->foreign('id_config')->references('id')->on('config_defecto')->onDelete('set null');
+            $table->foreign('id_config')->references('id')->on('configuracion_defecto')->onDelete('set null');
             $table->softDeletes();
             $table->timestamps();
         });

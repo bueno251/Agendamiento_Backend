@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('cancelacion_bitacora', function (Blueprint $table) {
+        Schema::create('reservas_cancelacion_bitacora', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tipo_id')->nullable();
-            $table->foreign('tipo_id')->references('id')->on('cancelacion_tipos')->onDelete('no action');
+            $table->foreign('tipo_id')->references('id')->on('reservas_cancelacion_tipos')->onDelete('no action');
             $table->unsignedBigInteger('reserva_id')->nullable();
             $table->foreign('reserva_id')->references('id')->on('reservas')->onDelete('no action');
             $table->unsignedBigInteger('user_id')->nullable();
@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cancelacion_bitacora');
+        Schema::dropIfExists('reservas_cancelacion_bitacora');
     }
 };

@@ -101,7 +101,7 @@ Route::controller(ClientController::class)->group(function () {
  */
 Route::controller(clientTipoController::class)->group(function () {
     // Obtener todos los tipos de cliente
-    Route::get('cliente/tipos', 'read');
+    Route::get('cliente-tipos', 'read');
 });
 
 /**

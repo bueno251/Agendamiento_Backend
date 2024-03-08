@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('paises', function (Blueprint $table) {
+        Schema::create('reservas_cancelacion_tipos', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->string('nombre_corto');
-            $table->integer('codigo_telefono');
+            $table->string('tipo');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -26,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('paises');
+        Schema::dropIfExists('cancelacion_tipo');
     }
 };

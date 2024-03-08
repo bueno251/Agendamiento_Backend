@@ -391,10 +391,10 @@ class ConfiguracionController extends Controller
         ]);
 
         // Consulta SQL para verificar si ya existe una configuración por defecto para la configuración principal
-        $existingConfigQuery = 'SELECT id FROM config_defecto WHERE deleted_at IS NULL';
+        $existingConfigQuery = 'SELECT id FROM configuracion_defecto WHERE deleted_at IS NULL';
 
         // Consulta SQL para insertar la configuración por defecto
-        $insertQuery = 'INSERT INTO config_defecto (
+        $insertQuery = 'INSERT INTO configuracion_defecto (
         pais,
         departamento,
         municipio,
@@ -410,7 +410,7 @@ class ConfiguracionController extends Controller
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         // Consulta SQL para actualizar la configuración por defecto
-        $updateConfig = 'UPDATE config_defecto SET 
+        $updateConfig = 'UPDATE configuracion_defecto SET 
         pais = ?,
         departamento = ?,
         municipio = ?,
@@ -663,8 +663,8 @@ class ConfiguracionController extends Controller
         cd.tipo_persona_id AS tipo_persona, 
         cd.tipo_obligacion_id AS tipo_obligacion, 
         cd.tipo_regimen_id AS tipo_regimen
-        FROM config_defecto cd
-        JOIN divisas d ON cd.divisa_id = d.id
+        FROM configuracion_defecto cd
+        JOIN tarifas_divisas d ON cd.divisa_id = d.id
         WHERE cd.deleted_at IS NULL';
 
         try {

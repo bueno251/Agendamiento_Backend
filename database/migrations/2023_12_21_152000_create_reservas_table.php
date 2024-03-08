@@ -24,9 +24,9 @@ return new class extends Migration
             $table->unsignedBigInteger('estado_id')->nullable();
             $table->foreign('estado_id')->references('id')->on('reserva_estados')->onDelete('set null');
             $table->unsignedBigInteger('desayuno_id')->nullable();
-            $table->foreign('desayuno_id')->references('id')->on('desayunos')->onDelete('set null');
+            $table->foreign('desayuno_id')->references('id')->on('room_desayunos')->onDelete('set null');
             $table->unsignedBigInteger('decoracion_id')->nullable();
-            $table->foreign('decoracion_id')->references('id')->on('decoraciones')->onDelete('set null');
+            $table->foreign('decoracion_id')->references('id')->on('room_decoraciones')->onDelete('set null');
             $table->string('cedula');
             $table->string('telefono');
             $table->string('nombre');

@@ -15,9 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('nombre');
             $table->text('descripcion');
-            $table->boolean('has_iva');
             $table->unsignedBigInteger('impuesto_id')->nullable();
-            $table->foreign('impuesto_id')->references('id')->on('impuestos')->onDelete('set null');
+            $table->foreign('impuesto_id')->references('id')->on('tarifa_impuestos')->onDelete('set null');
             $table->unsignedBigInteger('room_tipo_id')->nullable();
             $table->foreign('room_tipo_id')->references('id')->on('room_tipos')->onDelete('set null');
             $table->unsignedBigInteger('room_estado_id')->nullable();

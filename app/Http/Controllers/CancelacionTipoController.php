@@ -16,8 +16,8 @@ class CancelacionTipoController extends Controller
         cb.user_id AS user_id,
         us.nombre AS user,
         cb.nota_cancelacion AS motivo
-        FROM cancelacion_bitacora cb
-        LEFT JOIN cancelacion_tipos ct ON ct.id = cb.tipo_id
+        FROM reservas_cancelacion_bitacora cb
+        LEFT JOIN reservas_cancelacion_tipos ct ON ct.id = cb.tipo_id
         LEFT JOIN users us ON us.id = cb.user_id
         WHERE cb.deleted_at IS NULL AND cb.reserva_id = ?
         ORDER BY cb.created_at DESC';
@@ -46,7 +46,7 @@ class CancelacionTipoController extends Controller
             'tipo' => 'required|string'
         ]);
 
-        $query = 'INSERT INTO cancelacion_tipos (tipo, created_at) VALUES (?, NOW())';
+        $query = 'INSERT INTO reservas_cancelacion_tipos (tipo, created_at) VALUES (?, NOW())';
 
         try {
             DB::insert($query, [$request->tipo]);
@@ -65,12 +65,12 @@ class CancelacionTipoController extends Controller
 
     public function read()
     {
-        $query = 'SELECT id, tipo, created_at FROM cancelacion_tipos WHERE deleted_at IS NULL ORDER BY created_at DESC';
+        $query = 'SELECT id, tipo, created_at FROM reservas_cancelacion_tipos WHERE deleted_at IS NULL ORDER BY created_at DESC';
 
         try {
-            $cancelacion_tipos = DB::select($query);
+            $reservas_cancelacion_tipos = DB::select($query);
 
-            return response()->json($cancelacion_tipos, 200);
+            return response()->json($reservas_cancelacion_tipos, 200);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener los tipos',
@@ -81,7 +81,7 @@ class CancelacionTipoController extends Controller
 
     public function find($id)
     {
-        $query = 'SELECT id, tipo, created_at FROM cancelacion_tipos WHERE id = ? AND deleted_at IS NULL';
+        $query = 'SELECT id, tipo, created_at FROM reservas_cancelacion_tipos WHERE id = ? AND deleted_at IS NULL';
 
         try {
             $tipo = DB::select($query, [$id]);
@@ -107,7 +107,7 @@ class CancelacionTipoController extends Controller
             'tipo' => 'required|string',
         ]);
 
-        $query = 'UPDATE cancelacion_tipos SET tipo = ?, updated_at = NOW() WHERE id = ?';
+        $query = 'UPDATE reservas_cancelacion_tipos SET tipo = ?, updated_at = NOW() WHERE id = ?';
 
         try {
             $result = DB::update($query, [
@@ -134,7 +134,7 @@ class CancelacionTipoController extends Controller
 
     public function delete($id)
     {
-        $query = 'UPDATE cancelacion_tipos SET deleted_at = NOW() WHERE id = ?';
+        $query = 'UPDATE reservas_cancelacion_tipos SET deleted_at = NOW() WHERE id = ?';
 
         try {
             $result = DB::update($query, [$id]);

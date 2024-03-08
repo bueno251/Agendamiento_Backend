@@ -10,7 +10,7 @@ class TarifasGeneralesController extends Controller
     public function save(Request $request)
     {
         $request->validate([
-            'hasIva' => 'required|boolean',
+            'tieneIva' => 'required|boolean',
             'tarifas' => [
                 'required',
                 'array',
@@ -53,7 +53,7 @@ class TarifasGeneralesController extends Controller
                 DB::insert($query, [
                     $day['nombre'],
                     $day['precio'],
-                    $request->hasIva ? $request->impuesto : null
+                    $request->tieneIva ? $request->impuesto : null
                 ]);
             }
 
@@ -98,7 +98,7 @@ class TarifasGeneralesController extends Controller
                 ELSE 0
             END AS impuesto
         FROM tarifas_generales te
-        LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+        LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
         WHERE te.deleted_at IS NULL';
 
         try {

@@ -19,9 +19,12 @@ return new class extends Migration
             $table->string('identificacion')->default('');
             $table->string('dv')->default('');
             $table->string('registro_mercantil')->default('');
-            $table->string('pais')->default('');
-            $table->string('departamento')->default('');
-            $table->string('municipio')->default('');
+            $table->unsignedBigInteger('pais_id')->nullable();
+            $table->foreign('pais_id')->references('id')->on('direcciones_paises')->onDelete('set null');
+            $table->unsignedBigInteger('departamento_id')->nullable();
+            $table->foreign('departamento_id')->references('id')->on('direcciones_departamentos')->onDelete('set null');
+            $table->unsignedBigInteger('ciudad_id')->nullable();
+            $table->foreign('ciudad_id')->references('id')->on('direcciones_ciudades')->onDelete('set null');
             $table->string('direccion')->default('');
             $table->string('correo')->default('');
             $table->string('telefono')->default('');

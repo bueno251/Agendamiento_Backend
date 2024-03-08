@@ -38,7 +38,7 @@ class clientTipoController extends Controller
             $results = DB::select($query);
 
             $types = [];
-            
+
             foreach ($results as $result) {
                 // Organizar resultados por el nombre de la tabla
                 $types[$result->table_name][] = (object) [
@@ -49,7 +49,7 @@ class clientTipoController extends Controller
             }
 
             // Retornar respuesta exitosa
-            return response()->json($types);
+            return response()->json($types, 200);
         } catch (\Exception $e) {
             // Retornar respuesta de error con detalles
             return response()->json([

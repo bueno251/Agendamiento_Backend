@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('cancelacion_tipos', function (Blueprint $table) {
+        Schema::create('room_decoraciones_rutas_audiovisual', function (Blueprint $table) {
             $table->id();
-            $table->string('tipo');
+            $table->unsignedBigInteger('decoracion_id')->nullable();
+            $table->foreign('decoracion_id')->references('id')->on('room_decoraciones')->onDelete('set null');
+            $table->string('url');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cancelacion_tipo');
+        Schema::dropIfExists('room_decoraciones_rutas_audiovisual');
     }
 };

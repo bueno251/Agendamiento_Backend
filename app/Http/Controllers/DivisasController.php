@@ -15,7 +15,7 @@ class DivisasController extends Controller
             'pais' => 'required|integer',
         ]);
 
-        $query = 'INSERT INTO divisas (
+        $query = 'INSERT INTO tarifas_divisas (
         nombre,
         codigo,
         pais_id,
@@ -49,13 +49,13 @@ class DivisasController extends Controller
         di.codigo,
         di.pais_id,
         p.nombre AS pais
-        FROM divisas di
+        FROM tarifas_divisas di
         LEFT JOIN paises p ON p.id = di.pais_id
         WHERE di.deleted_at IS NULL
         ORDER BY di.created_at DESC';
 
         try {
-            $divisas = DB::select($query);
+            $tarifas_divisas = DB::select($query);
 
             return response()->json($divisas, 200);
         } catch (\Exception $e) {
@@ -74,7 +74,7 @@ class DivisasController extends Controller
         di.codigo,
         di.pais_id,
         p.nombre AS pais
-        FROM divisas di
+        FROM tarifas_divisas di
         LEFT JOIN paises p ON p.id = di.pais_id
         WHERE p.deleted_at IS NULL AND p.id = ?';
 
@@ -98,11 +98,11 @@ class DivisasController extends Controller
         di.codigo,
         di.pais_id,
         p.nombre AS pais
-        FROM divisas di
+        FROM tarifas_divisas di
         LEFT JOIN paises p ON p.id = di.pais_id
         WHERE di.deleted_at IS NULL
         AND EXISTS (
-            SELECT 1 FROM config_defecto cd
+            SELECT 1 FROM configuracion_defecto cd
             WHERE cd.divisa_id = di.id
         )';
 
@@ -126,7 +126,7 @@ class DivisasController extends Controller
             'pais' => 'required|integer',
         ]);
 
-        $query = 'UPDATE divisas SET 
+        $query = 'UPDATE tarifas_divisas SET 
         nombre = ?,
         codigo = ?,
         pais_id = ?,
@@ -154,7 +154,7 @@ class DivisasController extends Controller
 
     public function delete($id)
     {
-        $query = 'UPDATE divisas SET 
+        $query = 'UPDATE tarifas_divisas SET 
         deleted_at = NOW()
         WHERE id = ?';
 

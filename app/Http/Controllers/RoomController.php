@@ -21,7 +21,7 @@ class RoomController extends Controller
         $request->validate([
             'nombre' => 'required|string',
             'descripcion' => 'required|string',
-            'hasIva' => 'required|integer',
+            'tieneIva' => 'required|integer',
             'impuesto' => 'required|integer',
             'tipo' => 'required|integer',
             'capacidad' => 'required|integer',
@@ -73,8 +73,8 @@ class RoomController extends Controller
             DB::insert($queryRoomPadre, [
                 $request->nombre,
                 $request->descripcion,
-                $request->hasIva,
-                $request->hasIva ? $request->impuesto : null,
+                $request->tieneIva,
+                $request->tieneIva ? $request->impuesto : null,
                 $request->tipo,
                 $request->capacidad,
                 $request->estado,
@@ -148,7 +148,7 @@ class RoomController extends Controller
         $query = 'SELECT
         r.id AS id,
         r.nombre AS nombre,
-        r.has_iva AS hasIva,
+        r.tiene_iva AS tieneIva,
         r.impuesto_id AS impuestoId,
         r.descripcion AS descripcion,
         r.room_tipo_id AS tipoId,
@@ -195,7 +195,7 @@ class RoomController extends Controller
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
-            LEFT JOIN impuestos imp ON imp.id = rt.impuesto_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
             WHERE rt.room_id = r.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
@@ -214,7 +214,7 @@ class RoomController extends Controller
                     END
             ))
             FROM tarifas_especiales te
-            LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
             WHERE te.room_id = r.id AND te.deleted_at IS NULL
             ORDER BY te.created_at DESC
         ) AS tarifasEspeciales,
@@ -236,7 +236,7 @@ class RoomController extends Controller
             $room->habilitada = (bool) $room->habilitada;
             $room->hasDecoracion = (bool) $room->hasDecoracion;
             $room->hasDesayuno = (bool) $room->hasDesayuno;
-            $room->hasIva = (bool) $room->hasIva;
+            $room->tieneIva = (bool) $room->tieneIva;
             $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
 
             // Decodificar datos JSON
@@ -295,7 +295,7 @@ class RoomController extends Controller
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
-            LEFT JOIN impuestos imp ON imp.id = rt.impuesto_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
             WHERE rt.room_id = r.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
@@ -314,7 +314,7 @@ class RoomController extends Controller
                     END
             ))
             FROM tarifas_especiales te
-            LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
             WHERE te.room_id = r.id AND te.deleted_at IS NULL
             ORDER BY te.created_at DESC
         ) AS tarifasEspeciales,
@@ -408,7 +408,7 @@ class RoomController extends Controller
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
-            LEFT JOIN impuestos imp ON imp.id = rt.impuesto_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
             WHERE rt.room_id = r.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
@@ -427,7 +427,7 @@ class RoomController extends Controller
                     END
             ))
             FROM tarifas_especiales te
-            LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
             WHERE te.room_id = r.id AND te.deleted_at IS NULL
             ORDER BY te.created_at DESC
         ) AS tarifasEspeciales,
@@ -444,7 +444,7 @@ class RoomController extends Controller
                     END
             ))
             FROM tarifas_generales tg
-            LEFT JOIN impuestos imp ON imp.id = tg.impuesto_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = tg.impuesto_id
             ORDER BY tg.created_at DESC
         ) AS tarifasGenerales,
         (
@@ -457,7 +457,7 @@ class RoomController extends Controller
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
         JOIN configuracions config ON config.id = 1
-        LEFT JOIN impuestos im ON im.id = r.impuesto_id
+        LEFT JOIN tarifa_impuestos im ON im.id = r.impuesto_id
         WHERE r.id = ? && r.deleted_at IS NULL';
 
         $room = DB::selectOne($query, [$id]);
@@ -500,7 +500,7 @@ class RoomController extends Controller
             'user' => 'required',
             'nombre' => 'required|string',
             'descripcion' => 'required|string',
-            'hasIva' => 'required|integer',
+            'tieneIva' => 'required|integer',
             'tipo' => 'required|integer',
             'capacidad' => 'required|integer',
             'estado' => 'required|integer',
@@ -515,7 +515,7 @@ class RoomController extends Controller
         $query = 'UPDATE room_padre SET
         nombre = ?,
         descripcion = ?,
-        has_iva = ?,
+        tiene_iva = ?,
         impuesto_id = ?,
         room_tipo_id = ?,
         capacidad = ?,
@@ -575,8 +575,8 @@ class RoomController extends Controller
             DB::update($query, [
                 $request->nombre,
                 $request->descripcion,
-                $request->hasIva,
-                $request->hasIva ? $request->impuesto : null,
+                $request->tieneIva,
+                $request->tieneIva ? $request->impuesto : null,
                 $request->tipo,
                 $request->capacidad,
                 $request->estado,
@@ -587,12 +587,12 @@ class RoomController extends Controller
             ]);
 
             DB::update($queryUpdateTarifas, [
-                $request->hasIva ? $request->impuesto : null,
+                $request->tieneIva ? $request->impuesto : null,
                 $id
             ]);
 
             DB::update($queryUpdateTarifasEspeciales, [
-                $request->hasIva ? $request->impuesto : null,
+                $request->tieneIva ? $request->impuesto : null,
                 $id
             ]);
 

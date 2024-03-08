@@ -15,7 +15,7 @@ class TarifasEspecialesController extends Controller
             'precio' => 'required|integer',
             'descripcion' => 'required|string',
             'room' => 'required|integer',
-            'hasIva' => 'required|boolean',
+            'tieneIva' => 'required|boolean',
         ]);
 
         // Consulta SQL para insertar la tarifa
@@ -39,7 +39,7 @@ class TarifasEspecialesController extends Controller
                 $request->precio,
                 $request->descripcion,
                 $request->room,
-                $request->hasIva ? $request->impuesto : null,
+                $request->tieneIva ? $request->impuesto : null,
             ]);
 
             DB::commit();
@@ -84,7 +84,7 @@ class TarifasEspecialesController extends Controller
                 ELSE 0
             END AS impuesto
         FROM tarifas_especiales te
-        LEFT JOIN impuestos imp ON imp.id = te.impuesto_id
+        LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
         WHERE te.room_id = ? AND te.deleted_at IS NULL
         ORDER BY te.created_at DESC';
 
@@ -128,7 +128,7 @@ class TarifasEspecialesController extends Controller
                 ELSE 0
             END AS impuesto
         FROM tarifas_especiales te
-        LEFT JOIN impuestos im ON im.id = te.impuesto_id
+        LEFT JOIN tarifa_impuestos im ON im.id = te.impuesto_id
         WHERE te.id = ? AND te.deleted_at IS NULL
         ORDER BY te.created_at DESC';
 

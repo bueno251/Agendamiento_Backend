@@ -16,7 +16,7 @@ class ImpuestoController extends Controller
             'tipo' => 'required|integer',
         ]);
 
-        $queryInsert = 'INSERT INTO impuestos (
+        $queryInsert = 'INSERT INTO tarifa_impuestos (
             nombre, 
             codigo,
             tasa,
@@ -62,8 +62,8 @@ class ImpuestoController extends Controller
             "tipo", it.tipo
         ) AS tipo,
         im.created_at
-        FROM impuestos im
-        JOIN impuesto_tipos it ON it.id = im.tipo_id
+        FROM tarifa_impuestos im
+        JOIN tarifas_impuesto_tipos it ON it.id = im.tipo_id
         WHERE im.deleted_at IS NULL
         ORDER BY im.created_at DESC';
 
@@ -90,7 +90,7 @@ class ImpuestoController extends Controller
         it.id,
         it.tipo,
         it.created_at
-        FROM impuesto_tipos it
+        FROM tarifas_impuesto_tipos it
         WHERE it.deleted_at IS NULL
         ORDER BY it.created_at DESC';
 
@@ -118,8 +118,8 @@ class ImpuestoController extends Controller
             "tipo", it.tipo,
         ) AS tipo,
         im.created_at
-        FROM impuestos im
-        JOIN impuesto_tipos it ON it.id = im.tipo_id
+        FROM tarifa_impuestos im
+        JOIN tarifas_impuesto_tipos it ON it.id = im.tipo_id
         WHERE im.id = ? AND im.deleted_at IS NULL';
 
         try {
@@ -152,7 +152,7 @@ class ImpuestoController extends Controller
             'tipo' => 'required|integer',
         ]);
 
-        $query = 'UPDATE impuestos SET
+        $query = 'UPDATE tarifa_impuestos SET
         nombre = ?,
         codigo = ?,
         tasa = ?,
@@ -187,7 +187,7 @@ class ImpuestoController extends Controller
     public function delete($id)
     {
         // Consulta SQL para marcar el impuesto como eliminada por ID
-        $query = 'UPDATE impuestos SET deleted_at = NOW() WHERE id = ?';
+        $query = 'UPDATE tarifa_impuestos SET deleted_at = NOW() WHERE id = ?';
 
         try {
             // Ejecutar la actualización para marcar el impuesto como eliminada

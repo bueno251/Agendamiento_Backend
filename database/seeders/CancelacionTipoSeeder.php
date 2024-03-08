@@ -17,6 +17,6 @@ class CancelacionTipoSeeder extends Seeder
             ['tipo' => 'Problemas Con El Transporte'],
         ];
 
-        DB::table('cancelacion_tipos')->insert($data);
+        DB::table('reservas_cancelacion_tipos')->insert($data);
     }
 }

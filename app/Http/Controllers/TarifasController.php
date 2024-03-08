@@ -61,7 +61,7 @@ class TarifasController extends Controller
     {
         // Validar la solicitud
         $request->validate([
-            'hasIva' => 'required|boolean',
+            'tieneIva' => 'required|boolean',
             'tarifas' => [
                 'required',
                 'array',
@@ -111,7 +111,7 @@ class TarifasController extends Controller
                     $day['name'],
                     $day['precio'],
                     $day['jornada_id'],
-                    $request->hasIva ? $request->impuesto : null
+                    $request->tieneIva ? $request->impuesto : null
                 ]);
             }
 

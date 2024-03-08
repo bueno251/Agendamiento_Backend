@@ -265,8 +265,8 @@ class ReservasController extends Controller
                     'motivo', cb.nota_cancelacion,
                     'created_at', cb.created_at
                     ))
-                FROM cancelacion_bitacora cb
-                LEFT JOIN cancelacion_tipos ct ON ct.id = cb.tipo_id
+                FROM reservas_cancelacion_bitacora cb
+                LEFT JOIN reservas_cancelacion_tipos ct ON ct.id = cb.tipo_id
                 LEFT JOIN users us ON us.id = cb.user_id
                 WHERE cb.deleted_at IS NULL AND cb.reserva_id = r.id
             ) AS bitacora,";
@@ -413,7 +413,7 @@ class ReservasController extends Controller
             'motivo' => 'required|string',
         ]);
 
-        $queryInsert = 'INSERT INTO cancelacion_bitacora (
+        $queryInsert = 'INSERT INTO reservas_cancelacion_bitacora (
         tipo_id,
         user_id,
         nota_cancelacion,
