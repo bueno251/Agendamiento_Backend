@@ -58,4 +58,26 @@ class clientTipoController extends Controller
             ], 500);
         }
     }
+
+    public function documento()
+    {
+        $query = '
+        SELECT id, tipo
+        FROM cliente_tipo_documento
+        WHERE deleted_at IS NULL';
+
+        try {
+            // Ejecutar la consulta
+            $results = DB::select($query);
+
+            // Retornar respuesta exitosa
+            return response()->json($results, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles
+            return response()->json([
+                'message' => 'Error al traer los tipos de documentos del cliente',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

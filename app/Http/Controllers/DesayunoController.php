@@ -246,13 +246,13 @@ class DesayunoController extends Controller
         updated_at = NOW()
         WHERE id = ?';
 
-        $queryMultimedia = 'INSERT INTO room_decoraciones_rutas_audiovisual (
-        decoracion_id,
+        $queryMultimedia = 'INSERT INTO room_desayunos_rutas_audiovisual (
+        desayuno_id,
         url,
         created_at)
         VALUES (?, ?, NOW())';
 
-        $queryDelMedia = 'UPDATE room_decoraciones_rutas_audiovisual SET 
+        $queryDelMedia = 'UPDATE room_desayunos_rutas_audiovisual SET 
         deleted_at = now()
         WHERE id = ?';
 

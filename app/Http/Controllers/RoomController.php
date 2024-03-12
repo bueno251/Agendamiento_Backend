@@ -35,14 +35,14 @@ class RoomController extends Controller
         $queryRoomPadre = 'INSERT INTO room_padre (
         nombre,
         descripcion,
-        has_iva,
+        tiene_iva,
         impuesto_id,
         room_tipo_id,
         capacidad,
         room_estado_id,
         cantidad,
-        has_decoracion,
-        has_desayuno,
+        tiene_decoracion,
+        tiene_desayuno,
         incluye_desayuno,
         created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
@@ -157,8 +157,8 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
-        r.has_decoracion AS hasDecoracion,
-        r.has_desayuno AS hasDesayuno,
+        r.tiene_decoracion AS tieneDecoracion,
+        r.tiene_desayuno AS tieneDesayuno,
         r.incluye_desayuno AS incluyeDesayuno,
         (
             SELECT
@@ -234,8 +234,8 @@ class RoomController extends Controller
 
         foreach ($rooms as $room) {
             $room->habilitada = (bool) $room->habilitada;
-            $room->hasDecoracion = (bool) $room->hasDecoracion;
-            $room->hasDesayuno = (bool) $room->hasDesayuno;
+            $room->tieneDecoracion = (bool) $room->tieneDecoracion;
+            $room->tieneDesayuno = (bool) $room->tieneDesayuno;
             $room->tieneIva = (bool) $room->tieneIva;
             $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
 
@@ -269,8 +269,8 @@ class RoomController extends Controller
         re.estado AS estado,
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
-        r.has_decoracion AS hasDecoracion,
-        r.has_desayuno AS hasDesayuno,
+        r.tiene_decoracion AS tieneDecoracion,
+        r.tiene_desayuno AS tieneDesayuno,
         r.incluye_desayuno AS incluyeDesayuno,
         (
             SELECT
@@ -339,8 +339,8 @@ class RoomController extends Controller
 
         foreach ($rooms as $room) {
             $room->habilitada = (bool) $room->habilitada;
-            $room->hasDesayuno = (bool) $room->hasDesayuno;
-            $room->hasDecoracion = (bool) $room->hasDecoracion;
+            $room->tieneDesayuno = (bool) $room->tieneDesayuno;
+            $room->tieneDecoracion = (bool) $room->tieneDecoracion;
             $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
 
             // Decodificar datos JSON
@@ -375,8 +375,9 @@ class RoomController extends Controller
         r.capacidad AS capacidad,
         r.habilitada AS habilitada,
         r.cantidad AS cantidad,
-        r.has_decoracion AS hasDecoracion,
-        r.has_desayuno AS hasDesayuno,
+        r.tiene_iva AS tieneIva,
+        r.tiene_decoracion AS tieneDecoracion,
+        r.tiene_desayuno AS tieneDesayuno,
         r.incluye_desayuno AS incluyeDesayuno,
         im.tasa AS iva,
         (
@@ -465,9 +466,10 @@ class RoomController extends Controller
         if ($room) {
 
             $room->habilitada = (bool) $room->habilitada;
-            $room->hasDecoracion = (bool) $room->hasDecoracion;
-            $room->hasDesayuno = (bool) $room->hasDesayuno;
+            $room->tieneDecoracion = (bool) $room->tieneDecoracion;
+            $room->tieneDesayuno = (bool) $room->tieneDesayuno;
             $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
+            $room->tieneIva = (bool) $room->tieneIva;
 
             // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
@@ -520,8 +522,8 @@ class RoomController extends Controller
         room_tipo_id = ?,
         capacidad = ?,
         room_estado_id = ?,
-        has_decoracion = ?,
-        has_desayuno = ?,
+        tiene_decoracion = ?,
+        tiene_desayuno = ?,
         incluye_desayuno = ?,
         updated_at = now()
         WHERE id = ?';

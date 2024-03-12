@@ -27,11 +27,17 @@ return new class extends Migration
             $table->foreign('desayuno_id')->references('id')->on('room_desayunos')->onDelete('set null');
             $table->unsignedBigInteger('decoracion_id')->nullable();
             $table->foreign('decoracion_id')->references('id')->on('room_decoraciones')->onDelete('set null');
+            $table->unsignedBigInteger('motivo_id')->nullable();
+            $table->foreign('motivo_id')->references('id')->on('reserva_motivos')->onDelete('set null');
+            $table->unsignedBigInteger('ciudad_residencia_id')->nullable();
+            $table->foreign('ciudad_residencia_id')->references('id')->on('direcciones_ciudades')->onDelete('set null');
+            $table->unsignedBigInteger('ciudad_procedencia_id')->nullable();
+            $table->foreign('ciudad_procedencia_id')->references('id')->on('direcciones_ciudades')->onDelete('set null');
             $table->string('cedula');
             $table->string('telefono');
             $table->string('nombre');
             $table->string('apellido');
-            $table->string('correo');
+            $table->string('correo')->default('');
             $table->integer('huespedes');
             $table->integer('adultos');
             $table->integer('niños')->default(0);

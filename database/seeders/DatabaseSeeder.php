@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             RoomEstadoSeeder::class,
             RoomTipoSeeder::class,
             ReservaEstadoSeeder::class,
+            ReservaMotivosSeeder::class,
             ReservaPagoSeeder::class,
             TarifaJornadaSeeder::class,
             TarifaEstadoSeeder::class,

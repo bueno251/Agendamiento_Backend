@@ -24,8 +24,9 @@ return new class extends Migration
             $table->integer('capacidad');
             $table->integer('cantidad')->default(1);
             $table->boolean('habilitada')->default(1);
-            $table->boolean('has_desayuno');
-            $table->boolean('has_decoracion');
+            $table->boolean('tiene_iva');
+            $table->boolean('tiene_desayuno');
+            $table->boolean('tiene_decoracion');
             $table->boolean('incluye_desayuno');
             $table->timestamps();
             $table->softDeletes();

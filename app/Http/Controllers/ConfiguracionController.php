@@ -23,6 +23,7 @@ class ConfiguracionController extends Controller
         correo_obligatorio AS correoObligatorio,
         porcentaje_separacion AS porcentajeSeparacion,
         tarifas_generales AS tarifasGenerales,
+        edad_tarifa_niños AS edadTarifaNiños,
         id_empresa AS empresa,
         (
             SELECT
@@ -203,6 +204,7 @@ class ConfiguracionController extends Controller
             'reservar' => 'required|boolean',
             'correo' => 'required|boolean',
             'tarifasGenerales' => 'required|boolean',
+            'edadTarifaNiños' => 'required|integer',
             'porcentaje' => 'required|integer',
         ]);
 
@@ -212,6 +214,7 @@ class ConfiguracionController extends Controller
         correo_obligatorio = ?,
         porcentaje_separacion = ?,
         tarifas_generales = ?,
+        edad_tarifa_niños = ?,
         updated_at = NOW()
         WHERE id = ?';
 
@@ -222,6 +225,7 @@ class ConfiguracionController extends Controller
                 $request->correo,
                 $request->porcentaje,
                 $request->tarifasGenerales,
+                $request->edadTarifaNiños,
                 $request->configuracionId,
             ]);
 
@@ -251,7 +255,7 @@ class ConfiguracionController extends Controller
      * Este método se encarga de crear una nueva empresa en el sistema. La información de la empresa se recibe a través de una solicitud HTTP, se valida y se realiza la inserción y actualización de datos en las tablas correspondientes de la base de datos.
      * Se utiliza una transacción para garantizar la consistencia de los datos, y se maneja cualquier error que pueda ocurrir durante el proceso.
      *
-     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'nombre' (string, obligatorio), 'tipoDocumento' (integer, obligatorio), 'identificacion' (string, obligatorio), 'dv' (string, obligatorio), 'registro' (string, obligatorio), 'pais' (string, obligatorio), 'departamento' (string, obligatorio), 'municipio' (string, obligatorio), 'direccion' (string, obligatorio), 'correo' (string, obligatorio), 'telefono' (string, obligatorio), 'lenguaje' (string, obligatorio), 'impuesto' (string, obligatorio), 'tipoOperacion' (integer, obligatorio), 'tipoEntorno' (integer, obligatorio), 'tipoOrganizacion' (integer, obligatorio), 'tipoResponsabilidad' (integer, obligatorio), 'tipoRegimen' (integer, obligatorio).
+     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'nombre' (string, obligatorio), 'tipoDocumento' (integer, obligatorio), 'identificacion' (string, obligatorio), 'dv' (string, obligatorio), 'registro' (string, obligatorio), 'pais' (string, obligatorio), 'departamento' (string, obligatorio), 'ciudad' (string, obligatorio), 'direccion' (string, obligatorio), 'correo' (string, obligatorio), 'telefono' (string, obligatorio), 'lenguaje' (string, obligatorio), 'impuesto' (string, obligatorio), 'tipoOperacion' (integer, obligatorio), 'tipoEntorno' (integer, obligatorio), 'tipoOrganizacion' (integer, obligatorio), 'tipoResponsabilidad' (integer, obligatorio), 'tipoRegimen' (integer, obligatorio).
      * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
      */
     public function empresa(Request $request)
@@ -264,9 +268,9 @@ class ConfiguracionController extends Controller
             'identificacion' => 'required',
             'dv' => 'required',
             'registro' => 'required',
-            'pais' => 'required|string',
-            'departamento' => 'required|string',
-            'municipio' => 'required|string',
+            'pais' => 'required|integer',
+            'departamento' => 'required|integer',
+            'ciudad' => 'required|integer',
             'direccion' => 'required|string',
             'correo' => 'required|email',
             'telefono' => 'required',
@@ -286,9 +290,9 @@ class ConfiguracionController extends Controller
         identificacion,
         dv,
         registro_mercantil,
-        pais,
-        departamento,
-        municipio,
+        pais_id,
+        departamento_id,
+        ciudad_id,
         direccion,
         correo,
         telefono,
@@ -315,7 +319,7 @@ class ConfiguracionController extends Controller
                 $request->registro,
                 $request->pais,
                 $request->departamento,
-                $request->municipio,
+                $request->ciudad,
                 $request->direccion,
                 $request->correo,
                 $request->telefono,
@@ -369,7 +373,7 @@ class ConfiguracionController extends Controller
      * La información de configuración se recibe a través de una solicitud HTTP, se valida y se realiza la inserción o actualización de datos en las tablas correspondientes de la base de datos.
      * Se utiliza una transacción para garantizar la consistencia de los datos, y se maneja cualquier error que pueda ocurrir durante el proceso.
      *
-     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'pais' (string, obligatorio), 'departamento' (string, obligatorio), 'municipio' (string, obligatorio), 'tipoDocumento' (integer, obligatorio), 'tipoPersona' (integer, obligatorio), 'tipoResponsabilidad' (integer, obligatorio), 'tipoRegimen' (integer, obligatorio).
+     * @param Request $request Datos de entrada que incluyen información como 'configuracionId' (integer, obligatorio), 'pais' (string, obligatorio), 'departamento' (string, obligatorio), 'ciudad' (string, obligatorio), 'tipoDocumento' (integer, obligatorio), 'tipoPersona' (integer, obligatorio), 'tipoResponsabilidad' (integer, obligatorio), 'tipoRegimen' (integer, obligatorio).
      * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
      */
     public function defaultConfig(Request $request)
@@ -377,9 +381,9 @@ class ConfiguracionController extends Controller
         // Validar los datos de entrada
         $request->validate([
             'configuracionId' => 'required|integer',
-            'pais' => 'required|string',
-            'departamento' => 'required|string',
-            'municipio' => 'required|string',
+            'pais' => 'required|integer',
+            'departamento' => 'required|integer',
+            'ciudad' => 'required|integer',
             'priceInDolar' => 'required|boolean',
             'dolarPriceAuto' => 'required|boolean',
             'dolarPrice' => 'required|numeric',
@@ -395,9 +399,9 @@ class ConfiguracionController extends Controller
 
         // Consulta SQL para insertar la configuración por defecto
         $insertQuery = 'INSERT INTO configuracion_defecto (
-        pais,
-        departamento,
-        municipio,
+        pais_id,
+        departamento_id,
+        ciudad_id,
         price_in_dolar,
         dolar_price_auto,
         dolar_price,
@@ -411,9 +415,9 @@ class ConfiguracionController extends Controller
 
         // Consulta SQL para actualizar la configuración por defecto
         $updateConfig = 'UPDATE configuracion_defecto SET 
-        pais = ?,
-        departamento = ?,
-        municipio = ?,
+        pais_id = ?,
+        departamento_id = ?,
+        ciudad_id = ?,
         price_in_dolar = ?,
         dolar_price_auto = ?,
         dolar_price = ?,
@@ -443,7 +447,7 @@ class ConfiguracionController extends Controller
                 DB::update($updateConfig, [
                     $request->pais,
                     $request->departamento,
-                    $request->municipio,
+                    $request->ciudad,
                     $request->priceInDolar,
                     $request->dolarPriceAuto,
                     $request->dolarPrice,
@@ -458,7 +462,7 @@ class ConfiguracionController extends Controller
                 DB::insert($insertQuery, [
                     $request->pais,
                     $request->departamento,
-                    $request->municipio,
+                    $request->ciudad,
                     $request->priceInDolar,
                     $request->dolarPriceAuto,
                     $request->dolarPrice,
@@ -576,9 +580,9 @@ class ConfiguracionController extends Controller
         e.nombre AS nombre,
         e.dv AS dv,
         e.registro_mercantil AS registro,
-        e.pais AS pais,
-        e.departamento AS departamento,
-        e.municipio AS municipio,
+        e.pais_id AS paisId,
+        e.departamento_id AS departamentoId,
+        e.ciudad_id AS ciudadId,
         e.direccion AS direccion,
         e.correo AS correo,
         e.telefono AS telefono,
@@ -653,9 +657,9 @@ class ConfiguracionController extends Controller
             "nombre", CASE WHEN cd.price_in_dolar = 1 THEN NULL ELSE d.nombre END,
             "codigo", CASE WHEN cd.price_in_dolar = 1 THEN "USD" ELSE d.codigo END
         ) AS divisa,
-        cd.pais,
-        cd.departamento, 
-        cd.municipio, 
+        cd.pais_id AS paisId,
+        cd.departamento_id AS departamentoId, 
+        cd.ciudad_id AS ciudadId, 
         cd.price_in_dolar AS priceInDolar,
         cd.dolar_price_auto AS dolarPriceAuto,
         cd.dolar_price AS dolarPrice,
@@ -694,6 +698,7 @@ class ConfiguracionController extends Controller
         usuario_reserva AS usuarioReserva,
         correo_obligatorio AS correoObligatorio,
         tarifas_generales AS tarifasGenerales,
+        edad_tarifa_niños AS edadTarifaNiños,
         porcentaje_separacion AS porcentajeSeparacion
         FROM configuracions
         WHERE deleted_at IS NULL';

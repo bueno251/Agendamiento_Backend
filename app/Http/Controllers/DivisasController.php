@@ -48,14 +48,14 @@ class DivisasController extends Controller
         di.nombre,
         di.codigo,
         di.pais_id,
-        p.nombre AS pais
+        p.name AS pais
         FROM tarifas_divisas di
-        LEFT JOIN paises p ON p.id = di.pais_id
+        LEFT JOIN direcciones_paises p ON p.id = di.pais_id
         WHERE di.deleted_at IS NULL
         ORDER BY di.created_at DESC';
 
         try {
-            $tarifas_divisas = DB::select($query);
+            $divisas = DB::select($query);
 
             return response()->json($divisas, 200);
         } catch (\Exception $e) {
@@ -73,9 +73,9 @@ class DivisasController extends Controller
         di.nombre,
         di.codigo,
         di.pais_id,
-        p.nombre AS pais
+        p.name AS pais
         FROM tarifas_divisas di
-        LEFT JOIN paises p ON p.id = di.pais_id
+        LEFT JOIN direcciones_paises p ON p.id = di.pais_id
         WHERE p.deleted_at IS NULL AND p.id = ?';
 
         try {
@@ -97,9 +97,9 @@ class DivisasController extends Controller
         di.nombre,
         di.codigo,
         di.pais_id,
-        p.nombre AS pais
+        p.name AS pais
         FROM tarifas_divisas di
-        LEFT JOIN paises p ON p.id = di.pais_id
+        LEFT JOIN direcciones_paises p ON p.id = di.pais_id
         WHERE di.deleted_at IS NULL
         AND EXISTS (
             SELECT 1 FROM configuracion_defecto cd

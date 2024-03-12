@@ -19,10 +19,10 @@ class ReservasController extends Controller
     public function create(Request $request)
     {
         $request->validate([
+            'tipoDocumento' => 'required|integer',
             'cedula' => 'required|string',
             'nombre' => 'required|string',
             'apellido' => 'required|string',
-            'correo' => 'required|string',
             'telefono' => 'required|string',
             'dateIn' => 'required|string',
             'dateOut' => 'required|string',
@@ -30,9 +30,13 @@ class ReservasController extends Controller
             'adultos' => 'required|integer',
             'niños' => 'required|integer',
             'precio' => 'required|integer',
-            'cantidad_rooms' => 'required|integer',
+            'ciudadResidencia' => 'required|integer',
+            'ciudadProcedencia' => 'required|integer',
+            'motivo' => 'required|integer',
             'verificacion_pago' => 'required|integer',
         ]);
+
+        $queryGetRoom = '';
 
         // Determinar la tabla y mensaje según la verificación de pago
         if ($request->verificacion_pago) {
@@ -88,13 +92,16 @@ class ReservasController extends Controller
                 estado_id,
                 desayuno_id,
                 decoracion_id,
+                motivo_id,
+                ciudad_residencia_id,
+                ciudad_procedencia_id,
                 huespedes,
                 adultos,
                 niños,
                 precio,
                 verificacion_pago,
                 created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
 
             // Ejecutar la inserción de la reserva
@@ -104,7 +111,7 @@ class ReservasController extends Controller
                 $request->cedula,
                 $request->nombre,
                 $request->apellido,
-                $request->correo,
+                $request->correo || '',
                 $request->telefono,
                 $request->room,
                 isset($request->cliente) ? $request->cliente : null,
@@ -112,6 +119,9 @@ class ReservasController extends Controller
                 1, // Estado Pendiente
                 isset($request->desayuno) ? $request->desayuno : null,
                 isset($request->decoracion) ? $request->decoracion : null,
+                $request->motivo,
+                $request->ciudadResidencia,
+                $request->ciudadProcedencia,
                 $request->adultos + $request->niños,
                 $request->adultos,
                 $request->niños,
@@ -316,7 +326,7 @@ class ReservasController extends Controller
             // Iterar sobre las reservas para agregar información adicional
             foreach ($reservas as $reserva) {
                 $reserva->verificacionPago = (bool) $reserva->verificacionPago;
-                if($estado == 'Cancelada'){
+                if ($estado == 'Cancelada') {
                     $reserva->bitacora = json_decode($reserva->bitacora);
                     $reserva->bitacora = $reserva->bitacora[0];
                 }

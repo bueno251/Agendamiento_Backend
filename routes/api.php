@@ -13,11 +13,10 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomEstadoController;
 use App\Http\Controllers\RoomTipoController;
 use App\Http\Controllers\CancelacionTipoController;
-use App\Http\Controllers\DepartamentoController;
+use App\Http\Controllers\DireccionesController;
 use App\Http\Controllers\DivisasController;
 use App\Http\Controllers\ImpuestoController;
-use App\Http\Controllers\MunicipioController;
-use App\Http\Controllers\PaisController;
+use App\Http\Controllers\ReservaMotivosController;
 use App\Http\Controllers\TarifasController;
 use App\Http\Controllers\TarifasEspecialesController;
 use App\Http\Controllers\TarifasGeneralesController;
@@ -102,6 +101,7 @@ Route::controller(ClientController::class)->group(function () {
 Route::controller(clientTipoController::class)->group(function () {
     // Obtener todos los tipos de cliente
     Route::get('cliente-tipos', 'read');
+    Route::get('cliente-tipo-documentos', 'documento');
 });
 
 /**
@@ -222,21 +222,6 @@ Route::controller(CancelacionTipoController::class)->group(function () {
     Route::delete('cancelar/tipo{id}', 'delete');
 });
 
-Route::controller(PaisController::class)->group(function (){
-    Route::post('pais', 'create');
-    Route::get('paises', 'read');
-});
-
-Route::controller(DepartamentoController::class)->group(function (){
-    Route::post('departamento', 'create');
-    Route::get('departamentos/{id}', 'read');
-});
-
-Route::controller(MunicipioController::class)->group(function (){
-    Route::post('municipio', 'create');
-    Route::get('municipios/{id}', 'read');
-});
-
 Route::controller(DivisasController::class)->group(function (){
     Route::post('divisa', 'create');
     Route::get('divisas', 'read');
@@ -274,4 +259,14 @@ Route::controller(TarifasEspecialesController::class)->group(function () {
     Route::get('tarifa-especial/{id}', 'find');
     Route::patch('tarifa-especial/{id}', 'update');
     Route::delete('tarifa-especial/{id}', 'delete');
+});
+
+Route::controller(DireccionesController::class)->group(function ( ) {
+    Route::get('paises', 'getPaises');
+    Route::get('departamentos-{id}', 'getDepartamentos');
+    Route::get('ciudades-{id}', 'getCiudades');
+});
+
+Route::controller(ReservaMotivosController::class)->group(function () {
+    Route::get('reserva-motivos', 'read');
 });
