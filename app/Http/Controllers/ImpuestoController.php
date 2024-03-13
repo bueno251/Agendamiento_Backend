@@ -86,7 +86,6 @@ class ImpuestoController extends Controller
     public function readTipos()
     {
         $query = 'SELECT
-        it.id, 
         it.id,
         it.tipo,
         it.created_at

@@ -149,12 +149,19 @@ class TarifasController extends Controller
         rt.precio AS precio,
         tj.nombre AS jornada,
         rt.jornada_id AS jornada_id,
+        CASE 
+            WHEN rp.tiene_iva
+                THEN ROUND(rt.precio * (1 + imp.tasa/100))
+                ELSE ROUND(rt.precio)
+            END AS precioConIva,
         rt.created_at AS created_at
         FROM tarifas rt
+        RIGHT JOIN room_padre rp ON rp.id = rt.room_id
         LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
+        LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
         WHERE rt.room_id = ? AND rt.deleted_at IS NULL
         ORDER BY
-        FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")';
+        FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")';
 
         try {
             $tarifas = DB::select($query, [$roomId]);

@@ -36,7 +36,17 @@ class ReservasController extends Controller
             'verificacion_pago' => 'required|integer',
         ]);
 
-        $queryGetRoom = '';
+        $queryGetRoom = "SELECT r.id
+        FROM rooms r
+        LEFT JOIN reservas res ON res.room_id = r.id
+            AND (
+                (fecha_entrada BETWEEN ? AND ?)
+                OR (fecha_salida BETWEEN ? AND ?)
+                OR (fecha_entrada <= ? AND fecha_salida >= ?)
+            )
+        WHERE r.room_padre_id = ?
+            AND r.deleted_at IS NULL
+            AND res.id IS NULL";
 
         // Determinar la tabla y mensaje según la verificación de pago
         if ($request->verificacion_pago) {
@@ -48,19 +58,36 @@ class ReservasController extends Controller
         }
 
         // Consulta SQL para verificar disponibilidad de fechas
-        $availabilityQuery = "SELECT id
-        FROM $table
-        WHERE room_id = ?
-        AND deleted_at IS NULL
+        $availabilityQuery = "SELECT r.id
+        FROM $table r
+        LEFT JOIN rooms rs ON rs.id = r.room_id
+        WHERE rs.room_padre_id = ?
+        AND r.deleted_at IS NULL
         AND (
-            fecha_entrada BETWEEN ? AND ?
-            OR fecha_salida BETWEEN ? AND ?
-            OR (fecha_entrada <= ? AND fecha_salida >= ?)
+            r.fecha_entrada BETWEEN ? AND ?
+            OR r.fecha_salida BETWEEN ? AND ?
+            OR (r.fecha_entrada <= ? AND r.fecha_salida >= ?)
         )";
 
         try {
+            $rooms = DB::select($queryGetRoom, [
+                $request->dateIn,
+                $request->dateOut,
+                $request->dateIn,
+                $request->dateOut,
+                $request->dateIn,
+                $request->dateOut,
+                $request->room,
+            ]);
+
+            if (count($rooms) == 0) {
+                return response()->json([
+                    'message' => 'No hay habitaciones disponibles',
+                ], 400);
+            }
+
             // Verificar disponibilidad de fechas
-            $temporales = DB::select($availabilityQuery, [
+            $reservas = DB::select($availabilityQuery, [
                 $request->room,
                 $request->dateIn,
                 $request->dateOut,
@@ -71,7 +98,7 @@ class ReservasController extends Controller
             ]);
 
             // Si hay reservas en proceso con esas fechas, retornar un error
-            if (count($temporales) > 0) {
+            if (count($reservas) > 0) {
                 return response()->json([
                     'message' => 'Hay una reserva en proceso con esos días, por favor, inténtelo de nuevo más tarde',
                 ], 400);
@@ -105,15 +132,15 @@ class ReservasController extends Controller
 
 
             // Ejecutar la inserción de la reserva
-            $reservaT = DB::insert($insertQuery, [
+            $reserva = DB::insert($insertQuery, [
                 $request->dateIn,
                 $request->dateOut,
                 $request->cedula,
                 $request->nombre,
                 $request->apellido,
-                $request->correo || '',
+                $request->correo ? $request->correo : '',
                 $request->telefono,
-                $request->room,
+                $rooms[0]->id,
                 isset($request->cliente) ? $request->cliente : null,
                 isset($request->user) ? $request->user : 1, // Usuario web
                 1, // Estado Pendiente
@@ -133,7 +160,7 @@ class ReservasController extends Controller
             $id = DB::getPdo()->lastInsertId();
 
             // Verificar si la inserción fue exitosa
-            if ($reservaT) {
+            if ($reserva) {
                 return response()->json([
                     'message' => $message,
                     'reserva' => $id,
@@ -218,12 +245,13 @@ class ReservasController extends Controller
     public function getDates(int $id)
     {
         // Consulta SQL para obtener las fechas de reservas asociadas a la habitación
-        $query = 'SELECT fecha_entrada, fecha_salida
-        FROM reservas
-        WHERE room_id = ?
-        AND deleted_at IS NULL
-        AND YEAR(fecha_entrada) >= YEAR(CURDATE()) 
-        AND YEAR(fecha_salida) >= YEAR(CURDATE())';
+        $query = 'SELECT r.fecha_entrada, r.fecha_salida
+        FROM reservas r
+        LEFT JOIN rooms rs ON rs.id = r.room_id
+        WHERE rs.room_padre_id = ?
+        AND r.deleted_at IS NULL
+        AND YEAR(r.fecha_entrada) >= YEAR(CURDATE()) 
+        AND YEAR(r.fecha_salida) >= YEAR(CURDATE())';
 
         try {
             // Obtener las fechas de las reservas

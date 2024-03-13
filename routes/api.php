@@ -13,6 +13,7 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomEstadoController;
 use App\Http\Controllers\RoomTipoController;
 use App\Http\Controllers\CancelacionTipoController;
+use App\Http\Controllers\DescuentosController;
 use App\Http\Controllers\DireccionesController;
 use App\Http\Controllers\DivisasController;
 use App\Http\Controllers\ImpuestoController;
@@ -233,7 +234,7 @@ Route::controller(DivisasController::class)->group(function (){
 Route::controller(ImpuestoController::class)->group(function (){
     Route::post('impuesto', 'create');
     Route::get('impuestos', 'read');
-    Route::get('impuesto/tipos', 'readTipos');
+    Route::get('impuesto-tipos', 'readTipos');
     Route::get('impuesto/{id}', 'find');
     Route::patch('impuesto/{id}', 'update');
     Route::delete('impuesto/{id}', 'delete');
@@ -269,4 +270,14 @@ Route::controller(DireccionesController::class)->group(function ( ) {
 
 Route::controller(ReservaMotivosController::class)->group(function () {
     Route::get('reserva-motivos', 'read');
+});
+
+Route::controller(DescuentosController::class)->group(function (){
+    Route::post('descuento', 'create');
+    Route::get('descuentos', 'read');
+    Route::get('descuento-tipos', 'readTipos');
+    Route::get('descuento-rooms', 'readRooms');
+    Route::get('descuento/{id}', 'find');
+    Route::patch('descuento/{id}', 'update');
+    Route::delete('descuento/{id}', 'delete');
 });
