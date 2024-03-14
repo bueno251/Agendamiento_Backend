@@ -277,7 +277,7 @@ Route::controller(DescuentosController::class)->group(function (){
     Route::get('descuentos', 'read');
     Route::get('descuento-tipos', 'readTipos');
     Route::get('descuento-rooms', 'readRooms');
-    Route::get('descuento/{id}', 'find');
+    Route::get('descuentos/{id}', 'readByRoom');
     Route::patch('descuento/{id}', 'update');
     Route::delete('descuento/{id}', 'delete');
 });

@@ -86,12 +86,14 @@ class TarifasController extends Controller
         room_id,
         nombre,
         precio,
+        precio_previo_festivo,
         jornada_id,
         impuesto_id,
         created_at)
-        VALUES (?, ?, ?, ?, ?, now())
+        VALUES (?, ?, ?, ?, ?, ?, now())
         ON DUPLICATE KEY UPDATE
         precio = VALUES(precio),
+        precio_previo_festivo = VALUES(precio_previo_festivo),
         jornada_id = VALUES(jornada_id),
         impuesto_id = VALUES(impuesto_id),
         updated_at = NOW()';
@@ -110,6 +112,7 @@ class TarifasController extends Controller
                     $id,
                     $day['name'],
                     $day['precio'],
+                    isset($day['previoFestivo']) ? $day['previoFestivo'] : 0,
                     $day['jornada_id'],
                     $request->tieneIva ? $request->impuesto : null
                 ]);
@@ -147,16 +150,21 @@ class TarifasController extends Controller
         $query = 'SELECT
         rt.nombre AS name,
         rt.precio AS precio,
+        rt.precio_previo_festivo AS previoFestivo,
         tj.nombre AS jornada,
         rt.jornada_id AS jornada_id,
         CASE 
-            WHEN rp.tiene_iva
+            WHEN rt.impuesto_id IS NOT NULL
                 THEN ROUND(rt.precio * (1 + imp.tasa/100))
-                ELSE ROUND(rt.precio)
-            END AS precioConIva,
+            ELSE ROUND(rt.precio)
+        END AS precioConIva,
+        CASE 
+            WHEN rt.impuesto_id IS NOT NULL
+                THEN ROUND(rt.precio_previo_festivo * (1 + imp.tasa/100))
+            ELSE ROUND(rt.precio_previo_festivo)
+        END AS previoFestivoConIva,
         rt.created_at AS created_at
         FROM tarifas rt
-        RIGHT JOIN room_padre rp ON rp.id = rt.room_id
         LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
         LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
         WHERE rt.room_id = ? AND rt.deleted_at IS NULL

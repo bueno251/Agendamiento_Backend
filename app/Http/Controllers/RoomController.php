@@ -394,6 +394,35 @@ class RoomController extends Controller
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
+                "name", rt.nombre,
+                "jornada", tj.nombre,
+                "jornada_id", rt.jornada_id,
+                "impuestoId", rt.impuesto_id,
+                "precio", rt.precio,
+                "previoFestivo", rt.precio_previo_festivo,
+                "precioConIva", 
+                CASE 
+                    WHEN rt.impuesto_id IS NOT NULL
+                        THEN rt.precio * (1 + imp.tasa / 100)
+                    ELSE rt.precio
+                END,
+                "previoFestivoConIva",
+                CASE 
+                    WHEN rt.impuesto_id IS NOT NULL
+                        THEN ROUND(rt.precio_previo_festivo * (1 + imp.tasa/100))
+                    ELSE ROUND(rt.precio_previo_festivo)
+                END
+            ))
+            FROM tarifas rt
+            LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
+            WHERE rt.room_id = r.id
+            ORDER BY
+            FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
+        ) AS precios,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
                 "fechaInicio", te.fecha_inicio,
                 "fechaFin", te.fecha_fin,
                 "precio", te.precio,
@@ -451,6 +480,7 @@ class RoomController extends Controller
             // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
             $room->caracteristicas = json_decode($room->caracteristicas);
+            $room->precios = json_decode($room->precios);
             $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
             $room->tarifasGenerales = json_decode($room->tarifasGenerales);
 

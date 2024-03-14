@@ -102,6 +102,35 @@ class DescuentosController extends Controller
         }
     }
 
+    public function readByRoom($id)
+    {
+        // Consulta SQL para obtener el descuento por ID de la habitación
+        $query = "SELECT
+        td.id,
+        td.fecha_inicio AS fechaInicio,
+        td.fecha_fin AS fechaFin,
+        td.nombre,
+        td.descuento,
+        td.tipo_id AS tipoId,
+        tdt.tipo AS tipo
+        FROM tarifa_descuentos td
+        LEFT JOIN tarifa_descuento_tipos tdt ON tdt.id = td.tipo_id
+        WHERE FIND_IN_SET(?, REPLACE(REPLACE(td.habitaciones, '[', ''), ']', '')) > 0";
+
+        try {
+            // Obtener el descuento por ID desde la base de datos
+            $result = DB::select($query, [$id]);
+
+            return response()->json($result, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al buscar los descuentos',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function readTipos()
     {
         $query = 'SELECT
@@ -139,45 +168,6 @@ class DescuentosController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener las habitaciones',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    public function find($id)
-    {
-        // Consulta SQL para obtener el descuento por ID
-        $query = 'SELECT
-        id,
-        fecha_inicio AS fechaInicio,
-        fecha_fin AS fechaFin,
-        nombre,
-        descuento,
-        habitaciones,
-        tipo_id AS tipoId,
-        user_registro_id AS userRegistroId,
-        created_at
-        FROM tarifa_descuentos
-        WHERE id = ? AND deleted_at IS NULL
-        ORDER BY created_at DESC';
-
-        try {
-            // Obtener el descuento por ID desde la base de datos
-            $result = DB::selectOne($query, [$id]);
-
-            // Verificar si se encontró el descuento
-            if ($result) {
-
-                return response()->json($result, 200);
-            } else {
-                return response()->json([
-                    'message' => 'Descuento no encontrado',
-                ], 404);
-            }
-        } catch (\Exception $e) {
-            // Retornar respuesta de error con detalles en caso de fallo
-            return response()->json([
-                'message' => 'Error al buscar el descuento',
                 'error' => $e->getMessage(),
             ], 500);
         }
