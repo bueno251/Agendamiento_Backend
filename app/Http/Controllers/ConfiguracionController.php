@@ -502,7 +502,6 @@ class ConfiguracionController extends Controller
         }
     }
 
-
     /**
      * Obtener Tipos de Empresas
      *
@@ -692,8 +691,16 @@ class ConfiguracionController extends Controller
         }
     }
 
+    /**
+     * Obtiene la configuración de reserva.
+     *
+     * Esta función busca en la base de datos la configuración de reserva.
+     *
+     * @return \Illuminate\Http\JsonResponse Una respuesta JSON con la configuración de reserva si se encuentra, de lo contrario, devuelve un mensaje de error.
+     */
     public function getReservaConfig()
     {
+        // Consulta SQL para obtener la configuración de reserva no eliminada
         $query = 'SELECT
         usuario_reserva AS usuarioReserva,
         correo_obligatorio AS correoObligatorio,
@@ -704,17 +711,18 @@ class ConfiguracionController extends Controller
         WHERE deleted_at IS NULL';
 
         try {
-            // Ejecutar la consulta
+            // Ejecutar la consulta SQL para obtener la configuración de reserva
             $configuration = DB::selectOne($query);
 
+            // Convertir campos de tipo booleano
             $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
             $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
 
-            // Retornar respuesta exitosa
+            // Devolver una respuesta JSON con la configuración de reserva si se encuentra
             return response()->json($configuration, 200);
         } catch (\Exception $e) {
-            // Retornar respuesta de error con detalles
+            // Si se produce algún error durante la ejecución de la consulta, devolver una respuesta JSON con un mensaje de error y el detalle del error.
             return response()->json([
                 'message' => 'Error al traer la configuración',
                 'error' => $e->getMessage(),

@@ -7,6 +7,14 @@ use Illuminate\Support\Facades\DB;
 
 class TarifasGeneralesController extends Controller
 {
+    /**
+     * Guardar Tarifas Generales
+     *
+     * Este método se encarga de guardar las tarifas generales en la base de datos.
+     *
+     * @param \Illuminate\Http\Request $request Objeto Request con los datos de las tarifas generales.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function save(Request $request)
     {
         $request->validate([
@@ -16,11 +24,13 @@ class TarifasGeneralesController extends Controller
                 'array',
                 function ($attribute, $value, $fail) {
                     foreach ($value as $tarifa) {
+                        // Validar cada tarifa individualmente
                         $validate = validator($tarifa, [
                             'nombre' => 'required|string',
                             'precio' => 'required|integer',
                         ]);
 
+                        // Si la validación falla para alguna tarifa, se devuelve un mensaje de error
                         if ($validate->fails()) {
                             $fail('El formato de las tarifas es incorrecto: { nombre: string, precio: integer }');
                             break;
@@ -30,7 +40,7 @@ class TarifasGeneralesController extends Controller
             ],
         ]);
 
-        // Consulta SQL para insertar la tarifa
+        // Consulta SQL para insertar o actualizar las tarifas
         $query = 'INSERT INTO tarifas_generales (
         nombre,
         precio,
@@ -43,16 +53,17 @@ class TarifasGeneralesController extends Controller
         updated_at = NOW(),
         deleted_at = NULL';
 
-        // Obtener los datos de los días y jornadas
+        // Obtener los datos de las tarifas desde la solicitud
         $tarifas = $request->input("tarifas");
 
         DB::beginTransaction();
 
         try {
-            foreach ($tarifas as $day) {
+            // Iterar sobre cada tarifa y guardarla en la base de datos
+            foreach ($tarifas as $tarifa) {
                 DB::insert($query, [
-                    $day['nombre'],
-                    $day['precio'],
+                    $tarifa['nombre'],
+                    $tarifa['precio'],
                     $request->tieneIva ? $request->impuesto : null
                 ]);
             }
@@ -68,12 +79,19 @@ class TarifasGeneralesController extends Controller
 
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
-                'message' => 'Error al guardas las tarifas',
+                'message' => 'Error al guardar las tarifas',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Obtener todas las Tarifas Generales
+     *
+     * Este método se encarga de recuperar todas las tarifas generales almacenadas en la base de datos.
+     *
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con la lista de tarifas generales.
+     */
     public function read()
     {
         // Consulta SQL para obtener tarifas generales
@@ -82,21 +100,9 @@ class TarifasGeneralesController extends Controller
         te.nombre,
         te.precio,
         te.impuesto_id AS impuestoId,
-        CASE
-            WHEN te.impuesto_id
-                THEN ROUND(te.precio * (1 + imp.tasa/100))
-                ELSE ROUND(te.precio)
-            END AS precioConIva,
-        CASE
-            WHEN te.impuesto_id
-                THEN ROUND(te.precio * (imp.tasa/100))
-                ELSE 0
-            END AS precioIva,
-        CASE
-            WHEN te.impuesto_id
-                THEN imp.tasa
-                ELSE 0
-            END AS impuesto
+        IF(te.impuesto_id IS NOT NULL, ROUND(te.precio * (1 + imp.tasa/100)), ROUND(te.precio)) AS precioConIva,
+        IF(te.impuesto_id IS NOT NULL, ROUND(te.precio * (imp.tasa/100)), 0) AS precioIva,
+        IF(te.impuesto_id IS NOT NULL, imp.tasa, 0) AS impuesto
         FROM tarifas_generales te
         LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
         WHERE te.deleted_at IS NULL';
@@ -116,13 +122,19 @@ class TarifasGeneralesController extends Controller
         }
     }
 
+    /**
+     * Elimina una tarifa general por su ID.
+     *
+     * @param int $id El ID de la tarifa que se eliminará.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function delete($id)
     {
-        // Consulta SQL para marcar la tarifa como eliminado por ID
+        // Consulta SQL para marcar la tarifa como eliminada por su ID
         $query = 'UPDATE tarifas_generales SET deleted_at = NOW() WHERE id = ?';
 
         try {
-            // Ejecutar la actualización para marcar la tarifa como eliminado
+            // Ejecutar la consulta SQL para marcar la tarifa como eliminada
             $result = DB::update($query, [$id]);
 
             // Verificar si la eliminación fue exitosa

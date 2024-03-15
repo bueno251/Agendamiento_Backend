@@ -17,6 +17,7 @@ return new class extends Migration
             $table->date('fecha_fin');
             $table->string('nombre');
             $table->integer('descuento');
+            $table->boolean('activo')->default(1);
             $table->text('habitaciones');
             $table->unsignedBigInteger('tipo_id')->nullable();
             $table->foreign('tipo_id')->references('id')->on('tarifa_descuento_tipos')->onDelete('set null');

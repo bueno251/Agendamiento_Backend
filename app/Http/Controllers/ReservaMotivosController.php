@@ -7,23 +7,28 @@ use Illuminate\Support\Facades\DB;
 
 class ReservaMotivosController extends Controller
 {
+    /**
+     * Obtiene todos los motivos de reserva.
+     *
+     * Esta función recupera todos los motivos de reserva de la base de datos.
+     *
+     * @return \Illuminate\Http\JsonResponse Una respuesta JSON con los motivos de reserva o un mensaje de error en caso de fallo.
+     */
     public function read()
     {
-        $query = '
-        SELECT id, nombre
-        FROM reserva_motivos
-        WHERE deleted_at IS NULL';
+        // Consulta SQL para obtener los motivos de reserva
+        $query = 'SELECT id, nombre FROM reserva_motivos WHERE deleted_at IS NULL';
 
         try {
             // Ejecutar la consulta
             $results = DB::select($query);
 
-            // Retornar respuesta exitosa
+            // Retornar una respuesta exitosa con los motivos de reserva
             return response()->json($results, 200);
         } catch (\Exception $e) {
-            // Retornar respuesta de error con detalles
+            // Retornar una respuesta de error con detalles en caso de fallo
             return response()->json([
-                'message' => 'Error al traer los motivos de las reservas',
+                'message' => 'Error al obtener los motivos de reserva',
                 'error' => $e->getMessage(),
             ], 500);
         }

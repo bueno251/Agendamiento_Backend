@@ -7,28 +7,38 @@ use Illuminate\Support\Facades\DB;
 
 class TarifasController extends Controller
 {
+    /**
+     * Guardar Tarifa
+     *
+     * Este método se encarga de guardar una nueva tarifa o actualizar una existente en la base de datos.
+     *
+     * @param \Illuminate\Http\Request $request Objeto Request con los datos de la tarifa a guardar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function save(Request $request)
     {
+        // Validación de los datos del formulario
         $request->validate([
             'name' => 'required|string',
             'precio' => 'required|integer',
             'room' => 'required|integer',
         ]);
 
+        // Consulta SQL para insertar o actualizar la tarifa
         $query = 'INSERT INTO tarifas (
-            room_id,
-            nombre,
-            precio,
-            jornada_id,
-            created_at)
-            VALUES (?, ?, ?, ?, now())
-            ON DUPLICATE KEY UPDATE
-            precio = VALUES(precio),
-            jornada_id = VALUES(jornada_id),
-            updated_at = NOW()';
+        room_id,
+        nombre,
+        precio,
+        jornada_id,
+        created_at)
+        VALUES (?, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE
+        precio = VALUES(precio),
+        jornada_id = VALUES(jornada_id),
+        updated_at = NOW()';
 
         try {
-
+            // Ejecutar la consulta de inserción o actualización
             DB::insert($query, [
                 $request->room,
                 $request->name,
@@ -36,12 +46,14 @@ class TarifasController extends Controller
                 $request->jornada,
             ]);
 
+            // Respuesta exitosa
             return response()->json([
                 'message' => 'Tarifa Guardada',
             ], 200);
         } catch (\Exception $e) {
+            // Respuesta de error en caso de excepción
             return response()->json([
-                'message' => 'Error inesperado al guardar',
+                'message' => 'Error inesperado al guardar la tarifa',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -184,19 +196,37 @@ class TarifasController extends Controller
         }
     }
 
+    /**
+     * Eliminar Tarifa
+     *
+     * Este método se encarga de marcar una tarifa como eliminada en la base de datos.
+     *
+     * @param int $id Identificador de la tarifa a eliminar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function delete($id)
     {
+        // Consulta SQL para marcar la tarifa como eliminada
         $query = 'UPDATE tarifas SET 
         deleted_at = NOW()
         WHERE id = ?';
 
         try {
-            $deleted = DB::update($query, [$id]);
+            // Ejecutar la consulta de actualización
+            $result = DB::update($query, [$id]);
 
-            return $deleted
-                ? response()->json(['message' => 'Eliminado exitosamente'])
-                : response()->json(['message' => 'Error al eliminar'], 500);
+            // Verificar si la eliminación fue exitosa
+            if ($result) {
+                return response()->json([
+                    'message' => 'Tarifa eliminada exitosamente',
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'La tarifa no existe o ya ha sido eliminada',
+                ], 404); // Cambiado a un código de estado 404 para indicar que el recurso no fue encontrado
+            }
         } catch (\Exception $e) {
+            // Respuesta de error en caso de excepción
             return response()->json([
                 'message' => 'Error al eliminar la tarifa',
                 'error' => $e->getMessage(),

@@ -7,6 +7,14 @@ use Illuminate\Support\Facades\DB;
 
 class TarifasEspecialesController extends Controller
 {
+    /**
+     * Crear Tarifa Especial
+     *
+     * Este método se encarga de crear una nueva tarifa especial en la base de datos.
+     *
+     * @param \Illuminate\Http\Request $request Objeto Request con los datos de la tarifa especial.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function create(Request $request)
     {
         $request->validate([
@@ -18,7 +26,7 @@ class TarifasEspecialesController extends Controller
             'tieneIva' => 'required|boolean',
         ]);
 
-        // Consulta SQL para insertar la tarifa
+        // Consulta SQL para insertar la tarifa especial
         $queryInsert = 'INSERT INTO tarifas_especiales (
         fecha_inicio,
         fecha_fin,
@@ -32,7 +40,7 @@ class TarifasEspecialesController extends Controller
         DB::beginTransaction();
 
         try {
-            // Ejecutar la inserción de la tarifa
+            // Ejecutar la inserción de la tarifa especial
             DB::insert($queryInsert, [
                 $request->fechaInicio,
                 $request->fechaFin,
@@ -53,12 +61,20 @@ class TarifasEspecialesController extends Controller
 
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
-                'message' => 'Error al crear la tarifa',
+                'message' => 'Error al crear la tarifa especial',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Obtener Tarifas Especiales
+     *
+     * Este método se encarga de recuperar las tarifas especiales asociadas a una habitación específica.
+     *
+     * @param int $id Identificador de la habitación.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con detalles sobre las tarifas especiales o un mensaje de error en caso de fallo.
+     */
     public function read($id)
     {
         // Consulta SQL para obtener tarifas especiales
@@ -68,21 +84,9 @@ class TarifasEspecialesController extends Controller
         te.fecha_fin AS fechaFin,
         te.precio,
         te.descripcion,
-        CASE
-            WHEN te.impuesto_id
-                THEN ROUND(te.precio * (1 + imp.tasa/100))
-                ELSE ROUND(te.precio)
-            END AS precioConIva,
-        CASE
-            WHEN te.impuesto_id
-                THEN ROUND(te.precio * (imp.tasa/100))
-                ELSE 0
-            END AS precioIva,
-        CASE
-            WHEN te.impuesto_id
-                THEN imp.tasa
-                ELSE 0
-            END AS impuesto
+        IF(te.impuesto_id IS NOT NULL, ROUND(te.precio * (1 + imp.tasa/100)), ROUND(te.precio)) AS precioConIva,
+        IF(te.impuesto_id IS NOT NULL, ROUND(te.precio * (imp.tasa/100)), 0) AS precioIva,
+        IF(te.impuesto_id IS NOT NULL, imp.tasa, 0) AS impuesto
         FROM tarifas_especiales te
         LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
         WHERE te.room_id = ? AND te.deleted_at IS NULL
@@ -103,44 +107,41 @@ class TarifasEspecialesController extends Controller
         }
     }
 
+    /**
+     * Buscar Tarifa Especial por ID
+     *
+     * Este método se encarga de buscar y recuperar una tarifa especial específica según su ID.
+     *
+     * @param int $id Identificador de la tarifa especial.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con los detalles de la tarifa especial o un mensaje de error si no se encuentra.
+     */
     public function find($id)
     {
-        // Consulta SQL para obtener la tarifa por ID
+        // Consulta SQL para obtener la tarifa especial por ID
         $query = 'SELECT
         te.id,
         te.fecha_inicio AS fechaInicio,
         te.fecha_fin AS fechaFin,
         te.precio,
         te.descripcion,
-        CASE
-            WHEN te.impuesto_id
-                THEN ROUND(te.precio * (1 + im.tasa/100))
-                ELSE ROUND(te.precio)
-            END AS precioConIva,
-        CASE
-            WHEN te.impuesto_id
-                THEN ROUND(te.precio * (im.tasa/100))
-                ELSE 0
-            END AS precioIva,
-        CASE
-            WHEN te.impuesto_id
-                THEN im.tasa
-                ELSE 0
-            END AS impuesto
+        IF(te.impuesto_id IS NOT NULL, ROUND(te.precio * (1 + im.tasa/100)), ROUND(te.precio)) AS precioConIva,
+        IF(te.impuesto_id IS NOT NULL, ROUND(te.precio * (im.tasa/100)), 0) AS precioIva,
+        IF(te.impuesto_id IS NOT NULL, im.tasa, 0) AS impuesto
         FROM tarifas_especiales te
         LEFT JOIN tarifa_impuestos im ON im.id = te.impuesto_id
         WHERE te.id = ? AND te.deleted_at IS NULL
         ORDER BY te.created_at DESC';
 
         try {
-            // Obtener la tarifa por ID desde la base de datos
+            // Obtener la tarifa especial por ID desde la base de datos
             $tarifa = DB::selectOne($query, [$id]);
 
-            // Verificar si se encontró la tarifa
+            // Verificar si se encontró la tarifa especial
             if ($tarifa) {
-
+                // Retornar respuesta con los detalles de la tarifa especial
                 return response()->json($tarifa, 200);
             } else {
+                // Retornar respuesta indicando que la tarifa especial no fue encontrada
                 return response()->json([
                     'message' => 'Tarifa especial no encontrada',
                 ], 404);
@@ -148,12 +149,21 @@ class TarifasEspecialesController extends Controller
         } catch (\Exception $e) {
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
-                'message' => 'Error al buscar la tarifa',
+                'message' => 'Error al buscar la tarifa especial',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Actualizar Tarifa Especial por ID
+     *
+     * Este método se encarga de actualizar una tarifa especial específica según su ID.
+     *
+     * @param \Illuminate\Http\Request $request Objeto Request con los datos de la actualización.
+     * @param int $id Identificador de la tarifa especial a actualizar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -163,7 +173,7 @@ class TarifasEspecialesController extends Controller
             'descripcion' => 'required|string',
         ]);
 
-        // Consulta SQL para actualizar la tarifa por ID
+        // Consulta SQL para actualizar la tarifa especial por ID
         $query = 'UPDATE tarifas_especiales SET
         fecha_inicio = ?,
         fecha_fin = ?,
@@ -175,7 +185,7 @@ class TarifasEspecialesController extends Controller
         DB::beginTransaction();
 
         try {
-            // Ejecutar la actualización de la tarifa por ID
+            // Ejecutar la actualización de la tarifa especial por ID
             DB::update($query, [
                 $request->fechaInicio,
                 $request->fechaFin,
@@ -186,25 +196,37 @@ class TarifasEspecialesController extends Controller
 
             DB::commit();
 
+            // Retornar respuesta de éxito
             return response()->json([
-                'message' => 'Tarifa especial actualizado exitosamente',
+                'message' => 'Tarifa especial actualizada exitosamente',
             ]);
         } catch (\Exception $e) {
+            // Revertir la transacción en caso de error
+            DB::rollBack();
+
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
-                'message' => 'Error al actualizar la tarifa',
+                'message' => 'Error al actualizar la tarifa especial',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Eliminar Tarifa Especial por ID
+     *
+     * Este método se encarga de marcar una tarifa especial como eliminada en la base de datos.
+     *
+     * @param int $id Identificador de la tarifa especial a eliminar.
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el resultado de la operación.
+     */
     public function delete($id)
     {
-        // Consulta SQL para marcar la tarifa como eliminado por ID
+        // Consulta SQL para marcar la tarifa especial como eliminada por ID
         $query = 'UPDATE tarifas_especiales SET deleted_at = NOW() WHERE id = ?';
 
         try {
-            // Ejecutar la actualización para marcar la tarifa como eliminado
+            // Ejecutar la actualización para marcar la tarifa especial como eliminada
             $result = DB::update($query, [$id]);
 
             // Verificar si la eliminación fue exitosa
@@ -213,14 +235,15 @@ class TarifasEspecialesController extends Controller
                     'message' => 'Tarifa especial eliminada exitosamente',
                 ]);
             } else {
+                // Si no se realizó ninguna actualización, puede indicar que la tarifa no existía
                 return response()->json([
-                    'message' => 'Error al eliminar la tarifa',
-                ], 500);
+                    'message' => 'La tarifa especial no existe o ya ha sido eliminada',
+                ], 404);
             }
         } catch (\Exception $e) {
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
-                'message' => 'Error al eliminar la tarifa',
+                'message' => 'Error al eliminar la tarifa especial',
                 'error' => $e->getMessage(),
             ], 500);
         }
