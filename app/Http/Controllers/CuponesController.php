@@ -7,6 +7,12 @@ use Illuminate\Support\Facades\DB;
 
 class CuponesController extends Controller
 {
+    /**
+     * Crea un nuevo cupón de descuento.
+     *
+     * @param Request $request La solicitud HTTP entrante.
+     * @return JsonResponse La respuesta JSON indicando el resultado de la operación.
+     */
     public function create(Request $request)
     {
         // Validar los datos de la solicitud
@@ -22,7 +28,7 @@ class CuponesController extends Controller
         ]);
 
         // Consulta SQL para insertar el cupón
-        $queryInsert = 'INSERT INTO tarifa_descuento_cupones (
+        $queryInsertCupon = 'INSERT INTO tarifa_descuento_cupones (
         fecha_inicio,
         fecha_fin,
         nombre,
@@ -33,7 +39,8 @@ class CuponesController extends Controller
         created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
 
-        $queryInsertCodes = 'INSERT INTO tarifa_descuento_cupones_codigos (
+        // Consulta SQL para insertar los códigos del cupón
+        $queryInsertCodigos = 'INSERT INTO tarifa_descuento_cupones_codigos (
         cupon_id,
         codigo,
         created_at)
@@ -43,7 +50,7 @@ class CuponesController extends Controller
 
         try {
             // Ejecutar la inserción del cupón
-            DB::insert($queryInsert, [
+            DB::insert($queryInsertCupon, [
                 $request->fechaInicio,
                 $request->fechaFin,
                 $request->nombre,
@@ -53,12 +60,12 @@ class CuponesController extends Controller
                 $request->user,
             ]);
 
-            // Obtener el ID del cupón
+            // Obtener el ID del cupón recién insertado
             $cuponId = DB::getPdo()->lastInsertId();
 
-            // Insertar codigos asociados al cupón
+            // Insertar los códigos asociados al cupón
             for ($i = 0; $i < $request->cantidad; $i++) {
-                DB::insert($queryInsertCodes, [
+                DB::insert($queryInsertCodigos, [
                     $cuponId,
                     $this->generarCodigoAleatorio(6),
                 ]);
@@ -139,6 +146,10 @@ class CuponesController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function checkCupon($code)
+    {
     }
 
     /**
@@ -280,6 +291,12 @@ class CuponesController extends Controller
         }
     }
 
+    /**
+     * Actualiza el estado de los códigos de cupones.
+     *
+     * @param Request $request La solicitud HTTP entrante.
+     * @return JsonResponse La respuesta JSON indicando el resultado de la operación.
+     */
     public function updateCodes(Request $request)
     {
         // Validar los datos de la solicitud
@@ -288,14 +305,14 @@ class CuponesController extends Controller
                 'required',
                 'array',
                 function ($attribute, $value, $fail) {
-                    foreach ($value as $pago) {
-                        $validate = validator($pago, [
+                    foreach ($value as $codigo) {
+                        $validator = validator($codigo, [
                             'id' => 'required|integer',
                             'activo' => 'required|boolean',
                         ]);
 
-                        if ($validate->fails()) {
-                            $fail('El formato de los codigos es incorrecto. { id:integer, activo:boolean }');
+                        if ($validator->fails()) {
+                            $fail('El formato de los códigos es incorrecto. { id:integer, activo:boolean }');
                             break;
                         }
                     }
@@ -303,19 +320,19 @@ class CuponesController extends Controller
             ],
         ]);
 
-        // Consulta SQL para actualizar el cupón por ID
+        // Consulta SQL para actualizar el estado de los códigos de cupones por ID
         $query = 'UPDATE tarifa_descuento_cupones_codigos SET
         activo = ?,
         updated_at = NOW()
         WHERE id = ?';
 
-        // Obtener datos de las habitaciones a actualizar
+        // Obtener datos de los códigos de cupones a actualizar
         $codigos = $request->input('codigos');
 
         DB::beginTransaction();
 
         try {
-            // Actualizar el estado de cada habitación en la lista
+            // Actualizar el estado de cada código de cupón en la lista
             foreach ($codigos as $codigo) {
                 DB::update($query, [
                     $codigo['activo'],
@@ -328,7 +345,7 @@ class CuponesController extends Controller
 
             // Respuesta exitosa
             return response()->json([
-                'message' => 'Guardado Exitosamente',
+                'message' => 'Guardado exitosamente',
             ]);
         } catch (\Exception $e) {
             // Revertir la transacción en caso de error
@@ -336,7 +353,7 @@ class CuponesController extends Controller
 
             // Respuesta de error
             return response()->json([
-                'message' => 'Error Al Guardar',
+                'message' => 'Error al guardar',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -379,16 +396,33 @@ class CuponesController extends Controller
         }
     }
 
+    /**
+     * Genera un código aleatorio con la longitud especificada.
+     *
+     * @param int $longitud La longitud del código a generar.
+     * @return string El código aleatorio generado.
+     */
     function generarCodigoAleatorio($longitud)
     {
+        // Definir los caracteres posibles para el código
         $caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+        // Inicializar la variable para almacenar el código
         $codigo = '';
 
+        // Calcular la longitud de la cadena de caracteres
+        $longitud_caracteres = strlen($caracteres);
+
+        // Iterar para generar cada carácter del código
         for ($i = 0; $i < $longitud; $i++) {
-            $indice = rand(0, strlen($caracteres) - 1);
+            // Generar un índice aleatorio dentro del rango de caracteres
+            $indice = rand(0, $longitud_caracteres - 1);
+
+            // Concatenar el carácter correspondiente al índice generado
             $codigo .= $caracteres[$indice];
         }
 
+        // Devolver el código generado
         return $codigo;
     }
 }
