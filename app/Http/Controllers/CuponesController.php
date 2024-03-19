@@ -166,29 +166,22 @@ class CuponesController extends Controller
         $query = "SELECT
         td.id,
         td.fecha_inicio AS fechaInicio,
-        td.fecha_fin AS fechaFin,
-        td.nombre,
-        td.descuento,
-        td.tipo_id AS tipoId,
-        tdt.tipo AS tipo,
-        (
-            SELECT
-            JSON_ARRAYAGG(tdcc.codigo)
-            FROM tarifa_descuento_cupones_codigos tdcc
-            WHERE tdcc.cupon_id = td.id AND tdcc.activo = 1 AND tdcc.usado = 0 AND tdcc.deleted_at IS NULL
-        ) AS codigos
+        td.fecha_fin AS fechaFin
         FROM tarifa_descuento_cupones td
-        LEFT JOIN tarifa_descuento_tipos tdt ON tdt.id = td.tipo_id
         WHERE td.deleted_at IS NULL AND td.activo = 1
-        AND FIND_IN_SET(?, REPLACE(REPLACE(td.habitaciones, '[', ''), ']', '')) > 0";
+        AND FIND_IN_SET(?, REPLACE(REPLACE(td.habitaciones, '[', ''), ']', '')) > 0
+        AND EXISTS (
+            SELECT 1
+            FROM tarifa_descuento_cupones_codigos tdcc
+            WHERE tdcc.cupon_id = td.id
+            AND tdcc.activo = 1
+            AND tdcc.usado = 0
+            AND tdcc.deleted_at IS NULL
+        )";
 
         try {
             // Ejecutar la consulta SQL para obtener el cupón por ID de la habitación
             $result = DB::select($query, [$id]);
-
-            foreach ($result as $cupon) {
-                $cupon->codigos = json_decode($cupon->codigos);
-            }
 
             // Retornar respuesta con los cupones aplicables si se encuentran
             return response()->json($result, 200);
@@ -198,6 +191,34 @@ class CuponesController extends Controller
                 'message' => 'Error al buscar los cupones',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    public function chekCuponCode(string $code, int $id)
+    {
+        $query = "SELECT
+        td.nombre,
+        td.descuento,
+        tdt.tipo AS tipo
+        FROM tarifa_descuento_cupones td
+        LEFT JOIN tarifa_descuento_tipos tdt ON tdt.id = td.tipo_id
+        JOIN tarifa_descuento_cupones_codigos tdcc ON tdcc.cupon_id = td.id
+        WHERE td.deleted_at IS NULL AND td.activo = 1 AND td.id = ?
+        AND tdcc.codigo = ?
+        AND tdcc.activo = 1
+        AND tdcc.usado = 0";
+
+        $result = DB::selectOne($query, [
+            $id,
+            $code,
+        ]);
+
+        if (empty($result)) {
+            return response()->json([
+                'message' => 'El Código del Cupón No es valido o no escuentra disponible para su uso',
+            ], 500);
+        } else {
+            return response()->json($result, 200);
         }
     }
 

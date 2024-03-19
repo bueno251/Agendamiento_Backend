@@ -454,6 +454,8 @@ Route::controller(CuponesController::class)->group(function () {
     // Obtener cupóns por ID de habitación
     Route::get('cupones/{id}', 'readByRoom');
 
+    Route::get('cupones-{codigo}-{id}', 'chekCuponCode');
+
     // Actualizar un cupón existente
     Route::patch('cupon/{id}', 'update');
 
