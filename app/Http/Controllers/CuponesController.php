@@ -23,6 +23,7 @@ class CuponesController extends Controller
             'descuento' => 'required|integer',
             'habitaciones' => 'required|array',
             'tipo' => 'required|integer',
+            'precio' => 'required|integer',
             'cantidad' => 'required|integer',
             'user' => 'required|integer',
         ]);
@@ -35,9 +36,10 @@ class CuponesController extends Controller
         descuento,
         habitaciones,
         tipo_id,
+        precio_id,
         user_registro_id,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         // Consulta SQL para insertar los códigos del cupón
         $queryInsertCodigos = 'INSERT INTO tarifa_descuento_cupones_codigos (
@@ -57,6 +59,7 @@ class CuponesController extends Controller
                 $request->descuento,
                 json_encode($request->habitaciones),
                 $request->tipo,
+                $request->precio,
                 $request->user,
             ]);
 
@@ -108,6 +111,8 @@ class CuponesController extends Controller
         td.habitaciones,
         td.tipo_id AS tipoId,
         tdt.tipo AS tipo,
+        td.precio_id AS precioId,
+        tdp.nombre AS precio,
         td.user_registro_id AS userRegistroId,
         (
             SELECT
@@ -123,6 +128,7 @@ class CuponesController extends Controller
         td.created_at
         FROM tarifa_descuento_cupones td
         LEFT JOIN tarifa_descuento_tipos tdt ON tdt.id = td.tipo_id
+        LEFT JOIN tarifa_descuento_precios tdp ON tdp.id = td.precio_id
         WHERE td.deleted_at IS NULL
         ORDER BY td.created_at DESC';
 
@@ -148,8 +154,24 @@ class CuponesController extends Controller
         }
     }
 
-    public function checkCupon($code)
+    public function getPrecios()
     {
+        $query = 'SELECT
+        id,
+        nombre
+        FROM tarifa_descuento_precios
+        WHERE deleted_at IS NULL';
+
+        try {
+            $result = DB::select($query);
+
+            return response()->json($result, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al obtener los precios del cupón',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -197,13 +219,21 @@ class CuponesController extends Controller
     public function chekCuponCode(string $code, int $id)
     {
         $query = "SELECT
+        td.id,
         td.nombre,
         td.descuento,
+        td.fecha_inicio AS fechaInicio,
+        td.fecha_fin AS fechaFin,
+        td.precio_id AS precioId,
+        tdp.nombre AS precio,
+        td.tipo_id AS tipoId,
         tdt.tipo AS tipo
         FROM tarifa_descuento_cupones td
+        LEFT JOIN tarifa_descuento_precios tdp ON tdp.id = td.precio_id
         LEFT JOIN tarifa_descuento_tipos tdt ON tdt.id = td.tipo_id
         JOIN tarifa_descuento_cupones_codigos tdcc ON tdcc.cupon_id = td.id
-        WHERE td.deleted_at IS NULL AND td.activo = 1 AND td.id = ?
+        WHERE td.deleted_at IS NULL AND td.activo = 1
+        AND FIND_IN_SET(?, REPLACE(REPLACE(td.habitaciones, '[', ''), ']', '')) > 0
         AND tdcc.codigo = ?
         AND tdcc.activo = 1
         AND tdcc.usado = 0";
@@ -241,7 +271,9 @@ class CuponesController extends Controller
             'descuento' => 'required|integer',
             'habitaciones' => 'required|array',
             'tipo' => 'required|integer',
+            'precio' => 'required|integer',
             'cantidad' => 'required|integer',
+            'activo' => 'required|boolean',
             'user' => 'required|integer',
         ]);
 
@@ -253,6 +285,8 @@ class CuponesController extends Controller
         descuento = ?,
         habitaciones = ?,
         tipo_id = ?,
+        precio_id = ?,
+        activo = ?,
         user_actualizo_id = ?,
         updated_at = NOW()
         WHERE id = ?';
@@ -279,6 +313,8 @@ class CuponesController extends Controller
                 $request->descuento,
                 json_encode($request->habitaciones),
                 $request->tipo,
+                $request->precio,
+                $request->activo,
                 $request->user,
                 $id,
             ]);

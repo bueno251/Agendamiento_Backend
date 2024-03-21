@@ -13,6 +13,7 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomEstadoController;
 use App\Http\Controllers\RoomTipoController;
 use App\Http\Controllers\CancelacionTipoController;
+use App\Http\Controllers\ConfigFormReservaController;
 use App\Http\Controllers\CuponesController;
 use App\Http\Controllers\DescuentosController;
 use App\Http\Controllers\DireccionesController;
@@ -451,6 +452,8 @@ Route::controller(CuponesController::class)->group(function () {
     // Obtener todos los cupóns
     Route::get('cupones', 'read');
 
+    Route::get('precios', 'getPrecios');
+
     // Obtener cupóns por ID de habitación
     Route::get('cupones/{id}', 'readByRoom');
 
@@ -463,4 +466,9 @@ Route::controller(CuponesController::class)->group(function () {
 
     // Eliminar un cupón existente
     Route::delete('cupon/{id}', 'delete');
+});
+
+Route::controller(ConfigFormReservaController::class)->group(function () {
+    Route::post('formReserva', 'saveConfig');
+    Route::get('formReserva', 'getConfig');
 });

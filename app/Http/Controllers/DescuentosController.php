@@ -141,7 +141,8 @@ class DescuentosController extends Controller
         FROM tarifa_descuentos td
         LEFT JOIN tarifa_descuento_tipos tdt ON tdt.id = td.tipo_id
         WHERE td.deleted_at IS NULL AND td.activo = 1
-        AND FIND_IN_SET(?, REPLACE(REPLACE(td.habitaciones, '[', ''), ']', '')) > 0";
+        AND FIND_IN_SET(?, REPLACE(REPLACE(td.habitaciones, '[', ''), ']', '')) > 0
+        AND td.fecha_inicio >= CURDATE()";
 
         try {
             // Ejecutar la consulta SQL para obtener el descuento por ID de la habitación
