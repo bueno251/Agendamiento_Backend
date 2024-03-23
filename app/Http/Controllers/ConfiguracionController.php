@@ -628,13 +628,18 @@ class ConfiguracionController extends Controller
         // Consulta SQL para obtener la configuración de pagos y sus estados
         $query = 'SELECT
         tp.id AS id,
-        tp.nombre AS nombre
+        tp.nombre AS nombre,
+        tp.requiere_comprobante AS requiereComprobante
         FROM reserva_metodo_pagos tp
         LEFT JOIN configuracion_pagos sp ON sp.reserva_metodo_pago_id = tp.id
         WHERE sp.estado = 1 AND tp.deleted_at IS NULL';
 
         // Ejecutar la consulta y obtener resultados
         $pagos = DB::select($query);
+
+        foreach ($pagos as $pago) {
+            $pago->requiereComprobante = (bool) $pago->requiereComprobante;
+        }
 
         // Devolver la respuesta JSON con la configuración de pagos
         return response()->json($pagos, 200);

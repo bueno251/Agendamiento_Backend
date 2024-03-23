@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('reserva_metodo_pagos', function (Blueprint $table) {
             $table->id();
-            $table->string('metodo');
+            $table->string('nombre');
+            $table->boolean('requiere_comprobante')->default('0');
             $table->timestamps();
             $table->softDeletes();
         });

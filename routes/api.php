@@ -15,6 +15,7 @@ use App\Http\Controllers\RoomTipoController;
 use App\Http\Controllers\CancelacionTipoController;
 use App\Http\Controllers\ConfigFormReservaController;
 use App\Http\Controllers\CuponesController;
+use App\Http\Controllers\DescuentoLargaEstadiaController;
 use App\Http\Controllers\DescuentosController;
 use App\Http\Controllers\DireccionesController;
 use App\Http\Controllers\DivisasController;
@@ -471,4 +472,12 @@ Route::controller(CuponesController::class)->group(function () {
 Route::controller(ConfigFormReservaController::class)->group(function () {
     Route::post('formReserva', 'saveConfig');
     Route::get('formReserva', 'getConfig');
+});
+
+Route::controller(DescuentoLargaEstadiaController::class)->group(function () {
+    Route::post('descuento-estadia', 'create');
+    Route::get('descuentos-estadia', 'read');
+    Route::get('descuentos-estadia/{id}', 'readByRoom');
+    Route::patch('descuento-estadia/{id}', 'update');
+    Route::delete('descuento-estadia/{id}', 'delete');
 });
