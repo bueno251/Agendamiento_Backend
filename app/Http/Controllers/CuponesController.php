@@ -108,7 +108,15 @@ class CuponesController extends Controller
         td.nombre,
         td.descuento,
         td.activo,
-        td.habitaciones,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "id", rt.id,
+                "nombre", rt.nombre
+            ))
+            FROM room_padre rt
+            WHERE FIND_IN_SET(rt.id, REPLACE(REPLACE(td.habitaciones, "[", ""), "]", "")) > 0
+        ) AS habitaciones,
         td.tipo_id AS tipoId,
         tdt.tipo AS tipo,
         td.precio_id AS precioId,

@@ -81,14 +81,22 @@ class DescuentosController extends Controller
     public function read()
     {
         // Consulta SQL para obtener descuentos
-        $query = 'SELECT
+        $query = "SELECT
         td.id,
         td.fecha_inicio AS fechaInicio,
         td.fecha_fin AS fechaFin,
         td.nombre,
         td.descuento,
         td.activo,
-        td.habitaciones,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                'id', rt.id,
+                'nombre', rt.nombre
+            ))
+            FROM room_padre rt
+            WHERE FIND_IN_SET(rt.id, REPLACE(REPLACE(td.habitaciones, '[', ''), ']', '')) > 0
+        ) AS habitaciones,
         td.tipo_id AS tipoId,
         tdt.tipo AS tipo,
         td.user_registro_id AS userRegistroId,
@@ -96,7 +104,7 @@ class DescuentosController extends Controller
         FROM tarifa_descuentos td
         LEFT JOIN tarifa_descuento_tipos tdt ON tdt.id = td.tipo_id
         WHERE td.deleted_at IS NULL
-        ORDER BY td.created_at DESC';
+        ORDER BY td.created_at DESC";
 
         try {
             // Ejecutar la consulta SQL para obtener descuentos
