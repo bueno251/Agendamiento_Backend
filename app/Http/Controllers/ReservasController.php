@@ -19,21 +19,33 @@ class ReservasController extends Controller
     public function create(Request $request)
     {
         $request->validate([
-            'tipoDocumento' => 'required|integer',
-            'cedula' => 'required|string',
-            'nombre' => 'required|string',
-            'apellido' => 'required|string',
-            'telefono' => 'required|string',
             'dateIn' => 'required|string',
             'dateOut' => 'required|string',
             'room' => 'required|integer',
             'adultos' => 'required|integer',
             'niños' => 'required|integer',
             'precio' => 'required|integer',
-            'ciudadResidencia' => 'required|integer',
-            'ciudadProcedencia' => 'required|integer',
-            'motivo' => 'required|integer',
             'verificacion_pago' => 'required|integer',
+            'huespedes' => [
+                'required',
+                'array',
+                function ($attribute, $value, $fail) {
+                    foreach ($value as $pago) {
+                        $validate = validator($pago, [
+                            'tipoDocumento' => 'required|integer',
+                            'documento' => 'required|integer',
+                            'nombre1' => 'required|string',
+                            'apellido1' => 'required|string',
+                            'telefono' => 'required|integer',
+                        ]);
+
+                        if ($validate->fails()) {
+                            $fail('el formato de los huespedes es incorrecto');
+                            break;
+                        }
+                    }
+                }
+            ],
         ]);
 
         $queryGetRoom = "SELECT r.id
@@ -69,7 +81,12 @@ class ReservasController extends Controller
             OR (r.fecha_entrada <= ? AND r.fecha_salida >= ?)
         )";
 
+        DB::beginTransaction();
+
         try {
+
+            $huespedes = $request->input('huespedes');
+
             $rooms = DB::select($queryGetRoom, [
                 $request->dateIn,
                 $request->dateOut,
@@ -105,51 +122,30 @@ class ReservasController extends Controller
             }
 
             // Consulta SQL para insertar la reserva
-            $insertQuery = "INSERT INTO $table (
+            $insertReserva = "INSERT INTO $table (
                 fecha_entrada,
                 fecha_salida,
-                cedula,
-                nombre,
-                apellido,
-                correo,
-                telefono,
                 room_id,
-                cliente_id,
                 user_id,
                 estado_id,
                 desayuno_id,
                 decoracion_id,
-                motivo_id,
-                ciudad_residencia_id,
-                ciudad_procedencia_id,
-                huespedes,
                 adultos,
                 niños,
                 precio,
                 verificacion_pago,
                 created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
             // Ejecutar la inserción de la reserva
-            $reserva = DB::insert($insertQuery, [
+            DB::insert($insertReserva, [
                 $request->dateIn,
                 $request->dateOut,
-                $request->cedula,
-                $request->nombre,
-                $request->apellido,
-                $request->correo ? $request->correo : '',
-                $request->telefono,
                 $rooms[0]->id,
-                isset($request->cliente) ? $request->cliente : null,
                 isset($request->user) ? $request->user : 1, // Usuario web
                 1, // Estado Pendiente
                 isset($request->desayuno) ? $request->desayuno : null,
                 isset($request->decoracion) ? $request->decoracion : null,
-                $request->motivo,
-                $request->ciudadResidencia,
-                $request->ciudadProcedencia,
-                $request->adultos + $request->niños,
                 $request->adultos,
                 $request->niños,
                 $request->precio,
@@ -157,20 +153,91 @@ class ReservasController extends Controller
             ]);
 
             // Obtener el ID de la reserva recién creada
-            $id = DB::getPdo()->lastInsertId();
+            $reservaId = DB::getPdo()->lastInsertId();
 
-            // Verificar si la inserción fue exitosa
-            if ($reserva) {
-                return response()->json([
-                    'message' => $message,
-                    'reserva' => $id,
+            $insertClient = 'INSERT INTO clients (
+            tipo_documento_id,
+            documento,
+            nombre1,
+            nombre2,
+            apellido1,
+            apellido2,
+            correo,
+            telefono,
+            pais_id,
+            departamento_id,
+            ciudad_id,
+            created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+
+            $getClient = 'SELECT id
+            FROM clients
+            WHERE documento = ?';
+
+            $insertHuespedReserva = 'INSERT INTO reservas_huespedes (
+            responsable,
+            reserva_id,
+            cliente_id,
+            motivo_id,
+            pais_procedencia_id,
+            departamento_procedencia_id,
+            ciudad_procedencia_id,
+            created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
+
+            foreach ($huespedes as $huesped) {
+
+                $clientId = DB::selectOne($getClient, [
+                    $huesped['documento']
                 ]);
-            } else {
-                return response()->json([
-                    'message' => 'Error al crear la reserva',
-                ], 500);
+
+                if ($clientId) {
+                    DB::insert($insertHuespedReserva, [
+                        $huesped['responsable'],
+                        $reservaId,
+                        $clientId->id,
+                        $huesped['motivo'],
+                        $huesped['paisProcedencia'],
+                        $huesped['departamentoProcedencia'],
+                        $huesped['ciudadProcedencia'],
+                    ]);
+                } else {
+                    DB::insert($insertClient, [
+                        $request['tipoDocumento'],
+                        $huesped['documento'],
+                        $huesped['nombre1'],
+                        $huesped['nombre2'],
+                        $huesped['apellido1'],
+                        $huesped['apellido2'],
+                        isset($huesped['correo']) ? $huesped['correo'] : '',
+                        $huesped['telefono'],
+                        $huesped['paisResidencia'],
+                        $huesped['departamentoResidencia'],
+                        $huesped['ciudadResidencia'],
+                    ]);
+
+                    $clientId = DB::getPdo()->lastInsertId();
+
+                    DB::insert($insertHuespedReserva, [
+                        $huesped['responsable'],
+                        $reservaId,
+                        $clientId,
+                        $huesped['motivo'],
+                        $huesped['paisProcedencia'],
+                        $huesped['departamentoProcedencia'],
+                        $huesped['ciudadProcedencia'],
+                    ]);
+                }
             }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => $message,
+                'reserva' => $reservaId,
+            ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
                 'message' => 'Error al crear la reserva',
