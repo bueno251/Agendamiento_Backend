@@ -19,20 +19,46 @@ class ReservasController extends Controller
     public function create(Request $request)
     {
         $request->validate([
-            'cedula' => 'required|string',
-            'nombre' => 'required|string',
-            'apellido' => 'required|string',
-            'correo' => 'required|string',
-            'telefono' => 'required|string',
             'dateIn' => 'required|string',
             'dateOut' => 'required|string',
             'room' => 'required|integer',
             'adultos' => 'required|integer',
             'niños' => 'required|integer',
             'precio' => 'required|integer',
-            'cantidad_rooms' => 'required|integer',
             'verificacion_pago' => 'required|integer',
+            'huespedes' => [
+                'required',
+                'array',
+                function ($attribute, $value, $fail) {
+                    foreach ($value as $pago) {
+                        $validate = validator($pago, [
+                            'tipoDocumento' => 'required|integer',
+                            'documento' => 'required|integer',
+                            'nombre1' => 'required|string',
+                            'apellido1' => 'required|string',
+                            'telefono' => 'required|integer',
+                        ]);
+
+                        if ($validate->fails()) {
+                            $fail('el formato de los huespedes es incorrecto');
+                            break;
+                        }
+                    }
+                }
+            ],
         ]);
+
+        $queryGetRoom = "SELECT r.id
+        FROM rooms r
+        LEFT JOIN reservas res ON res.room_id = r.id
+            AND (
+                (fecha_entrada BETWEEN ? AND ?)
+                OR (fecha_salida BETWEEN ? AND ?)
+                OR (fecha_entrada <= ? AND fecha_salida >= ?)
+            )
+        WHERE r.room_padre_id = ?
+            AND r.deleted_at IS NULL
+            AND res.id IS NULL";
 
         // Determinar la tabla y mensaje según la verificación de pago
         if ($request->verificacion_pago) {
@@ -44,19 +70,41 @@ class ReservasController extends Controller
         }
 
         // Consulta SQL para verificar disponibilidad de fechas
-        $availabilityQuery = "SELECT id
-        FROM $table
-        WHERE room_id = ?
-        AND deleted_at IS NULL
+        $availabilityQuery = "SELECT r.id
+        FROM $table r
+        LEFT JOIN rooms rs ON rs.id = r.room_id
+        WHERE rs.room_padre_id = ?
+        AND r.deleted_at IS NULL
         AND (
-            fecha_entrada BETWEEN ? AND ?
-            OR fecha_salida BETWEEN ? AND ?
-            OR (fecha_entrada <= ? AND fecha_salida >= ?)
+            r.fecha_entrada BETWEEN ? AND ?
+            OR r.fecha_salida BETWEEN ? AND ?
+            OR (r.fecha_entrada <= ? AND r.fecha_salida >= ?)
         )";
 
+        DB::beginTransaction();
+
         try {
+
+            $huespedes = $request->input('huespedes');
+
+            $rooms = DB::select($queryGetRoom, [
+                $request->dateIn,
+                $request->dateOut,
+                $request->dateIn,
+                $request->dateOut,
+                $request->dateIn,
+                $request->dateOut,
+                $request->room,
+            ]);
+
+            if (count($rooms) == 0) {
+                return response()->json([
+                    'message' => 'No hay habitaciones disponibles',
+                ], 400);
+            }
+
             // Verificar disponibilidad de fechas
-            $temporales = DB::select($availabilityQuery, [
+            $reservas = DB::select($availabilityQuery, [
                 $request->room,
                 $request->dateIn,
                 $request->dateOut,
@@ -67,52 +115,37 @@ class ReservasController extends Controller
             ]);
 
             // Si hay reservas en proceso con esas fechas, retornar un error
-            if (count($temporales) > 0) {
+            if (count($reservas) > 0) {
                 return response()->json([
                     'message' => 'Hay una reserva en proceso con esos días, por favor, inténtelo de nuevo más tarde',
                 ], 400);
             }
 
             // Consulta SQL para insertar la reserva
-            $insertQuery = "INSERT INTO $table (
+            $insertReserva = "INSERT INTO $table (
                 fecha_entrada,
                 fecha_salida,
-                cedula,
-                nombre,
-                apellido,
-                correo,
-                telefono,
                 room_id,
-                cliente_id,
                 user_id,
                 estado_id,
                 desayuno_id,
                 decoracion_id,
-                huespedes,
                 adultos,
                 niños,
                 precio,
                 verificacion_pago,
                 created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
             // Ejecutar la inserción de la reserva
-            $reservaT = DB::insert($insertQuery, [
+            DB::insert($insertReserva, [
                 $request->dateIn,
                 $request->dateOut,
-                $request->cedula,
-                $request->nombre,
-                $request->apellido,
-                $request->correo,
-                $request->telefono,
-                $request->room,
-                isset($request->cliente) ? $request->cliente : null,
+                $rooms[0]->id,
                 isset($request->user) ? $request->user : 1, // Usuario web
                 1, // Estado Pendiente
                 isset($request->desayuno) ? $request->desayuno : null,
                 isset($request->decoracion) ? $request->decoracion : null,
-                $request->adultos + $request->niños,
                 $request->adultos,
                 $request->niños,
                 $request->precio,
@@ -120,20 +153,91 @@ class ReservasController extends Controller
             ]);
 
             // Obtener el ID de la reserva recién creada
-            $id = DB::getPdo()->lastInsertId();
+            $reservaId = DB::getPdo()->lastInsertId();
 
-            // Verificar si la inserción fue exitosa
-            if ($reservaT) {
-                return response()->json([
-                    'message' => $message,
-                    'reserva' => $id,
+            $insertClient = 'INSERT INTO clients (
+            tipo_documento_id,
+            documento,
+            nombre1,
+            nombre2,
+            apellido1,
+            apellido2,
+            correo,
+            telefono,
+            pais_id,
+            departamento_id,
+            ciudad_id,
+            created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+
+            $getClient = 'SELECT id
+            FROM clients
+            WHERE documento = ?';
+
+            $insertHuespedReserva = 'INSERT INTO reservas_huespedes (
+            responsable,
+            reserva_id,
+            cliente_id,
+            motivo_id,
+            pais_procedencia_id,
+            departamento_procedencia_id,
+            ciudad_procedencia_id,
+            created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
+
+            foreach ($huespedes as $huesped) {
+
+                $clientId = DB::selectOne($getClient, [
+                    $huesped['documento']
                 ]);
-            } else {
-                return response()->json([
-                    'message' => 'Error al crear la reserva',
-                ], 500);
+
+                if ($clientId) {
+                    DB::insert($insertHuespedReserva, [
+                        $huesped['responsable'],
+                        $reservaId,
+                        $clientId->id,
+                        $huesped['motivo'],
+                        $huesped['paisProcedencia'],
+                        $huesped['departamentoProcedencia'],
+                        $huesped['ciudadProcedencia'],
+                    ]);
+                } else {
+                    DB::insert($insertClient, [
+                        $request['tipoDocumento'],
+                        $huesped['documento'],
+                        $huesped['nombre1'],
+                        $huesped['nombre2'],
+                        $huesped['apellido1'],
+                        $huesped['apellido2'],
+                        isset($huesped['correo']) ? $huesped['correo'] : '',
+                        $huesped['telefono'],
+                        $huesped['paisResidencia'],
+                        $huesped['departamentoResidencia'],
+                        $huesped['ciudadResidencia'],
+                    ]);
+
+                    $clientId = DB::getPdo()->lastInsertId();
+
+                    DB::insert($insertHuespedReserva, [
+                        $huesped['responsable'],
+                        $reservaId,
+                        $clientId,
+                        $huesped['motivo'],
+                        $huesped['paisProcedencia'],
+                        $huesped['departamentoProcedencia'],
+                        $huesped['ciudadProcedencia'],
+                    ]);
+                }
             }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => $message,
+                'reserva' => $reservaId,
+            ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             // Retornar respuesta de error con detalles en caso de fallo
             return response()->json([
                 'message' => 'Error al crear la reserva',
@@ -208,12 +312,13 @@ class ReservasController extends Controller
     public function getDates(int $id)
     {
         // Consulta SQL para obtener las fechas de reservas asociadas a la habitación
-        $query = 'SELECT fecha_entrada, fecha_salida
-        FROM reservas
-        WHERE room_id = ?
-        AND deleted_at IS NULL
-        AND YEAR(fecha_entrada) >= YEAR(CURDATE()) 
-        AND YEAR(fecha_salida) >= YEAR(CURDATE())';
+        $query = 'SELECT r.fecha_entrada, r.fecha_salida
+        FROM reservas r
+        LEFT JOIN rooms rs ON rs.id = r.room_id
+        WHERE rs.room_padre_id = ?
+        AND r.deleted_at IS NULL
+        AND YEAR(r.fecha_entrada) >= YEAR(CURDATE()) 
+        AND YEAR(r.fecha_salida) >= YEAR(CURDATE())';
 
         try {
             // Obtener las fechas de las reservas
@@ -265,8 +370,8 @@ class ReservasController extends Controller
                     'motivo', cb.nota_cancelacion,
                     'created_at', cb.created_at
                     ))
-                FROM cancelacion_bitacora cb
-                LEFT JOIN cancelacion_tipos ct ON ct.id = cb.tipo_id
+                FROM reservas_cancelacion_bitacora cb
+                LEFT JOIN reservas_cancelacion_tipos ct ON ct.id = cb.tipo_id
                 LEFT JOIN users us ON us.id = cb.user_id
                 WHERE cb.deleted_at IS NULL AND cb.reserva_id = r.id
             ) AS bitacora,";
@@ -316,7 +421,7 @@ class ReservasController extends Controller
             // Iterar sobre las reservas para agregar información adicional
             foreach ($reservas as $reserva) {
                 $reserva->verificacionPago = (bool) $reserva->verificacionPago;
-                if($estado == 'Cancelada'){
+                if ($estado == 'Cancelada') {
                     $reserva->bitacora = json_decode($reserva->bitacora);
                     $reserva->bitacora = $reserva->bitacora[0];
                 }
@@ -413,7 +518,7 @@ class ReservasController extends Controller
             'motivo' => 'required|string',
         ]);
 
-        $queryInsert = 'INSERT INTO cancelacion_bitacora (
+        $queryInsert = 'INSERT INTO reservas_cancelacion_bitacora (
         tipo_id,
         user_id,
         nota_cancelacion,

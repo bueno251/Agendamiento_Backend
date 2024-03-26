@@ -38,7 +38,7 @@ class clientTipoController extends Controller
             $results = DB::select($query);
 
             $types = [];
-            
+
             foreach ($results as $result) {
                 // Organizar resultados por el nombre de la tabla
                 $types[$result->table_name][] = (object) [
@@ -49,11 +49,41 @@ class clientTipoController extends Controller
             }
 
             // Retornar respuesta exitosa
-            return response()->json($types);
+            return response()->json($types, 200);
         } catch (\Exception $e) {
             // Retornar respuesta de error con detalles
             return response()->json([
                 'message' => 'Error al traer los tipos utilizados por el cliente',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtiene todos los tipos de documentos del cliente.
+     *
+     * Esta función busca en la base de datos todos los tipos de documentos del cliente disponibles.
+     *
+     * @return \Illuminate\Http\JsonResponse Una respuesta JSON con los tipos de documentos del cliente si se encuentran, de lo contrario, devuelve un mensaje de error.
+     */
+    public function documento()
+    {
+        // Consulta SQL para obtener todos los tipos de documentos del cliente no eliminados
+        $query = '
+        SELECT id, tipo
+        FROM cliente_tipo_documento
+        WHERE deleted_at IS NULL';
+
+        try {
+            // Ejecutar la consulta SQL para obtener los tipos de documentos del cliente
+            $results = DB::select($query);
+
+            // Devolver una respuesta JSON con los tipos de documentos del cliente si se encuentran
+            return response()->json($results, 200);
+        } catch (\Exception $e) {
+            // Si se produce algún error durante la ejecución de la consulta, devolver una respuesta JSON con un mensaje de error y el detalle del error.
+            return response()->json([
+                'message' => 'Error al traer los tipos de documentos del cliente',
                 'error' => $e->getMessage(),
             ], 500);
         }

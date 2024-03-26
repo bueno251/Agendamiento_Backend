@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
 
-class CancelacionTipoSeeder extends Seeder
+class DescuentoTipoSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -13,10 +13,10 @@ class CancelacionTipoSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['tipo' => 'Problemas Personales'],
-            ['tipo' => 'Problemas Con El Transporte'],
+            ['tipo' => 'Porcentaje'],
+            ['tipo' => 'Precio'],
         ];
 
-        DB::table('reservas_cancelacion_tipos')->insert($data);
+        DB::table('tarifa_descuento_tipos')->insert($data);
     }
 }

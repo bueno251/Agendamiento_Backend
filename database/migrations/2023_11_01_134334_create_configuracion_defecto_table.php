@@ -11,14 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('config_defecto', function (Blueprint $table) {
+        Schema::create('configuracion_defecto', function (Blueprint $table) {
             $table->id();
-            $table->string('pais');
-            $table->string('departamento');
-            $table->string('municipio');
             $table->boolean('price_in_dolar');
             $table->boolean('dolar_price_auto');
             $table->float('dolar_price');
+            $table->unsignedBigInteger('pais_id')->nullable();
+            $table->foreign('pais_id')->references('id')->on('direcciones_paises')->onDelete('set null');
+            $table->unsignedBigInteger('departamento_id')->nullable();
+            $table->foreign('departamento_id')->references('id')->on('direcciones_departamentos')->onDelete('set null');
+            $table->unsignedBigInteger('ciudad_id')->nullable();
+            $table->foreign('ciudad_id')->references('id')->on('direcciones_ciudades')->onDelete('set null');
             $table->unsignedBigInteger('tipo_documento_id')->nullable();
             $table->foreign('tipo_documento_id')->references('id')->on('cliente_tipo_documento')->onDelete('set null');
             $table->unsignedBigInteger('tipo_persona_id')->nullable();
@@ -28,7 +31,7 @@ return new class extends Migration
             $table->unsignedBigInteger('tipo_regimen_id')->nullable();
             $table->foreign('tipo_regimen_id')->references('id')->on('cliente_tipo_regimen')->onDelete('set null');
             $table->unsignedBigInteger('divisa_id')->nullable();
-            $table->foreign('divisa_id')->references('id')->on('divisas')->onDelete('set null');
+            $table->foreign('divisa_id')->references('id')->on('tarifas_divisas')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -39,6 +42,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('config_defecto');
+        Schema::dropIfExists('configuracion_defecto');
     }
 };

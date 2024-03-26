@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('cancelacion_tipos', function (Blueprint $table) {
+        Schema::create('tarifa_descuento_tipos', function (Blueprint $table) {
             $table->id();
             $table->string('tipo');
             $table->timestamps();
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cancelacion_tipo');
+        Schema::dropIfExists('tarifa_descuento_tipos');
     }
 };

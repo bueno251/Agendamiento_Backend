@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('decoraciones', function (Blueprint $table) {
+        Schema::create('room_desayunos', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->integer('precio');
+            $table->integer('precio')->default(11000);
             $table->text('descripcion');
-            $table->boolean('has_iva');
+            $table->boolean('tiene_iva');
             $table->unsignedBigInteger('impuesto_id')->nullable();
-            $table->foreign('impuesto_id')->references('id')->on('impuestos')->onDelete('set null');
+            $table->foreign('impuesto_id')->references('id')->on('tarifa_impuestos')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('decoraciones');
+        Schema::dropIfExists('room_desayunos');
     }
 };

@@ -21,20 +21,20 @@ class DecoracionController extends Controller
         $request->validate([
             'nombre' => 'required|string',
             'precio' => 'required|integer',
-            'hasIva' => 'required|integer',
+            'tieneIva' => 'required|integer',
         ]);
 
         // Consulta SQL para insertar la decoración
-        $queryInsert = 'INSERT INTO decoraciones (
+        $queryInsert = 'INSERT INTO room_decoraciones (
         nombre, 
         precio, 
         descripcion, 
-        has_iva, 
+        tiene_iva, 
         impuesto_id,
         created_at)
         VALUES (?, ?, ?, ?, ?, NOW())';
 
-        $queryMultimedia = 'INSERT INTO decoracion_media (
+        $queryMultimedia = 'INSERT INTO room_decoraciones_rutas_audiovisual (
         decoracion_id,
         url,
         created_at)
@@ -48,8 +48,8 @@ class DecoracionController extends Controller
                 $request->nombre,
                 $request->precio,
                 $request->descripcion ? $request->descripcion : "",
-                $request->hasIva,
-                $request->hasIva ? $request->impuesto : null,
+                $request->tieneIva,
+                $request->tieneIva ? $request->impuesto : null,
             ]);
 
             // Obtener el ID de la decoración
@@ -99,33 +99,33 @@ class DecoracionController extends Controller
         d.id,
         d.nombre,
         d.precio,
-        d.has_iva AS hasIva,
+        d.tiene_iva AS tieneIva,
         d.impuesto_id AS impuestoId,
         d.descripcion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", dm.id, "url", dm.url))
-            FROM decoracion_media dm
+            FROM room_decoraciones_rutas_audiovisual dm
             WHERE dm.decoracion_id = d.id AND dm.deleted_at IS NULL
         ) AS media,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN ROUND(d.precio * (1 + im.tasa/100))
                 ELSE ROUND(d.precio)
             END AS precioConIva,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN ROUND(d.precio * (im.tasa/100))
                 ELSE 0
             END AS precioIva,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN im.tasa
                 ELSE 0
             END AS impuesto,
         d.created_at
-        FROM decoraciones d
-        LEFT JOIN impuestos im ON im.id = d.impuesto_id
+        FROM room_decoraciones d
+        LEFT JOIN tarifa_impuestos im ON im.id = d.impuesto_id
         WHERE d.deleted_at IS NULL
         ORDER BY d.created_at DESC';
 
@@ -136,7 +136,7 @@ class DecoracionController extends Controller
             foreach ($decoraciones as $decoracion) {
                 // Decodificar datos JSON
                 $decoracion->media = json_decode($decoracion->media);
-                $decoracion->hasIva = (bool) $decoracion->hasIva;
+                $decoracion->tieneIva = (bool) $decoracion->tieneIva;
             }
 
             // Retornar respuesta con la lista de decoraciones
@@ -165,33 +165,33 @@ class DecoracionController extends Controller
         d.id,
         d.nombre,
         d.precio,
-        d.has_iva AS hasIva,
+        d.tiene_iva AS tieneIva,
         d.impuesto_id AS impuestoId,
         d.descripcion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", dm.id, "url", dm.url))
-            FROM decoracion_media dm
+            FROM room_decoraciones_rutas_audiovisual dm
             WHERE dm.decoracion_id = d.id AND dm.deleted_at IS NULL
         ) AS media,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN ROUND(d.precio * (1 + im.tasa/100))
                 ELSE ROUND(d.precio)
             END AS precioConIva,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN ROUND(d.precio * (im.tasa/100))
                 ELSE 0
             END AS precioIva,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN im.tasa
                 ELSE 0
             END AS impuesto,
         d.created_at
-        FROM decoraciones d
-        LEFT JOIN impuestos im ON im.id = d.impuesto_id
+        FROM room_decoraciones d
+        LEFT JOIN tarifa_impuestos im ON im.id = d.impuesto_id
         WHERE d.id = ? AND d.deleted_at IS NULL';
 
         try {
@@ -202,7 +202,7 @@ class DecoracionController extends Controller
             if ($decoracion) {
 
                 $decoracion->media = json_decode($decoracion->media);
-                $decoracion->hasIva = (bool) $decoracion->hasIva;
+                $decoracion->tieneIva = (bool) $decoracion->tieneIva;
 
                 return response()->json($decoracion, 200);
             } else {
@@ -233,26 +233,26 @@ class DecoracionController extends Controller
         $request->validate([
             'nombre' => 'required|string',
             'precio' => 'required|integer',
-            'hasIva' => 'required|integer',
+            'tieneIva' => 'required|integer',
         ]);
 
         // Consulta SQL para actualizar la decoración por ID
-        $query = 'UPDATE decoraciones SET
+        $query = 'UPDATE room_decoraciones SET
         nombre = ?,
         precio = ?,
         descripcion = ?,
-        has_iva = ?,
+        tiene_iva = ?,
         impuesto_id = ?,
         updated_at = NOW()
         WHERE id = ?';
 
-        $queryMultimedia = 'INSERT INTO decoracion_media (
+        $queryMultimedia = 'INSERT INTO room_decoraciones_rutas_audiovisual (
         decoracion_id,
         url,
         created_at)
         VALUES (?, ?, NOW())';
 
-        $queryDelMedia = 'UPDATE decoracion_media SET 
+        $queryDelMedia = 'UPDATE room_decoraciones_rutas_audiovisual SET 
         deleted_at = now()
         WHERE id = ?';
 
@@ -264,8 +264,8 @@ class DecoracionController extends Controller
                 $request->nombre,
                 $request->precio,
                 $request->descripcion ? $request->descripcion : "",
-                $request->hasIva,
-                $request->hasIva ? $request->impuesto : null,
+                $request->tieneIva,
+                $request->tieneIva ? $request->impuesto : null,
                 $id,
             ]);
 
@@ -323,7 +323,7 @@ class DecoracionController extends Controller
     public function delete($id)
     {
         // Consulta SQL para marcar la decoración como eliminada por ID
-        $query = 'UPDATE decoraciones SET deleted_at = NOW() WHERE id = ?';
+        $query = 'UPDATE room_decoraciones SET deleted_at = NOW() WHERE id = ?';
 
         try {
             // Ejecutar la actualización para marcar la decoración como eliminada

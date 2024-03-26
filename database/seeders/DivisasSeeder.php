@@ -20,6 +20,6 @@ class DivisasSeeder extends Seeder
             ],
         ];
 
-        DB::table('divisas')->insert($data);
+        DB::table('tarifas_divisas')->insert($data);
     }
 }

@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('paises', function (Blueprint $table) {
+        Schema::create('tarifa_descuento_cupones_bitacora', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->string('nombre_corto');
-            $table->integer('codigo_telefono');
+            $table->unsignedBigInteger('cupon_id')->nullable();
+            $table->foreign('cupon_id')->references('id')->on('tarifa_descuento_cupones')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -26,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('paises');
+        Schema::dropIfExists('tarifa_descuento_cupones_bitacora');
     }
 };

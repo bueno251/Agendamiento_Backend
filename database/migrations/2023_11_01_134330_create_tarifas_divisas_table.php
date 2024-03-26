@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('municipios', function (Blueprint $table) {
+        Schema::create('tarifas_divisas', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->unsignedBigInteger('departamento_id')->nullable();
-            $table->foreign('departamento_id')->references('id')->on('departamentos')->onDelete('set null');
+            $table->string('codigo');
+            $table->unsignedBigInteger('pais_id')->nullable();
+            $table->foreign('pais_id')->references('id')->on('direcciones_paises')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('municipio');
+        Schema::dropIfExists('tarifas_divisas');
     }
 };

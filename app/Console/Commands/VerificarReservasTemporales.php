@@ -41,6 +41,9 @@ class VerificarReservasTemporales extends Command
         estado_id,
         desayuno_id,
         decoracion_id,
+        motivo_id,
+        ciudad_residencia_id,
+        ciudad_procedencia_id,
         huespedes,
         adultos,
         niños,
@@ -67,6 +70,9 @@ class VerificarReservasTemporales extends Command
         estado_id,
         desayuno_id,
         decoracion_id,
+        motivo_id,
+        ciudad_residencia_id,
+        ciudad_procedencia_id,
         huespedes,
         adultos,
         niños,
@@ -75,7 +81,7 @@ class VerificarReservasTemporales extends Command
         comprobante,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         // Consulta para eliminar una reserva temporal de la tabla 'reservas_temporales'
         $queryDelete = 'UPDATE reservas_temporales SET 
@@ -96,6 +102,9 @@ class VerificarReservasTemporales extends Command
                     $reserva->estado_id,
                     $reserva->desayuno_id,
                     $reserva->decoracion_id,
+                    $reserva->motivo_id,
+                    $reserva->ciudad_residencia_id,
+                    $reserva->ciudad_procedencia_id,
                     $reserva->huespedes,
                     $reserva->adultos,
                     $reserva->niños,

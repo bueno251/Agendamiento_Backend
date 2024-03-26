@@ -11,10 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('reserva_metodo_pagos', function (Blueprint $table) {
+        Schema::create('reserva_motivos', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->boolean('requiere_comprobante')->default('0');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -25,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('reserva_metodo_pagos');
+        Schema::dropIfExists('reserva_motivos');
     }
 };

@@ -11,14 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('desayunos', function (Blueprint $table) {
+        Schema::create('reservas_cancelacion_tipos', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->integer('precio');
-            $table->text('descripcion');
-            $table->boolean('has_iva');
-            $table->unsignedBigInteger('impuesto_id')->nullable();
-            $table->foreign('impuesto_id')->references('id')->on('impuestos')->onDelete('set null');
+            $table->string('tipo');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -29,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('desayunos');
+        Schema::dropIfExists('cancelacion_tipo');
     }
 };

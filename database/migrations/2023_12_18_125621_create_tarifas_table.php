@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre');
             $table->integer('precio');
+            $table->integer('precio_previo_festivo')->default(0);
             $table->unique(['room_id', 'nombre'], 'unique_nombre_room_tarifa');
             $table->unsignedBigInteger('room_id')->nullable();
             $table->foreign('room_id')->references('id')->on('room_padre')->onDelete('set null');
@@ -23,7 +24,7 @@ return new class extends Migration
             $table->unsignedBigInteger('estado_id')->nullable();
             $table->foreign('estado_id')->references('id')->on('tarifa_estados')->onDelete('set null');
             $table->unsignedBigInteger('impuesto_id')->nullable();
-            $table->foreign('impuesto_id')->references('id')->on('impuestos')->onDelete('set null');
+            $table->foreign('impuesto_id')->references('id')->on('tarifa_impuestos')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });

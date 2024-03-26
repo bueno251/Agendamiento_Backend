@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('decoracion_media', function (Blueprint $table) {
+        Schema::create('tarifas_impuesto_tipos', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('decoracion_id')->nullable();
-            $table->foreign('decoracion_id')->references('id')->on('decoraciones')->onDelete('set null');
-            $table->string('url');
+            $table->string('tipo');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -26,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('decoracion_media');
+        Schema::dropIfExists('tarifas_impuesto_tipos');
     }
 };

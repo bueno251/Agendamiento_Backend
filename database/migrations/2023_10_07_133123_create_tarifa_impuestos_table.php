@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('impuestos', function (Blueprint $table) {
+        Schema::create('tarifa_impuestos', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
             $table->string('codigo');
             $table->double('tasa');
             $table->unsignedBigInteger('tipo_id')->nullable();
-            $table->foreign('tipo_id')->references('id')->on('impuesto_tipos')->onDelete('set null');
+            $table->foreign('tipo_id')->references('id')->on('tarifas_impuesto_tipos')->onDelete('set null');
             $table->softDeletes();
             $table->timestamps();
         });
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('productos_impuestos');
+        Schema::dropIfExists('tarifa_impuestos');
     }
 };

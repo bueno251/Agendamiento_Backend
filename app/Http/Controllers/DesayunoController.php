@@ -21,20 +21,20 @@ class DesayunoController extends Controller
         $request->validate([
             'nombre' => 'required|string',
             'precio' => 'required|integer',
-            'hasIva' => 'required|integer',
+            'tieneIva' => 'required|integer',
         ]);
 
         // Consulta SQL para insertar el desayuno
-        $queryInsert = 'INSERT INTO desayunos (
+        $queryInsert = 'INSERT INTO room_desayunos (
         nombre,
         precio,
         descripcion,
-        has_iva, 
+        tiene_iva, 
         impuesto_id,
         created_at)
         VALUES (?, ?, ?, ?, ?, NOW())';
 
-        $queryMultimedia = 'INSERT INTO desayunos_media (
+        $queryMultimedia = 'INSERT INTO room_desayunos_rutas_audiovisual (
         desayuno_id,
         url,
         created_at)
@@ -48,8 +48,8 @@ class DesayunoController extends Controller
                 $request->nombre,
                 $request->precio,
                 $request->descripcion ? $request->descripcion : "",
-                $request->hasIva,
-                $request->hasIva ? $request->impuesto : null,
+                $request->tieneIva,
+                $request->tieneIva ? $request->impuesto : null,
             ]);
 
             // Obtener el ID del desayuno
@@ -99,33 +99,33 @@ class DesayunoController extends Controller
         d.id, 
         d.nombre, 
         d.precio,
-        d.has_iva AS hasIva,
+        d.tiene_iva AS tieneIva,
         d.impuesto_id AS impuestoId,
         d.descripcion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", dm.id, "url", dm.url))
-            FROM desayunos_media dm 
+            FROM room_desayunos_rutas_audiovisual dm 
             WHERE dm.desayuno_id = d.id AND dm.deleted_at IS NULL
         ) AS media,
         CASE 
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN ROUND(d.precio * (1 + im.tasa/100))
                 ELSE ROUND(d.precio)
             END AS precioConIva,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN ROUND(d.precio * (im.tasa/100))
                 ELSE 0
             END AS precioIva,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN im.tasa
                 ELSE 0
             END AS impuesto,
         d.created_at
-        FROM desayunos d
-        LEFT JOIN impuestos im ON im.id = d.impuesto_id
+        FROM room_desayunos d
+        LEFT JOIN tarifa_impuestos im ON im.id = d.impuesto_id
         WHERE d.deleted_at IS NULL
         ORDER BY d.created_at DESC';
 
@@ -136,7 +136,7 @@ class DesayunoController extends Controller
             foreach ($desayunos as $desayuno) {
                 // Decodificar datos JSON
                 $desayuno->media = json_decode($desayuno->media);
-                $desayuno->hasIva = (bool) $desayuno->hasIva;
+                $desayuno->tieneIva = (bool) $desayuno->tieneIva;
             }
 
             // Retornar respuesta con la lista de desayunos
@@ -165,33 +165,33 @@ class DesayunoController extends Controller
         d.id, 
         d.nombre, 
         d.precio,
-        d.has_iva AS hasIva,
+        d.tiene_iva AS tieneIva,
         d.impuesto_id AS impuestoId,
         d.descripcion,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", dm.id, "url", dm.url))
-            FROM desayunos_media dm 
+            FROM room_desayunos_rutas_audiovisual dm 
             WHERE dm.desayuno_id = d.id AND dm.deleted_at IS NULL
         ) AS media,
         CASE 
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN ROUND(d.precio * (1 + im.tasa/100))
                 ELSE ROUND(d.precio)
             END AS precioConIva,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN ROUND(d.precio * (im.tasa/100))
                 ELSE 0
             END AS precioIva,
         CASE
-            WHEN d.has_iva
+            WHEN d.tiene_iva
                 THEN im.tasa
                 ELSE 0
             END AS impuesto,
         d.created_at
-        FROM desayunos d
-        LEFT JOIN impuestos im ON im.id = d.impuesto_id
+        FROM room_desayunos d
+        LEFT JOIN tarifa_impuestos im ON im.id = d.impuesto_id
         WHERE d.id = ? AND d.deleted_at IS NULL';
 
         try {
@@ -202,7 +202,7 @@ class DesayunoController extends Controller
             if ($desayuno) {
 
                 $desayuno->media = json_decode($desayuno->media);
-                $desayuno->hasIva = (bool) $desayuno->hasIva;
+                $desayuno->tieneIva = (bool) $desayuno->tieneIva;
 
                 return response()->json($desayuno, 200);
             } else {
@@ -233,26 +233,26 @@ class DesayunoController extends Controller
         $request->validate([
             'nombre' => 'required|string',
             'precio' => 'required|integer',
-            'hasIva' => 'required|integer',
+            'tieneIva' => 'required|integer',
         ]);
 
         // Consulta SQL para actualizar el desayuno por ID
-        $query = 'UPDATE desayunos SET
+        $query = 'UPDATE room_desayunos SET
         nombre = ?,
         precio = ?,
         descripcion = ?,
-        has_iva = ?,
+        tiene_iva = ?,
         impuesto_id = ?,
         updated_at = NOW()
         WHERE id = ?';
 
-        $queryMultimedia = 'INSERT INTO decoracion_media (
-        decoracion_id,
+        $queryMultimedia = 'INSERT INTO room_desayunos_rutas_audiovisual (
+        desayuno_id,
         url,
         created_at)
         VALUES (?, ?, NOW())';
 
-        $queryDelMedia = 'UPDATE decoracion_media SET 
+        $queryDelMedia = 'UPDATE room_desayunos_rutas_audiovisual SET 
         deleted_at = now()
         WHERE id = ?';
 
@@ -264,8 +264,8 @@ class DesayunoController extends Controller
                 $request->nombre,
                 $request->precio,
                 $request->descripcion ? $request->descripcion : "",
-                $request->hasIva,
-                $request->hasIva ? $request->impuesto : null,
+                $request->tieneIva,
+                $request->tieneIva ? $request->impuesto : null,
                 $id,
             ]);
 
@@ -323,7 +323,7 @@ class DesayunoController extends Controller
     public function delete($id)
     {
         // Consulta SQL para marcar el desayuno como eliminado por ID
-        $query = 'UPDATE desayunos SET deleted_at = NOW() WHERE id = ?';
+        $query = 'UPDATE room_desayunos SET deleted_at = NOW() WHERE id = ?';
 
         try {
             // Ejecutar la actualización para marcar el desayuno como eliminado

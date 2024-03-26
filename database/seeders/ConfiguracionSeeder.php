@@ -17,6 +17,7 @@ class ConfiguracionSeeder extends Seeder
             'correo_obligatorio' => 1,
             'porcentaje_separacion' => 0,
             'tarifas_generales' => 0,
+            'edad_tarifa_niños' => 2,
             'created_at' => now(),
         ];
 
