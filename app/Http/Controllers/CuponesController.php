@@ -234,6 +234,7 @@ class CuponesController extends Controller
         td.fecha_fin AS fechaFin,
         td.precio_id AS precioId,
         tdp.nombre AS precio,
+        tdcc.codigo AS codigo,
         td.tipo_id AS tipoId,
         tdt.tipo AS tipo
         FROM tarifa_descuento_cupones td

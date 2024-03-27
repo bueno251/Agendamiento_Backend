@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('tarifas_especiales', function (Blueprint $table) {
             $table->id();
-            $table->date('fecha_inicio');
-            $table->date('fecha_fin');
+            $table->date('fecha');
             $table->integer('precio');
             $table->text('descripcion');
             $table->unsignedBigInteger('room_id')->nullable();

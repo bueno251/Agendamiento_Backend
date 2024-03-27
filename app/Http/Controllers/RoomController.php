@@ -207,15 +207,8 @@ class RoomController extends Controller
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
-                "fechaInicio", te.fecha_inicio,
-                "fechaFin", te.fecha_fin,
-                "precio", te.precio,
-                "precio_con_iva", 
-                CASE 
-                    WHEN te.impuesto_id IS NOT NULL
-                        THEN te.precio * (1 + imp.tasa / 100)
-                    ELSE te.precio
-                END
+                "fecha", te.fecha,
+                "precio", te.precio
             ))
             FROM tarifas_especiales te
             LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
@@ -311,15 +304,8 @@ class RoomController extends Controller
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
-                "fechaInicio", te.fecha_inicio,
-                "fechaFin", te.fecha_fin,
-                "precio", te.precio,
-                "precio_con_iva", 
-                CASE 
-                    WHEN te.impuesto_id IS NOT NULL
-                        THEN te.precio * (1 + imp.tasa / 100)
-                        ELSE te.precio
-                    END
+                "fecha", te.fecha,
+                "precio", te.precio
             ))
             FROM tarifas_especiales te
             LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
@@ -436,15 +422,8 @@ class RoomController extends Controller
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
-                "fechaInicio", te.fecha_inicio,
-                "fechaFin", te.fecha_fin,
-                "precio", te.precio,
-                "precioConIva", 
-                CASE 
-                    WHEN te.impuesto_id IS NOT NULL
-                        THEN te.precio * (1 + imp.tasa / 100)
-                    ELSE te.precio
-                END
+                "fecha", te.fecha,
+                "precio", te.precio
             ))
             FROM tarifas_especiales te
             LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id

@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('empresa', function (Blueprint $table) {
             $table->id();
             $table->string('nombre')->default('');
+            $table->string('codigo_rnt')->default('');
+            $table->string('codigo_ciiu')->default('');
             $table->unsignedBigInteger('id_tipo_documento')->nullable();
             $table->foreign('id_tipo_documento')->references('id')->on('cliente_tipo_documento')->onDelete('set null');
             $table->string('identificacion')->default('');

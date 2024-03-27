@@ -185,6 +185,43 @@ class ReservasController extends Controller
             created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
 
+            if ($request->cupon) {
+                $getCuponCode = 'SELECT id FROM tarifa_descuento_cupones_codigos WHERE codigo = ? AND usado = 0 AND activo = 1';
+                
+                $cuponCode = DB::selectOne($getCuponCode, [$request->cupon['codigo']]);
+
+                if (!empty($cuponCode)) {
+                    $saveCupon = "UPDATE tarifa_descuento_cupones_codigos SET
+                    usado = 1,
+                    updated_at = NOW()
+                    WHERE id = ?";
+
+                    $SaveCuponBitacora = "INSERT INTO tarifa_descuento_cupones_bitacora (
+                    cedula,
+                    cupon_id,
+                    codigo_id,
+                    created_at)
+                    VALUES (?, ?, ?, NOW())";
+
+                    DB::update($saveCupon, [
+                        $cuponCode->id,
+                    ]);
+
+                    DB::insert($SaveCuponBitacora, [
+                        $huespedes[0]['documento'],
+                        $request->cupon['id'],
+                        $cuponCode->id,
+                    ]);
+                } else {
+
+                    DB::rollBack();
+
+                    return response()->json([
+                        'message' => 'El cupon ya a sido utilizado'
+                    ], 500);
+                }
+            }
+
             foreach ($huespedes as $huesped) {
 
                 $clientId = DB::selectOne($getClient, [
@@ -388,25 +425,30 @@ class ReservasController extends Controller
         r.fecha_entrada AS fechaEntrada,
         r.fecha_salida AS fechaSalida,
         r.room_id AS room,
-        r.cliente_id AS cliente,
         r.user_id AS user,
         r.estado_id AS estadoId,
         re.estado AS estado,
         r.desayuno_id AS desayunoId,
         r.decoracion_id AS decoracionId,
-        r.cedula AS cedula,
-        r.telefono AS telefono,
-        r.nombre AS nombre,
-        r.apellido AS apellido,
-        CONCAT_WS(' ', r.nombre, r.apellido) AS fullname,
-        r.correo AS correo,
-        r.huespedes AS huespedes,
+        r.adultos + r.niños AS huespedes,
         r.adultos AS adultos,
         r.niños AS niños,
         r.precio AS precio,
         r.abono AS abono,
         r.comprobante AS comprobante,
         r.verificacion_pago AS verificacionPago,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                'id', c.id,
+                'fullname', CONCAT_WS(' ', c.nombre1, c.nombre2, c.apellido1, c.apellido2),
+                'documento', c.documento,
+                'telefono', c.telefono
+                ))
+             FROM clients c
+             LEFT JOIN reservas_huespedes rh ON c.id = rh.cliente_id
+            WHERE c.deleted_at IS NULL AND rh.reserva_id = r.id AND rh.responsable = 1
+        ) AS huesped,
         $getBitacoraCancelacion
         r.created_at AS created_at
         FROM reservas r
@@ -421,6 +463,8 @@ class ReservasController extends Controller
             // Iterar sobre las reservas para agregar información adicional
             foreach ($reservas as $reserva) {
                 $reserva->verificacionPago = (bool) $reserva->verificacionPago;
+                $reserva->huesped = json_decode($reserva->huesped);
+                $reserva->huesped = $reserva->huesped[0];
                 if ($estado == 'Cancelada') {
                     $reserva->bitacora = json_decode($reserva->bitacora);
                     $reserva->bitacora = $reserva->bitacora[0];

@@ -13,8 +13,11 @@ return new class extends Migration
     {
         Schema::create('tarifa_descuento_cupones_bitacora', function (Blueprint $table) {
             $table->id();
+            $table->string('cedula');
             $table->unsignedBigInteger('cupon_id')->nullable();
             $table->foreign('cupon_id')->references('id')->on('tarifa_descuento_cupones')->onDelete('set null');
+            $table->unsignedBigInteger('codigo_id')->nullable();
+            $table->foreign('codigo_id')->references('id')->on('tarifa_descuento_cupones_codigos')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });

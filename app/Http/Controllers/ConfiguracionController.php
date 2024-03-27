@@ -20,6 +20,7 @@ class ConfiguracionController extends Controller
         $queryConfig = 'SELECT
         id,
         usuario_reserva AS usuarioReserva,
+        calendario_inhabilitado AS calendarioInhabilitado,
         correo_obligatorio AS correoObligatorio,
         porcentaje_separacion AS porcentajeSeparacion,
         tarifas_generales AS tarifasGenerales,
@@ -43,6 +44,7 @@ class ConfiguracionController extends Controller
 
             // Convertir el campo 'usuario_reserva' a un formato booleano
             $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
+            $configuration->calendarioInhabilitado = (bool) $configuration->calendarioInhabilitado;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
             $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
 
@@ -202,6 +204,7 @@ class ConfiguracionController extends Controller
         $request->validate([
             'configuracionId' => 'required|integer',
             'reservar' => 'required|boolean',
+            'calendario' => 'required|boolean',
             'correo' => 'required|boolean',
             'tarifasGenerales' => 'required|boolean',
             'edadTarifaNiños' => 'required|integer',
@@ -211,6 +214,7 @@ class ConfiguracionController extends Controller
         // Consulta SQL para actualizar la configuración de reserva
         $updateQuery = 'UPDATE configuracions SET 
         usuario_reserva = ?,
+        calendario_inhabilitado = ?,
         correo_obligatorio = ?,
         porcentaje_separacion = ?,
         tarifas_generales = ?,
@@ -222,6 +226,7 @@ class ConfiguracionController extends Controller
             // Ejecutar la actualización de la configuración de reserva
             $reservar = DB::update($updateQuery, [
                 $request->reservar,
+                $request->calendario,
                 $request->correo,
                 $request->porcentaje,
                 $request->tarifasGenerales,
@@ -263,6 +268,8 @@ class ConfiguracionController extends Controller
         // Validar los datos de entrada
         $request->validate([
             'configuracionId' => 'required|integer',
+            'codigoRNT' => 'required|string',
+            'codigoCIIU' => 'required|string',
             'nombre' => 'required|string',
             'tipoDocumento' => 'required|integer',
             'identificacion' => 'required',
@@ -285,6 +292,8 @@ class ConfiguracionController extends Controller
 
         // Consulta SQL para insertar la empresa
         $insertQuery = 'INSERT INTO empresa (
+        codigo_rnt,
+        codigo_ciiu,
         nombre,
         id_tipo_documento,
         identificacion,
@@ -304,7 +313,7 @@ class ConfiguracionController extends Controller
         id_responsabilidad,
         id_regimen,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         // Iniciar transacción
         DB::beginTransaction();
@@ -312,6 +321,8 @@ class ConfiguracionController extends Controller
         try {
             // Ejecutar la inserción de la empresa
             DB::insert($insertQuery, [
+                $request->codigoRNT,
+                $request->codigoCIIU,
                 $request->nombre,
                 $request->tipoDocumento,
                 $request->identificacion,
@@ -573,6 +584,8 @@ class ConfiguracionController extends Controller
     {
         $query = 'SELECT
         e.id AS id,
+        e.codigo_rnt AS codigoRNT,
+        e.codigo_ciiu AS codigoCIIU,
         e.id_tipo_documento AS idDocumento,
         ctd.tipo AS documento,
         e.identificacion AS identificacion,
@@ -708,6 +721,7 @@ class ConfiguracionController extends Controller
         // Consulta SQL para obtener la configuración de reserva no eliminada
         $query = 'SELECT
         usuario_reserva AS usuarioReserva,
+        calendario_inhabilitado AS calendarioInhabilitado,
         correo_obligatorio AS correoObligatorio,
         tarifas_generales AS tarifasGenerales,
         edad_tarifa_niños AS edadTarifaNiños,
@@ -721,6 +735,7 @@ class ConfiguracionController extends Controller
 
             // Convertir campos de tipo booleano
             $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
+            $configuration->calendarioInhabilitado = (bool) $configuration->calendarioInhabilitado;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
             $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
 

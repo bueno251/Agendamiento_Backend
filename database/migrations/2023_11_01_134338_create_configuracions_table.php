@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('configuracions', function (Blueprint $table) {
             $table->id();
             $table->boolean('usuario_reserva');
+            $table->boolean('calendario_inhabilitado');
             $table->boolean('correo_obligatorio');
             $table->integer('porcentaje_separacion');
             $table->boolean('tarifas_generales');
