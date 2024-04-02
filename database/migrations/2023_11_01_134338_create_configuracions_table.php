@@ -18,6 +18,7 @@ return new class extends Migration
             $table->boolean('correo_obligatorio');
             $table->integer('porcentaje_separacion');
             $table->boolean('tarifas_generales');
+            $table->boolean('ventas_otas');
             $table->integer('edad_tarifa_niños');
             $table->unsignedBigInteger('id_empresa')->nullable();
             $table->foreign('id_empresa')->references('id')->on('empresa')->onDelete('set null');

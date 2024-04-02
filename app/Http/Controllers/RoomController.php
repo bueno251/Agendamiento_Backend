@@ -28,6 +28,7 @@ class RoomController extends Controller
             'capacidad' => 'required|integer',
             'estado' => 'required|integer',
             'cantidad' => 'required|integer',
+            'cantidadOtas' => 'required|integer',
             'decoracion' => 'required|integer',
             'desayuno' => 'required|integer',
             'incluyeDesayuno' => 'required|integer',
@@ -43,11 +44,12 @@ class RoomController extends Controller
         capacidad,
         room_estado_id,
         cantidad,
+        cantidad_otas,
         tiene_decoracion,
         tiene_desayuno,
         incluye_desayuno,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $queryRooms = 'INSERT INTO rooms (
         room_padre_id,
@@ -81,6 +83,7 @@ class RoomController extends Controller
                 $request->capacidad,
                 $request->estado,
                 $request->cantidad,
+                $request->cantidadOtas,
                 $request->decoracion,
                 $request->desayuno,
                 $request->incluyeDesayuno,
@@ -160,6 +163,7 @@ class RoomController extends Controller
         r.room_estado_id AS estadoId,
         re.estado AS estado,
         r.capacidad AS capacidad,
+        r.cantidad_otas AS cantidadOtas,
         r.habilitada AS habilitada,
         r.tiene_decoracion AS tieneDecoracion,
         r.tiene_desayuno AS tieneDesayuno,
@@ -188,18 +192,16 @@ class RoomController extends Controller
                 "name", rt.nombre,
                 "jornada", tj.nombre,
                 "jornada_id", rt.jornada_id,
-                "impuestoId", rt.impuesto_id,
                 "precio", rt.precio,
-                "precio_con_iva", 
+                "precioOtas", 
                 CASE 
-                    WHEN rt.impuesto_id IS NOT NULL
-                        THEN rt.precio * (1 + imp.tasa / 100)
-                    ELSE rt.precio
+                    WHEN otas.es_porcentaje = 1
+                        THEN rt.precio * (1 + otas.precio / 100)
+                    ELSE rt.precio + otas.precio
                 END
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
-            LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
             WHERE rt.room_id = r.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
@@ -217,6 +219,20 @@ class RoomController extends Controller
         ) AS tarifasEspeciales,
         (
             SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "precio", ota.precio,
+                "tipo",
+                CASE 
+                    WHEN ota.es_porcentaje = 1
+                        THEN "Porcentaje"
+                    ELSE "Precio"
+                END
+            ))
+            FROM tarifas_otas ota
+            WHERE ota.id = otas.id
+        ) AS tarifaOta,
+        (
+            SELECT
             COUNT(*)
             FROM rooms rs
             WHERE rs.room_padre_id = r.id AND rs.deleted_at IS NULL
@@ -224,6 +240,7 @@ class RoomController extends Controller
         FROM room_padre r
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
+        LEFT JOIN tarifas_otas otas ON otas.room_id = r.id
         WHERE r.deleted_at IS NULL
         ORDER BY r.created_at DESC';
 
@@ -244,6 +261,11 @@ class RoomController extends Controller
             $room->rooms = json_decode($room->rooms);
             $room->precios = json_decode($room->precios);
             $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
+            $room->tarifaOta = json_decode($room->tarifaOta);
+            
+            if($room->tarifaOta != null){
+                $room->tarifaOta = $room->tarifaOta[0];
+            }
         }
 
         // Devolver la respuesta JSON con detalles sobre las habitaciones
@@ -269,6 +291,7 @@ class RoomController extends Controller
         r.room_estado_id AS estadoId,
         re.estado AS estado,
         r.capacidad AS capacidad,
+        r.cantidad_otas AS cantidadOtas,
         r.habilitada AS habilitada,
         r.tiene_decoracion AS tieneDecoracion,
         r.tiene_desayuno AS tieneDesayuno,
@@ -371,6 +394,7 @@ class RoomController extends Controller
         r.room_estado_id AS estadoId,
         re.estado AS estado,
         r.capacidad AS capacidad,
+        r.cantidad_otas AS cantidadOtas,
         r.habilitada AS habilitada,
         r.cantidad AS cantidad,
         r.tiene_iva AS tieneIva,
@@ -508,6 +532,7 @@ class RoomController extends Controller
             'estado' => 'required|integer',
             'estadoAntiguo' => 'required|integer',
             'cantidad' => 'required|integer',
+            'cantidadOtas' => 'required|integer',
             'decoracion' => 'required|integer',
             'desayuno' => 'required|integer',
             'incluyeDesayuno' => 'required|integer',
@@ -521,6 +546,7 @@ class RoomController extends Controller
         impuesto_id = ?,
         room_tipo_id = ?,
         capacidad = ?,
+        cantidad_otas = ?,
         room_estado_id = ?,
         tiene_decoracion = ?,
         tiene_desayuno = ?,
@@ -581,6 +607,7 @@ class RoomController extends Controller
                 $request->tieneIva ? $request->impuesto : null,
                 $request->tipo,
                 $request->capacidad,
+                $request->cantidadOtas,
                 $request->estado,
                 $request->decoracion ? 1 : 0,
                 $request->desayuno ? 1 : 0,

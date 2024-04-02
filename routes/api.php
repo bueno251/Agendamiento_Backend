@@ -24,6 +24,7 @@ use App\Http\Controllers\ReservaMotivosController;
 use App\Http\Controllers\TarifasController;
 use App\Http\Controllers\TarifasEspecialesController;
 use App\Http\Controllers\TarifasGeneralesController;
+use App\Http\Controllers\TarifasOtasController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -480,4 +481,9 @@ Route::controller(DescuentoLargaEstadiaController::class)->group(function () {
     Route::get('descuentos-estadia/{id}', 'readByRoom');
     Route::patch('descuento-estadia/{id}', 'update');
     Route::delete('descuento-estadia/{id}', 'delete');
+});
+
+Route::controller(TarifasOtasController::class)->group(function(){
+    Route::post('tarifas-otas', 'save');
+    // Route::get('tarifas-otas', 'save');
 });

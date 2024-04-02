@@ -25,6 +25,7 @@ class ConfiguracionController extends Controller
         porcentaje_separacion AS porcentajeSeparacion,
         tarifas_generales AS tarifasGenerales,
         edad_tarifa_niños AS edadTarifaNiños,
+        ventas_otas as ventasOtas,
         id_empresa AS empresa,
         (
             SELECT
@@ -47,6 +48,7 @@ class ConfiguracionController extends Controller
             $configuration->calendarioInhabilitado = (bool) $configuration->calendarioInhabilitado;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
             $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
+            $configuration->ventasOtas = (bool) $configuration->ventasOtas;
 
             // Obtener detalles de la empresa si está asociada
             $configuration->empresa = $configuration->empresa ? $this->getEmpresa($configuration->empresa) : null;
@@ -207,6 +209,7 @@ class ConfiguracionController extends Controller
             'calendario' => 'required|boolean',
             'correo' => 'required|boolean',
             'tarifasGenerales' => 'required|boolean',
+            'ventasOtas' => 'required|boolean',
             'edadTarifaNiños' => 'required|integer',
             'porcentaje' => 'required|integer',
         ]);
@@ -218,6 +221,7 @@ class ConfiguracionController extends Controller
         correo_obligatorio = ?,
         porcentaje_separacion = ?,
         tarifas_generales = ?,
+        ventas_otas = ?,
         edad_tarifa_niños = ?,
         updated_at = NOW()
         WHERE id = ?';
@@ -313,7 +317,30 @@ class ConfiguracionController extends Controller
         id_responsabilidad,
         id_regimen,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE
+        codigo_rnt = VALUES(codigo_rnt),
+        codigo_ciiu = VALUES(codigo_ciiu),
+        nombre = VALUES(nombre),
+        id_tipo_documento = VALUES(id_tipo_documento),
+        identificacion = VALUES(identificacion),
+        dv = VALUES(dv),
+        registro_mercantil = VALUES(registro_mercantil),
+        pais_id = VALUES(pais_id),
+        departamento_id = VALUES(departamento_id),
+        ciudad_id = VALUES(ciudad_id),
+        direccion = VALUES(direccion),
+        correo = VALUES(correo),
+        telefono = VALUES(telefono),
+        lenguaje = VALUES(lenguaje),
+        impuesto = VALUES(impuesto),
+        id_operacion = VALUES(id_operacion),
+        id_entorno = VALUES(id_entorno),
+        id_organizacion = VALUES(id_organizacion),
+        id_responsabilidad = VALUES(id_responsabilidad),
+        id_regimen = VALUES(id_regimen),
+        updated_at = NOW(),
+        deleted_at = NULL';
 
         // Iniciar transacción
         DB::beginTransaction();
@@ -738,6 +765,7 @@ class ConfiguracionController extends Controller
             $configuration->calendarioInhabilitado = (bool) $configuration->calendarioInhabilitado;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
             $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
+            $configuration->ventasOtas = (bool) $configuration->ventasOtas;
 
             // Devolver una respuesta JSON con la configuración de reserva si se encuentra
             return response()->json($configuration, 200);

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('codigo_ciiu')->default('');
             $table->unsignedBigInteger('id_tipo_documento')->nullable();
             $table->foreign('id_tipo_documento')->references('id')->on('cliente_tipo_documento')->onDelete('set null');
-            $table->string('identificacion')->default('');
+            $table->string('identificacion')->default('')->unique();
             $table->string('dv')->default('');
             $table->string('registro_mercantil')->default('');
             $table->unsignedBigInteger('pais_id')->nullable();
