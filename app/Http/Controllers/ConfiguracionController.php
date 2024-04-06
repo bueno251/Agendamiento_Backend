@@ -747,6 +747,7 @@ class ConfiguracionController extends Controller
     {
         // Consulta SQL para obtener la configuración de reserva no eliminada
         $query = 'SELECT
+        ventas_otas as ventasOtas,
         usuario_reserva AS usuarioReserva,
         calendario_inhabilitado AS calendarioInhabilitado,
         correo_obligatorio AS correoObligatorio,

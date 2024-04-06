@@ -29,6 +29,9 @@ return new class extends Migration
             $table->integer('niños')->default(0);
             $table->integer('precio');
             $table->integer('abono')->default(0);
+            $table->text('descuentos')->nullable();
+            $table->text('cupon')->nullable();
+            $table->boolean('tarifa_especial')->default(0);
             $table->string('comprobante')->nullable();
             $table->boolean('verificacion_pago');
             $table->softDeletes();

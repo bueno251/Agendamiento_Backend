@@ -242,6 +242,7 @@ class RoomController extends Controller
         JOIN room_estados re ON r.room_estado_id = re.id
         LEFT JOIN tarifas_otas otas ON otas.room_id = r.id
         WHERE r.deleted_at IS NULL
+        AND r.habilitada = 1
         ORDER BY r.created_at DESC';
 
         // Ejecutar la consulta SQL
@@ -345,6 +346,7 @@ class RoomController extends Controller
         JOIN room_tipos rt ON r.room_tipo_id = rt.id
         JOIN room_estados re ON r.room_estado_id = re.id
         WHERE r.deleted_at IS NULL
+        AND r.habilitada = 1
         AND EXISTS (
             SELECT 1
             FROM tarifas rt
@@ -481,7 +483,8 @@ class RoomController extends Controller
         JOIN room_estados re ON r.room_estado_id = re.id
         JOIN configuracions config ON config.id = 1
         LEFT JOIN tarifa_impuestos im ON im.id = r.impuesto_id
-        WHERE r.id = ? && r.deleted_at IS NULL';
+        WHERE r.id = ? && r.deleted_at IS NULL
+        AND r.habilitada = 1';
 
         $room = DB::selectOne($query, [$id]);
 

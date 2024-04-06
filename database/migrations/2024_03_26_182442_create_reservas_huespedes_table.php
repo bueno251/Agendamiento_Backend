@@ -16,6 +16,8 @@ return new class extends Migration
             $table->boolean('responsable')->default(0);
             $table->unsignedBigInteger('reserva_id')->nullable();
             $table->foreign('reserva_id')->references('id')->on('reservas')->onDelete('set null');
+            $table->unsignedBigInteger('reserva_temporal_id')->nullable();
+            $table->foreign('reserva_temporal_id')->references('id')->on('reservas_temporales')->onDelete('set null');
             $table->unsignedBigInteger('cliente_id')->nullable();
             $table->foreign('cliente_id')->references('id')->on('clients')->onDelete('set null');
             $table->unsignedBigInteger('motivo_id')->nullable();

@@ -36,15 +36,10 @@ class VerificarReservasTemporales extends Command
         fecha_entrada,
         fecha_salida,
         room_id,
-        cliente_id,
         user_id,
         estado_id,
         desayuno_id,
         decoracion_id,
-        motivo_id,
-        ciudad_residencia_id,
-        ciudad_procedencia_id,
-        huespedes,
         adultos,
         niños,
         precio,
@@ -65,15 +60,10 @@ class VerificarReservasTemporales extends Command
         fecha_entrada,
         fecha_salida,
         room_id,
-        cliente_id,
         user_id,
         estado_id,
         desayuno_id,
         decoracion_id,
-        motivo_id,
-        ciudad_residencia_id,
-        ciudad_procedencia_id,
-        huespedes,
         adultos,
         niños,
         precio,
@@ -81,44 +71,64 @@ class VerificarReservasTemporales extends Command
         comprobante,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         // Consulta para eliminar una reserva temporal de la tabla 'reservas_temporales'
         $queryDelete = 'UPDATE reservas_temporales SET 
         deleted_at = NOW()
         WHERE id = ?';
 
-        // Procesar cada reserva temporal
-        foreach ($reservasTemporales as $reserva) {
-            // Verificar si la reserva tiene verificación de pago
-            if ($reserva->verificacion_pago == 1) {
-                // Insertar la reserva en la tabla 'reservas'
-                DB::insert($queryInsert, [
-                    $reserva->fecha_entrada,
-                    $reserva->fecha_salida,
-                    $reserva->room_id,
-                    $reserva->cliente_id,
-                    $reserva->user_id,
-                    $reserva->estado_id,
-                    $reserva->desayuno_id,
-                    $reserva->decoracion_id,
-                    $reserva->motivo_id,
-                    $reserva->ciudad_residencia_id,
-                    $reserva->ciudad_procedencia_id,
-                    $reserva->huespedes,
-                    $reserva->adultos,
-                    $reserva->niños,
-                    $reserva->precio,
-                    $reserva->abono,
-                    $reserva->comprobante,
-                    $reserva->verificacion_pago
+        $queryHuespedes = "UPDATE reservas_huespedes
+        reserva_id = ?
+        WHERE reserva_temporal_id = ?";
+
+        try {
+
+            DB::beginTransaction();
+
+            // Procesar cada reserva temporal
+            foreach ($reservasTemporales as $reserva) {
+                // Verificar si la reserva tiene verificación de pago
+                if ($reserva->verificacion_pago == 1) {
+                    // Insertar la reserva en la tabla 'reservas'
+                    DB::insert($queryInsert, [
+                        $reserva->fecha_entrada,
+                        $reserva->fecha_salida,
+                        $reserva->room_id,
+                        $reserva->cliente_id,
+                        $reserva->user_id,
+                        $reserva->estado_id,
+                        $reserva->desayuno_id,
+                        $reserva->decoracion_id,
+                        $reserva->motivo_id,
+                        $reserva->ciudad_residencia_id,
+                        $reserva->ciudad_procedencia_id,
+                        $reserva->huespedes,
+                        $reserva->adultos,
+                        $reserva->niños,
+                        $reserva->precio,
+                        $reserva->abono,
+                        $reserva->comprobante,
+                        $reserva->verificacion_pago
+                    ]);
+
+                    $reservaId = DB::getPdo()->lastInsertId();
+
+                    DB::update($queryHuespedes, [
+                        $reservaId,
+                        $reserva->id
+                    ]);
+                }
+
+                // Eliminar la reserva temporal de 'reservas_temporales'
+                DB::update($queryDelete, [
+                    $reserva->id
                 ]);
             }
 
-            // Eliminar la reserva temporal de 'reservas_temporales'
-            DB::update($queryDelete, [
-                $reserva->id
-            ]);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
         }
     }
 }
