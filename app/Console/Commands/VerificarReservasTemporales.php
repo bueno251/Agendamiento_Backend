@@ -44,8 +44,12 @@ class VerificarReservasTemporales extends Command
         niños,
         precio,
         abono,
+        descuentos,
+        cupon,
+        tarifa_especial,
         comprobante,
-        verificacion_pago
+        verificacion_pago,
+        created_at
         FROM reservas_temporales
         WHERE
             deleted_at IS NULL
@@ -68,17 +72,20 @@ class VerificarReservasTemporales extends Command
         niños,
         precio,
         abono,
+        descuentos,
+        cupon,
+        tarifa_especial,
         comprobante,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
         // Consulta para eliminar una reserva temporal de la tabla 'reservas_temporales'
         $queryDelete = 'UPDATE reservas_temporales SET 
         deleted_at = NOW()
         WHERE id = ?';
 
-        $queryHuespedes = "UPDATE reservas_huespedes
+        $queryHuespedes = "UPDATE reservas_huespedes SET
         reserva_id = ?
         WHERE reserva_temporal_id = ?";
 
@@ -95,21 +102,20 @@ class VerificarReservasTemporales extends Command
                         $reserva->fecha_entrada,
                         $reserva->fecha_salida,
                         $reserva->room_id,
-                        $reserva->cliente_id,
                         $reserva->user_id,
                         $reserva->estado_id,
                         $reserva->desayuno_id,
                         $reserva->decoracion_id,
-                        $reserva->motivo_id,
-                        $reserva->ciudad_residencia_id,
-                        $reserva->ciudad_procedencia_id,
-                        $reserva->huespedes,
                         $reserva->adultos,
                         $reserva->niños,
                         $reserva->precio,
                         $reserva->abono,
+                        $reserva->descuentos,
+                        $reserva->cupon,
+                        $reserva->tarifa_especial,
                         $reserva->comprobante,
-                        $reserva->verificacion_pago
+                        $reserva->verificacion_pago,
+                        $reserva->created_at,
                     ]);
 
                     $reservaId = DB::getPdo()->lastInsertId();

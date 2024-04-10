@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             ReservaEstadoSeeder::class,
             ReservaMotivosSeeder::class,
             ReservaPagoSeeder::class,
+            ReprogramacionMotivosSeeder::class,
             TarifaJornadaSeeder::class,
             TarifaEstadoSeeder::class,
             UserSeeder::class,

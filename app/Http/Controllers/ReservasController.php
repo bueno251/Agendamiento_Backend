@@ -451,6 +451,7 @@ class ReservasController extends Controller
                 rt.tarifa_especial AS useTarifasEspeciales,
                 rt.comprobante AS comprobante,
                 rt.verificacion_pago AS verificacionPago,
+                1 AS esTemporal,
                 (
                     SELECT
                     JSON_ARRAYAGG(JSON_OBJECT(
@@ -467,6 +468,7 @@ class ReservasController extends Controller
             FROM reservas_temporales rt
             JOIN reserva_estados re2 ON rt.estado_id = re2.id
             WHERE rt.deleted_at IS NULL
+            AND rt.estado_id = 1
             ORDER BY created_at DESC
             ";
         }
@@ -481,7 +483,7 @@ class ReservasController extends Controller
         r.id AS id,
         r.fecha_entrada AS fechaEntrada,
         r.fecha_salida AS fechaSalida,
-        r.room_id AS room,
+        r.room_id AS roomId,
         r.user_id AS user,
         r.estado_id AS estadoId,
         re.estado AS estado,
@@ -497,6 +499,7 @@ class ReservasController extends Controller
         r.tarifa_especial AS useTarifasEspeciales,
         r.comprobante AS comprobante,
         r.verificacion_pago AS verificacionPago,
+        0 AS esTemporal,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
@@ -505,14 +508,25 @@ class ReservasController extends Controller
                 'documento', c.documento,
                 'telefono', c.telefono
                 ))
-             FROM clients c
-             LEFT JOIN reservas_huespedes rh ON c.id = rh.cliente_id
+            FROM clients c
+            LEFT JOIN reservas_huespedes rh ON c.id = rh.cliente_id
             WHERE c.deleted_at IS NULL AND rh.reserva_id = r.id AND rh.responsable = 1
         ) AS huesped,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                'id', rp.id,
+                'nombre', rp.nombre,
+                'descripcion', rp.descripcion
+                ))
+            FROM room_padre rp
+            WHERE rp.deleted_at IS NULL AND room.room_padre_id = rp.id
+        ) AS room,
         $getBitacoraCancelacion
         r.created_at AS created_at
         FROM reservas r
         JOIN reserva_estados re ON r.estado_id = re.id
+        JOIN rooms room ON r.room_id = room.id
         WHERE r.deleted_at IS NULL $estados[$estado]
         $getTemporales";
 
@@ -524,9 +538,12 @@ class ReservasController extends Controller
             foreach ($reservas as $reserva) {
                 $reserva->verificacionPago = (bool) $reserva->verificacionPago;
                 $reserva->useTarifasEspeciales = (bool) $reserva->useTarifasEspeciales;
+                $reserva->esTemporal = (bool) $reserva->esTemporal;
                 $reserva->huesped = json_decode($reserva->huesped);
                 $reserva->descuentos = json_decode($reserva->descuentos);
                 $reserva->cupon = json_decode($reserva->cupon);
+                $reserva->room = json_decode($reserva->room);
+                $reserva->room = $reserva->room[0];
                 $reserva->huesped = $reserva->huesped[0];
                 if ($estado == 'Cancelada') {
                     $reserva->bitacora = json_decode($reserva->bitacora);
@@ -553,14 +570,25 @@ class ReservasController extends Controller
      * @param int $id ID de la reserva que se va a aprobar.
      * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
      */
-    public function approve(int $id)
+    public function approve(Request $request, int $id)
     {
+        $request->validate([
+            'esTemporal' => 'required|boolean',
+        ]);
+
+        if ($request->esTemporal) {
+            $table = "reservas_temporales";
+        } else {
+            $table = "reservas";
+        }
+
         try {
             // Consulta SQL para actualizar el estado de la reserva a "Confirmada"
-            $query = 'UPDATE reservas SET
+            $query = "UPDATE $table SET
             estado_id = ?,
+            verificacion_pago = 1,
             updated_at = NOW()
-            WHERE id = ?';
+            WHERE id = ?";
 
             // Ejecutar la actualización del estado de la reserva
             DB::update($query, [
@@ -589,14 +617,24 @@ class ReservasController extends Controller
      * @param int $id ID de la reserva que se va a rechazar.
      * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
      */
-    public function reject(int $id)
+    public function reject(Request $request, int $id)
     {
+        $request->validate([
+            'esTemporal' => 'required|boolean',
+        ]);
+
+        if ($request->esTemporal) {
+            $table = "reservas_temporales";
+        } else {
+            $table = "reservas";
+        }
+
         try {
             // Consulta SQL para actualizar el estado de la reserva a "Rechazada"
-            $query = 'UPDATE reservas SET
+            $query = "UPDATE $table SET
             estado_id = ?,
             updated_at = NOW()
-            WHERE id = ?';
+            WHERE id = ?";
 
             // Ejecutar la actualización del estado de la reserva
             DB::update($query, [

@@ -620,8 +620,11 @@ class ConfiguracionController extends Controller
         e.dv AS dv,
         e.registro_mercantil AS registro,
         e.pais_id AS paisId,
+        dp.name AS pais,
         e.departamento_id AS departamentoId,
+        dd.name AS departamento,
         e.ciudad_id AS ciudadId,
+        dc.name AS ciudad,
         e.direccion AS direccion,
         e.correo AS correo,
         e.telefono AS telefono,
@@ -645,6 +648,9 @@ class ConfiguracionController extends Controller
         LEFT JOIN cliente_tipo_regimen ctr ON e.id_regimen = ctr.id
         LEFT JOIN cliente_tipo_documento ctd ON e.id_tipo_documento = ctd.id
         LEFT JOIN cliente_tipo_obligacion cto ON e.id_responsabilidad = cto.id
+        LEFT JOIN direcciones_ciudades dc ON e.ciudadId = dc.id
+        LEFT JOIN direcciones_departamentos dd ON e.departamentoId = dd.id
+        LEFT JOIN direcciones_paises dp ON e.paisId = dp.id
         WHERE e.id = ? AND e.deleted_at IS NULL';
 
         try {
@@ -655,6 +661,73 @@ class ConfiguracionController extends Controller
         } catch (\Exception $e) {
             // Retornar null en caso de error
             return null;
+        }
+    }
+
+    /**
+     * Obtener Detalles de la Empresa
+     *
+     * Este método se encarga de obtener los detalles de una empresa desde la base de datos.
+     *
+     * @return \stdClass|null Detalles de la empresa o null si no se encuentra.
+     */
+    public function getApiEmpresa()
+    {
+        $query = 'SELECT
+        e.id AS id,
+        e.codigo_rnt AS codigoRNT,
+        e.codigo_ciiu AS codigoCIIU,
+        e.id_tipo_documento AS idDocumento,
+        ctd.tipo AS documento,
+        e.identificacion AS identificacion,
+        e.nombre AS nombre,
+        e.dv AS dv,
+        e.registro_mercantil AS registro,
+        e.pais_id AS paisId,
+        dp.name AS pais,
+        e.departamento_id AS departamentoId,
+        dd.name AS departamento,
+        e.ciudad_id AS ciudadId,
+        dc.name AS ciudad,
+        e.direccion AS direccion,
+        e.correo AS correo,
+        e.telefono AS telefono,
+        e.lenguaje AS lenguaje,
+        e.impuesto AS impuesto,
+        e.id_operacion AS idOperacion,
+        eto.tipo AS operacion,
+        e.id_entorno AS idEntorno,
+        ete.tipo AS entorno,
+        e.id_organizacion AS idOrganizacion,
+        ctp.tipo AS organizacion,
+        e.id_responsabilidad AS idResponsabilidad,
+        cto.tipo AS responsabilidad,
+        e.id_regimen AS idRegimen,
+        ctr.tipo AS regimen,
+        e.created_at AS created_at
+        FROM empresa e
+        LEFT JOIN empresa_tipo_operacion eto ON e.id_operacion = eto.id
+        LEFT JOIN empresa_tipo_entorno ete ON e.id_entorno = ete.id
+        LEFT JOIN cliente_tipo_persona ctp ON e.id_organizacion = ctp.id
+        LEFT JOIN cliente_tipo_regimen ctr ON e.id_regimen = ctr.id
+        LEFT JOIN cliente_tipo_documento ctd ON e.id_tipo_documento = ctd.id
+        LEFT JOIN cliente_tipo_obligacion cto ON e.id_responsabilidad = cto.id
+        LEFT JOIN direcciones_ciudades dc ON e.ciudad_id = dc.id
+        LEFT JOIN direcciones_departamentos dd ON e.departamento_id = dd.id
+        LEFT JOIN direcciones_paises dp ON e.pais_id = dp.id
+        WHERE e.deleted_at IS NULL';
+
+        try {
+            // Ejecutar la consulta
+            $empresa = DB::selectOne($query);
+
+            return response()->json($empresa);
+        } catch (\Exception $e) {
+            // Retornar null en caso de error
+            return response()->json([
+                'message' => 'Error al traer la empresa',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 

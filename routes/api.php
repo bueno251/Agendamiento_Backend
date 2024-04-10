@@ -20,6 +20,8 @@ use App\Http\Controllers\DescuentosController;
 use App\Http\Controllers\DireccionesController;
 use App\Http\Controllers\DivisasController;
 use App\Http\Controllers\ImpuestoController;
+use App\Http\Controllers\Reprogramacion\ReprogramacionController;
+use App\Http\Controllers\Reprogramacion\ReprogramacionMotivosController;
 use App\Http\Controllers\ReservaMotivosController;
 use App\Http\Controllers\TarifasController;
 use App\Http\Controllers\TarifasEspecialesController;
@@ -196,6 +198,7 @@ Route::controller(ConfiguracionController::class)->group(function () {
 
     // Configuración de la empresa
     Route::post('settings/empresa', 'empresa');
+    Route::get('settings/empresa', 'getApiEmpresa');
 
     // Obtener configuración general
     Route::get('settings', 'read');
@@ -483,7 +486,15 @@ Route::controller(DescuentoLargaEstadiaController::class)->group(function () {
     Route::delete('descuento-estadia/{id}', 'delete');
 });
 
-Route::controller(TarifasOtasController::class)->group(function(){
+Route::controller(TarifasOtasController::class)->group(function () {
     Route::post('tarifas-otas', 'save');
     // Route::get('tarifas-otas', 'save');
+});
+
+Route::controller(ReprogramacionController::class)->group(function () {
+    Route::post('reprogramar-reserva', 'reprogramar');
+});
+
+Route::controller(ReprogramacionMotivosController::class)->group(function () {
+    Route::get('motivos-reprogramacion', 'read');
 });
