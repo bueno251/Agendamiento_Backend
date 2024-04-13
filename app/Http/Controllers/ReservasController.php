@@ -103,7 +103,7 @@ class ReservasController extends Controller
 
             if (count($rooms) == 0) {
                 return response()->json([
-                    'message' => 'No hay habitaciones disponibles',
+                    'message' => 'No hay habitaciones disponibles con esas fechas',
                 ], 400);
             }
 
@@ -446,8 +446,8 @@ class ReservasController extends Controller
                 rt.niños AS niños,
                 rt.precio AS precio,
                 rt.abono AS abono,
-                rt.descuentos,
-                rt.cupon,
+                rt.descuentos AS descuentos,
+                rt.cupon AS cupon,
                 rt.tarifa_especial AS useTarifasEspeciales,
                 rt.comprobante AS comprobante,
                 rt.verificacion_pago AS verificacionPago,
@@ -464,9 +464,20 @@ class ReservasController extends Controller
                      LEFT JOIN reservas_huespedes rh2 ON c2.id = rh2.cliente_id
                     WHERE c2.deleted_at IS NULL AND rh2.reserva_temporal_id = rt.id AND rh2.responsable = 1
                 ) AS huesped,
+                (
+                    SELECT
+                    JSON_ARRAYAGG(JSON_OBJECT(
+                        'id', rp.id,
+                        'nombre', rp.nombre,
+                        'descripcion', rp.descripcion
+                        ))
+                    FROM room_padre rp
+                    WHERE rp.deleted_at IS NULL AND room.room_padre_id = rp.id
+                ) AS room,
                 rt.created_at AS created_at
             FROM reservas_temporales rt
             JOIN reserva_estados re2 ON rt.estado_id = re2.id
+            JOIN rooms room ON rt.room_id = room.id
             WHERE rt.deleted_at IS NULL
             AND rt.estado_id = 1
             ORDER BY created_at DESC
@@ -494,8 +505,8 @@ class ReservasController extends Controller
         r.niños AS niños,
         r.precio AS precio,
         r.abono AS abono,
-        r.descuentos,
-        r.cupon,
+        r.descuentos AS descuentos,
+        r.cupon AS cupon,
         r.tarifa_especial AS useTarifasEspeciales,
         r.comprobante AS comprobante,
         r.verificacion_pago AS verificacionPago,
