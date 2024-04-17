@@ -35,6 +35,7 @@ class VerificarReservasTemporales extends Command
         $query = 'SELECT id,
         fecha_entrada,
         fecha_salida,
+        origen_id,
         room_id,
         user_id,
         estado_id,
@@ -63,6 +64,7 @@ class VerificarReservasTemporales extends Command
         $queryInsert = 'INSERT INTO reservas (
         fecha_entrada,
         fecha_salida,
+        origen_id,
         room_id,
         user_id,
         estado_id,
@@ -78,7 +80,7 @@ class VerificarReservasTemporales extends Command
         comprobante,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
         // Consulta para eliminar una reserva temporal de la tabla 'reservas_temporales'
         $queryDelete = 'UPDATE reservas_temporales SET 
@@ -101,6 +103,7 @@ class VerificarReservasTemporales extends Command
                     DB::insert($queryInsert, [
                         $reserva->fecha_entrada,
                         $reserva->fecha_salida,
+                        $reserva->origen_id,
                         $reserva->room_id,
                         $reserva->user_id,
                         $reserva->estado_id,

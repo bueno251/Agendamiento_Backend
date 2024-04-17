@@ -21,6 +21,7 @@ class ReservasController extends Controller
         $request->validate([
             'dateIn' => 'required|string',
             'dateOut' => 'required|string',
+            'origen' => 'required|integer',
             'room' => 'required|integer',
             'adultos' => 'required|integer',
             'niños' => 'required|integer',
@@ -129,6 +130,7 @@ class ReservasController extends Controller
             $insertReserva = "INSERT INTO $table (
                 fecha_entrada,
                 fecha_salida,
+                origen_id,
                 room_id,
                 user_id,
                 estado_id,
@@ -143,12 +145,13 @@ class ReservasController extends Controller
                 tarifa_especial,
                 verificacion_pago,
                 created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
             // Ejecutar la inserción de la reserva
             DB::insert($insertReserva, [
                 $request->dateIn,
                 $request->dateOut,
+                $request->origen,
                 $rooms[0]->id,
                 isset($request->user) ? $request->user : 1, // Usuario web
                 1, // Estado Pendiente

@@ -121,8 +121,6 @@ Route::controller(RoomController::class)->group(function () {
     // Obtener información de las habitaciones
     Route::get('rooms/read', 'read');
     Route::get('rooms', 'readClient');
-    Route::get('rooms-{dateInicio}&{dateFin}', 'getRoomsCalendar');
-
     // Encontrar información de una habitación por ID
     Route::get('room/{id}', 'find');
 

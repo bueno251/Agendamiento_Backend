@@ -648,9 +648,9 @@ class ConfiguracionController extends Controller
         LEFT JOIN cliente_tipo_regimen ctr ON e.id_regimen = ctr.id
         LEFT JOIN cliente_tipo_documento ctd ON e.id_tipo_documento = ctd.id
         LEFT JOIN cliente_tipo_obligacion cto ON e.id_responsabilidad = cto.id
-        LEFT JOIN direcciones_ciudades dc ON e.ciudadId = dc.id
-        LEFT JOIN direcciones_departamentos dd ON e.departamentoId = dd.id
-        LEFT JOIN direcciones_paises dp ON e.paisId = dp.id
+        LEFT JOIN direcciones_ciudades dc ON e.ciudad_id = dc.id
+        LEFT JOIN direcciones_departamentos dd ON e.departamento_id = dd.id
+        LEFT JOIN direcciones_paises dp ON e.pais_id = dp.id
         WHERE e.id = ? AND e.deleted_at IS NULL';
 
         try {

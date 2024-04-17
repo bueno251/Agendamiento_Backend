@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->date('fecha_entrada');
             $table->date('fecha_salida');
+            $table->unsignedBigInteger('origen_id')->nullable();
             $table->unsignedBigInteger('room_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('estado_id')->nullable();

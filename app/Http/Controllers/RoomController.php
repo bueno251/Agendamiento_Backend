@@ -310,79 +310,20 @@ class RoomController extends Controller
         ) AS precios,
         (
             SELECT
-            JSON_ARRAYAGG(rcr.caracteristica_id)
-            FROM room_caracteristica_relacion rcr
-            WHERE rcr.room_id = rp.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
-        ) AS caracteristicas
-        FROM room_padre rp
-        WHERE rp.deleted_at IS NULL
-        AND rp.habilitada = 1
-        AND (
-            SELECT COUNT(*)
-            FROM tarifas rt
-            WHERE rt.room_id = rp.id AND rt.deleted_at IS NULL
-        ) >= 7
-        ORDER BY rp.created_at DESC';
-
-        // Ejecutar la consulta SQL
-        $rooms = DB::select($query);
-
-        // Decodificar datos JSON y ajustar valores booleanos
-        foreach ($rooms as $room) {
-
-            // Decodificar datos JSON
-            $room->imgs = json_decode($room->imgs);
-            $room->caracteristicas = json_decode($room->caracteristicas);
-            $room->precios = json_decode($room->precios);
-        }
-
-        // Devolver la respuesta JSON con detalles sobre las habitaciones para clientes
-        return response()->json($rooms, 200);
-    }
-
-    public function getRoomsCalendar(String $dateInicio, String $dateFin)
-    {
-        $query = 'SELECT
-        rp.id AS id,
-        rp.nombre AS nombre,
-        rp.descripcion AS descripcion,
-        rp.capacidad AS capacidad,
-        rp.cantidad_otas AS cantidadOtas,
-        (
-            SELECT
-            JSON_ARRAYAGG(JSON_OBJECT("url", ri.url))
-            FROM room_imgs ri 
-            WHERE ri.room_padre_id = rp.id AND ri.deleted_at IS NULL
-        ) AS imgs,
-        (
-            SELECT
-            JSON_ARRAYAGG(JSON_OBJECT(
-                "name", rt.nombre,
-                "jornada", tj.nombre,
-                "precio", rt.precio
-            ))
-            FROM tarifas rt
-            LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
-            WHERE rt.room_id = rp.id
-            ORDER BY
-            FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
-        ) AS precios,
-        (
-            SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
                 "fechaEntrada", res.fecha_entrada,
                 "fechaSalida", res.fecha_salida
             ))
             FROM reservas res
             JOIN rooms rs ON rs.id = res.room_id
-            WHERE (res.fecha_entrada >= ? AND res.fecha_salida <= ?)
+            WHERE res.fecha_salida >= CURRENT_DATE
             AND rs.room_padre_id = rp.id
         ) AS reservas,
         (
             SELECT
             COUNT(*)
             FROM rooms rs
-            WHERE rs.room_padre_id = rp.id AND rs.deleted_at IS NULL
+            WHERE rs.room_padre_id = rp.id AND rs.habilitada = 1 AND rs.deleted_at IS NULL
         ) AS cantidad,
         (
             SELECT
@@ -401,10 +342,7 @@ class RoomController extends Controller
         ORDER BY rp.created_at DESC';
 
         // Ejecutar la consulta SQL
-        $rooms = DB::select($query, [
-            $dateInicio,
-            $dateFin,
-        ]);
+        $rooms = DB::select($query);
 
         // Decodificar datos JSON y ajustar valores booleanos
         foreach ($rooms as $room) {
@@ -439,9 +377,6 @@ class RoomController extends Controller
         rt.tipo AS tipo,
         re.estado AS estado,
         rp.capacidad AS capacidad,
-        rp.cantidad_otas AS cantidadOtas,
-        rp.cantidad AS cantidad,
-        rp.tiene_iva AS tieneIva,
         rp.tiene_decoracion AS tieneDecoracion,
         rp.tiene_desayuno AS tieneDesayuno,
         rp.incluye_desayuno AS incluyeDesayuno,
@@ -475,17 +410,6 @@ class RoomController extends Controller
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
-                "fecha", te.fecha,
-                "precio", te.precio
-            ))
-            FROM tarifas_especiales te
-            LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
-            WHERE te.room_id = rp.id AND te.deleted_at IS NULL
-            ORDER BY te.created_at DESC
-        ) AS tarifasEspeciales,
-        (
-            SELECT
-            JSON_ARRAYAGG(JSON_OBJECT(
                 "nombre", tg.nombre,
                 "precio", tg.precio,
                 "precioConIva", 
@@ -506,16 +430,26 @@ class RoomController extends Controller
                 "precio", te.precio
             ))
             FROM tarifas_especiales te
-            LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
             WHERE te.room_id = rp.id AND te.deleted_at IS NULL
             ORDER BY te.created_at DESC
         ) AS tarifasEspeciales,
         (
             SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "fechaEntrada", res.fecha_entrada,
+                "fechaSalida", res.fecha_salida
+            ))
+            FROM reservas res
+            JOIN rooms rs ON rs.id = res.room_id
+            WHERE res.fecha_salida >= CURRENT_DATE
+            AND rs.room_padre_id = rp.id
+        ) AS reservas,
+        (
+            SELECT
             COUNT(*)
             FROM rooms rs
             WHERE rs.room_padre_id = rp.id AND rs.habilitada = 1 AND rs.deleted_at IS NULL
-        ) AS rooms
+        ) AS cantidad
         FROM room_padre rp
         JOIN room_tipos rt ON rp.room_tipo_id = rt.id
         JOIN room_estados re ON rp.room_estado_id = re.id
@@ -531,7 +465,6 @@ class RoomController extends Controller
             $room->tieneDecoracion = (bool) $room->tieneDecoracion;
             $room->tieneDesayuno = (bool) $room->tieneDesayuno;
             $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
-            $room->tieneIva = (bool) $room->tieneIva;
 
             // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
@@ -539,6 +472,7 @@ class RoomController extends Controller
             $room->precios = json_decode($room->precios);
             $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
             $room->tarifasGenerales = json_decode($room->tarifasGenerales);
+            $room->reservas = json_decode($room->reservas);
 
             // Devolver la respuesta JSON con detalles sobre la habitación
             return response()->json($room, 200);

@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->date('fecha_entrada');
             $table->date('fecha_salida');
+            $table->unsignedBigInteger('origen_id')->nullable();
+            $table->foreign('origen_id')->references('id')->on('reservas_origen')->onDelete('set null');
             $table->unsignedBigInteger('room_id')->nullable();
             $table->foreign('room_id')->references('id')->on('rooms')->onDelete('set null');
             $table->unsignedBigInteger('user_id')->nullable();
