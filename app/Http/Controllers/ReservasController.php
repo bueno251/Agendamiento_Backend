@@ -255,7 +255,7 @@ class ReservasController extends Controller
                     ]);
                 } else {
                     DB::insert($insertClient, [
-                        $request['tipoDocumento'],
+                        $huesped['tipoDocumento'],
                         $huesped['documento'],
                         $huesped['nombre1'],
                         $huesped['nombre2'],

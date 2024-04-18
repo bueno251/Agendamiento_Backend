@@ -18,9 +18,9 @@ class UserSeeder extends Seeder
         DB::insert($query, ['web', null, null]);
 
         DB::insert($query, [
-            'juan',
-            'juan2@email.com',
-            Hash::make('juan_24#'),
+            'Test',
+            'test@test.com',
+            Hash::make('Test'),
         ]);
     }
 }

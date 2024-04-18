@@ -22,6 +22,7 @@ class ConfiguracionController extends Controller
         usuario_reserva AS usuarioReserva,
         calendario_inhabilitado AS calendarioInhabilitado,
         correo_obligatorio AS correoObligatorio,
+        extrangeros_pagan_impuestos AS extrangerosPaganImpuestos,
         porcentaje_separacion AS porcentajeSeparacion,
         tarifas_generales AS tarifasGenerales,
         edad_tarifa_niños AS edadTarifaNiños,
@@ -47,6 +48,7 @@ class ConfiguracionController extends Controller
             $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
             $configuration->calendarioInhabilitado = (bool) $configuration->calendarioInhabilitado;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
+            $configuration->extrangerosPaganImpuestos = (bool) $configuration->extrangerosPaganImpuestos;
             $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
             $configuration->ventasOtas = (bool) $configuration->ventasOtas;
 
@@ -208,6 +210,7 @@ class ConfiguracionController extends Controller
             'reservar' => 'required|boolean',
             'calendario' => 'required|boolean',
             'correo' => 'required|boolean',
+            'extrangerosPaganImpuestos' => 'required|boolean',
             'tarifasGenerales' => 'required|boolean',
             'ventasOtas' => 'required|boolean',
             'edadTarifaNiños' => 'required|integer',
@@ -219,6 +222,7 @@ class ConfiguracionController extends Controller
         usuario_reserva = ?,
         calendario_inhabilitado = ?,
         correo_obligatorio = ?,
+        extrangeros_pagan_impuestos = ?,
         porcentaje_separacion = ?,
         tarifas_generales = ?,
         ventas_otas = ?,
@@ -232,8 +236,10 @@ class ConfiguracionController extends Controller
                 $request->reservar,
                 $request->calendario,
                 $request->correo,
+                $request->extrangerosPaganImpuestos,
                 $request->porcentaje,
                 $request->tarifasGenerales,
+                $request->ventasOtas,
                 $request->edadTarifaNiños,
                 $request->configuracionId,
             ]);
@@ -824,6 +830,7 @@ class ConfiguracionController extends Controller
         usuario_reserva AS usuarioReserva,
         calendario_inhabilitado AS calendarioInhabilitado,
         correo_obligatorio AS correoObligatorio,
+        extrangeros_pagan_impuestos AS extrangerosPaganImpuestos,
         tarifas_generales AS tarifasGenerales,
         edad_tarifa_niños AS edadTarifaNiños,
         porcentaje_separacion AS porcentajeSeparacion
@@ -838,6 +845,7 @@ class ConfiguracionController extends Controller
             $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
             $configuration->calendarioInhabilitado = (bool) $configuration->calendarioInhabilitado;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
+            $configuration->extrangerosPaganImpuestos = (bool) $configuration->extrangerosPaganImpuestos;
             $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
             $configuration->ventasOtas = (bool) $configuration->ventasOtas;
 

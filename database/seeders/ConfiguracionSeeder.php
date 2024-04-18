@@ -16,6 +16,7 @@ class ConfiguracionSeeder extends Seeder
             'usuario_reserva' => 1,
             'calendario_inhabilitado' => 0,
             'correo_obligatorio' => 1,
+            'extrangeros_pagan_impuestos' => 1,
             'porcentaje_separacion' => 0,
             'tarifas_generales' => 0,
             'ventas_otas' => 0,

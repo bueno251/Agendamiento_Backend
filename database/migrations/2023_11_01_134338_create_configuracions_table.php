@@ -16,6 +16,7 @@ return new class extends Migration
             $table->boolean('usuario_reserva');
             $table->boolean('calendario_inhabilitado');
             $table->boolean('correo_obligatorio');
+            $table->boolean('extrangeros_pagan_impuestos');
             $table->integer('porcentaje_separacion');
             $table->boolean('tarifas_generales');
             $table->boolean('ventas_otas');
