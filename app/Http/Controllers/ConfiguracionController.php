@@ -30,7 +30,12 @@ class ConfiguracionController extends Controller
         id_empresa AS empresa,
         (
             SELECT
-            JSON_ARRAYAGG(JSON_OBJECT("id", rtp.id, "nombre", rtp.nombre, "estado", cp.estado))
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "id", rtp.id,
+                "nombre", rtp.nombre,
+                "estado", cp.estado,
+                "requiereComprobante", rtp.requiere_comprobante = 1
+                ))
             FROM reserva_metodo_pagos rtp
             LEFT JOIN configuracion_pagos cp ON cp.reserva_metodo_pago_id = rtp.id
             WHERE rtp.deleted_at IS NULL
@@ -111,6 +116,11 @@ class ConfiguracionController extends Controller
         VALUES (?, ?, ?, NOW())
         ON DUPLICATE KEY UPDATE estado = VALUES(estado), updated_at = NOW()';
 
+        $updateMetodo = "UPDATE reserva_metodo_pagos SET
+        requiere_comprobante = ?,
+        updated_at = NOW()
+        WHERE id = ?";
+
         // Iniciar transacción
         DB::beginTransaction();
 
@@ -121,6 +131,11 @@ class ConfiguracionController extends Controller
                     $request->configuracionId,
                     $metodoPago['id'],
                     $metodoPago['estado'],
+                ]);
+                
+                DB::update($updateMetodo, [
+                    $metodoPago['requiereComprobante'],
+                    $metodoPago['id'],
                 ]);
             }
 

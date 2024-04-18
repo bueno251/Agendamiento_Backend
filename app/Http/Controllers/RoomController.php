@@ -300,10 +300,18 @@ class RoomController extends Controller
             JSON_ARRAYAGG(JSON_OBJECT(
                 "name", rt.nombre,
                 "jornada", tj.nombre,
-                "precio", rt.precio
+                "precio", rt.precio,
+                "previoFestivo", rt.precio_previo_festivo,
+                "precioConIva", 
+                CASE 
+                    WHEN rt.impuesto_id IS NOT NULL
+                        THEN rt.precio * (1 + imp.tasa / 100)
+                    ELSE rt.precio
+                END
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
             WHERE rt.room_id = rp.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
@@ -399,10 +407,17 @@ class RoomController extends Controller
                 "name", rt.nombre,
                 "jornada", tj.nombre,
                 "precio", rt.precio,
-                "previoFestivo", rt.precio_previo_festivo
+                "previoFestivo", rt.precio_previo_festivo,
+                "precioConIva", 
+                CASE 
+                    WHEN rt.impuesto_id IS NOT NULL
+                        THEN rt.precio * (1 + imp.tasa / 100)
+                    ELSE rt.precio
+                END
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
             WHERE rt.room_id = rp.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")

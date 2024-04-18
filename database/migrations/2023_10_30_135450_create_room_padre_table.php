@@ -23,6 +23,7 @@ return new class extends Migration
             $table->foreign('room_estado_id')->references('id')->on('room_estados')->onDelete('set null');
             $table->integer('capacidad');
             $table->integer('cantidad')->default(1);
+            $table->integer('cantidad_otas')->default(1);
             $table->boolean('habilitada')->default(1);
             $table->boolean('tiene_iva');
             $table->boolean('tiene_desayuno');

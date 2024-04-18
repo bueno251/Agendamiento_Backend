@@ -17,7 +17,7 @@ class ConfiguracionSeeder extends Seeder
             'calendario_inhabilitado' => 0,
             'correo_obligatorio' => 1,
             'extrangeros_pagan_impuestos' => 1,
-            'porcentaje_separacion' => 0,
+            'porcentaje_separacion' => 50,
             'tarifas_generales' => 0,
             'ventas_otas' => 0,
             'edad_tarifa_niños' => 2,
