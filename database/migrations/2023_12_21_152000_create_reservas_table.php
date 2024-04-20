@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->date('fecha_entrada');
             $table->date('fecha_salida');
+            $table->unsignedBigInteger('origen_id')->nullable();
+            $table->foreign('origen_id')->references('id')->on('reservas_origen')->onDelete('set null');
             $table->unsignedBigInteger('room_id')->nullable();
             $table->foreign('room_id')->references('id')->on('rooms')->onDelete('set null');
             $table->unsignedBigInteger('user_id')->nullable();
@@ -29,6 +31,10 @@ return new class extends Migration
             $table->integer('niños')->default(0);
             $table->integer('precio');
             $table->integer('abono')->default(0);
+            $table->text('descuentos')->nullable();
+            $table->text('cupon')->nullable();
+            $table->boolean('tarifa_especial')->default(0);
+            $table->boolean('es_extrangero')->default(0);
             $table->string('comprobante')->nullable();
             $table->boolean('verificacion_pago');
             $table->softDeletes();

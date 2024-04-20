@@ -32,6 +32,7 @@ class CuponesController extends Controller
         $queryInsertCupon = 'INSERT INTO tarifa_descuento_cupones (
         fecha_inicio,
         fecha_fin,
+        cliente_id,
         nombre,
         descuento,
         habitaciones,
@@ -39,7 +40,7 @@ class CuponesController extends Controller
         precio_id,
         user_registro_id,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         // Consulta SQL para insertar los códigos del cupón
         $queryInsertCodigos = 'INSERT INTO tarifa_descuento_cupones_codigos (
@@ -55,6 +56,7 @@ class CuponesController extends Controller
             DB::insert($queryInsertCupon, [
                 $request->fechaInicio,
                 $request->fechaFin,
+                $request->cliente,
                 $request->nombre,
                 $request->descuento,
                 json_encode($request->habitaciones),
@@ -78,7 +80,7 @@ class CuponesController extends Controller
 
             // Retornar respuesta de éxito
             return response()->json([
-                'message' => 'Descuento creado exitosamente',
+                'message' => 'Cupón creado exitosamente',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -105,6 +107,9 @@ class CuponesController extends Controller
         td.id,
         td.fecha_inicio AS fechaInicio,
         td.fecha_fin AS fechaFin,
+        td.cliente_id AS clienteId,
+        CONCAT_WS(" ", c.nombre1, c.apellido1) AS cliente,
+        c.documento AS documento,
         td.nombre,
         td.descuento,
         td.activo,
@@ -137,6 +142,7 @@ class CuponesController extends Controller
         FROM tarifa_descuento_cupones td
         LEFT JOIN tarifa_descuento_tipos tdt ON tdt.id = td.tipo_id
         LEFT JOIN tarifa_descuento_precios tdp ON tdp.id = td.precio_id
+        LEFT JOIN clients c ON c.id = td.cliente_id
         WHERE td.deleted_at IS NULL
         ORDER BY td.created_at DESC';
 
@@ -162,8 +168,14 @@ class CuponesController extends Controller
         }
     }
 
+    /**
+     * Obtiene los precios de la base de datos.
+     *
+     * @return \Illuminate\Http\JsonResponse Retorna una respuesta JSON con los precios obtenidos.
+     */
     public function getPrecios()
     {
+        // Consulta SQL para seleccionar los precios de la tabla tarifa_descuento_precios
         $query = 'SELECT
         id,
         nombre
@@ -171,10 +183,13 @@ class CuponesController extends Controller
         WHERE deleted_at IS NULL';
 
         try {
+            // Ejecutar la consulta SQL
             $result = DB::select($query);
 
+            // Devolver una respuesta JSON con los precios obtenidos
             return response()->json($result, 200);
         } catch (\Exception $e) {
+            // Manejar cualquier error que ocurra y devolver una respuesta de error JSON
             return response()->json([
                 'message' => 'Error al obtener los precios del cupón',
                 'error' => $e->getMessage(),
@@ -224,21 +239,34 @@ class CuponesController extends Controller
         }
     }
 
+    /**
+     * Verifica si un código de cupón es válido y está disponible para su uso.
+     *
+     * @param string $code El código del cupón a verificar.
+     * @param int $id El ID del cupón.
+     * @return \Illuminate\Http\JsonResponse Retorna una respuesta JSON con los detalles del cupón si es válido, de lo contrario, retorna un mensaje de error.
+     */
     public function chekCuponCode(string $code, int $id)
     {
+        // Consulta SQL para obtener los detalles del cupón según el código proporcionado
         $query = "SELECT
         td.id,
+        td.cliente_id AS clienteId,
+        CONCAT_WS(' ', c.nombre1, c.apellido1) AS cliente,
+        c.documento AS documento,
         td.nombre,
         td.descuento,
         td.fecha_inicio AS fechaInicio,
         td.fecha_fin AS fechaFin,
         td.precio_id AS precioId,
         tdp.nombre AS precio,
+        tdcc.codigo AS codigo,
         td.tipo_id AS tipoId,
         tdt.tipo AS tipo
         FROM tarifa_descuento_cupones td
         LEFT JOIN tarifa_descuento_precios tdp ON tdp.id = td.precio_id
         LEFT JOIN tarifa_descuento_tipos tdt ON tdt.id = td.tipo_id
+        LEFT JOIN clients c ON c.id = td.cliente_id
         JOIN tarifa_descuento_cupones_codigos tdcc ON tdcc.cupon_id = td.id
         WHERE td.deleted_at IS NULL AND td.activo = 1
         AND FIND_IN_SET(?, REPLACE(REPLACE(td.habitaciones, '[', ''), ']', '')) > 0
@@ -246,16 +274,20 @@ class CuponesController extends Controller
         AND tdcc.activo = 1
         AND tdcc.usado = 0";
 
+        // Ejecutar la consulta SQL con los parámetros proporcionados
         $result = DB::selectOne($query, [
             $id,
             $code,
         ]);
 
+        // Verificar si se encontraron resultados
         if (empty($result)) {
+            // Si no se encontraron resultados, devolver un mensaje de error
             return response()->json([
-                'message' => 'El Código del Cupón No es valido o no escuentra disponible para su uso',
+                'message' => 'El Código del Cupón no es válido o no está disponible para su uso.',
             ], 500);
         } else {
+            // Si se encontraron resultados, devolver los detalles del cupón
             return response()->json($result, 200);
         }
     }
@@ -289,6 +321,7 @@ class CuponesController extends Controller
         $query = 'UPDATE tarifa_descuento_cupones SET
         fecha_inicio = ?,
         fecha_fin = ?,
+        cliente_id = ?,
         nombre = ?,
         descuento = ?,
         habitaciones = ?,
@@ -317,6 +350,7 @@ class CuponesController extends Controller
             DB::update($query, [
                 $request->fechaInicio,
                 $request->fechaFin,
+                $request->cliente,
                 $request->nombre,
                 $request->descuento,
                 json_encode($request->habitaciones),

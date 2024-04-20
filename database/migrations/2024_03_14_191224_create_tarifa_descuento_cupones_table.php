@@ -19,6 +19,8 @@ return new class extends Migration
             $table->boolean('activo')->default(1);
             $table->integer('descuento');
             $table->text('habitaciones');
+            $table->unsignedBigInteger('cliente_id')->nullable();
+            $table->foreign('cliente_id')->references('id')->on('clients')->onDelete('set null');
             $table->unsignedBigInteger('tipo_id')->nullable();
             $table->foreign('tipo_id')->references('id')->on('tarifa_descuento_tipos')->onDelete('set null');
             $table->unsignedBigInteger('precio_id')->nullable();

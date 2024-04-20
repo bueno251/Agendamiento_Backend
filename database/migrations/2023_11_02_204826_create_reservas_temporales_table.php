@@ -8,13 +8,14 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-    */
+     */
     public function up(): void
     {
         Schema::create('reservas_temporales', function (Blueprint $table) {
             $table->id();
             $table->date('fecha_entrada');
             $table->date('fecha_salida');
+            $table->unsignedBigInteger('origen_id')->nullable();
             $table->unsignedBigInteger('room_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('estado_id')->nullable();
@@ -24,6 +25,10 @@ return new class extends Migration
             $table->integer('niños');
             $table->integer('precio');
             $table->integer('abono')->default(0);
+            $table->text('descuentos')->nullable();
+            $table->text('cupon')->nullable();
+            $table->boolean('tarifa_especial')->default(0);
+            $table->boolean('es_extrangero')->default(0);
             $table->string('comprobante')->nullable();
             $table->boolean('verificacion_pago');
             $table->timestamps();

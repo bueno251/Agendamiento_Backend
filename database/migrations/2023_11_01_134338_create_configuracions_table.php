@@ -14,9 +14,12 @@ return new class extends Migration
         Schema::create('configuracions', function (Blueprint $table) {
             $table->id();
             $table->boolean('usuario_reserva');
+            $table->boolean('calendario_inhabilitado');
             $table->boolean('correo_obligatorio');
+            $table->boolean('extrangeros_pagan_impuestos');
             $table->integer('porcentaje_separacion');
             $table->boolean('tarifas_generales');
+            $table->boolean('ventas_otas');
             $table->integer('edad_tarifa_niños');
             $table->unsignedBigInteger('id_empresa')->nullable();
             $table->foreign('id_empresa')->references('id')->on('empresa')->onDelete('set null');

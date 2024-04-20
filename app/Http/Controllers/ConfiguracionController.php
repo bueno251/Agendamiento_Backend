@@ -20,14 +20,22 @@ class ConfiguracionController extends Controller
         $queryConfig = 'SELECT
         id,
         usuario_reserva AS usuarioReserva,
+        calendario_inhabilitado AS calendarioInhabilitado,
         correo_obligatorio AS correoObligatorio,
+        extrangeros_pagan_impuestos AS extrangerosPaganImpuestos,
         porcentaje_separacion AS porcentajeSeparacion,
         tarifas_generales AS tarifasGenerales,
         edad_tarifa_niños AS edadTarifaNiños,
+        ventas_otas as ventasOtas,
         id_empresa AS empresa,
         (
             SELECT
-            JSON_ARRAYAGG(JSON_OBJECT("id", rtp.id, "nombre", rtp.nombre, "estado", cp.estado))
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "id", rtp.id,
+                "nombre", rtp.nombre,
+                "estado", cp.estado,
+                "requiereComprobante", rtp.requiere_comprobante = 1
+                ))
             FROM reserva_metodo_pagos rtp
             LEFT JOIN configuracion_pagos cp ON cp.reserva_metodo_pago_id = rtp.id
             WHERE rtp.deleted_at IS NULL
@@ -43,8 +51,11 @@ class ConfiguracionController extends Controller
 
             // Convertir el campo 'usuario_reserva' a un formato booleano
             $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
+            $configuration->calendarioInhabilitado = (bool) $configuration->calendarioInhabilitado;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
+            $configuration->extrangerosPaganImpuestos = (bool) $configuration->extrangerosPaganImpuestos;
             $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
+            $configuration->ventasOtas = (bool) $configuration->ventasOtas;
 
             // Obtener detalles de la empresa si está asociada
             $configuration->empresa = $configuration->empresa ? $this->getEmpresa($configuration->empresa) : null;
@@ -105,6 +116,11 @@ class ConfiguracionController extends Controller
         VALUES (?, ?, ?, NOW())
         ON DUPLICATE KEY UPDATE estado = VALUES(estado), updated_at = NOW()';
 
+        $updateMetodo = "UPDATE reserva_metodo_pagos SET
+        requiere_comprobante = ?,
+        updated_at = NOW()
+        WHERE id = ?";
+
         // Iniciar transacción
         DB::beginTransaction();
 
@@ -115,6 +131,11 @@ class ConfiguracionController extends Controller
                     $request->configuracionId,
                     $metodoPago['id'],
                     $metodoPago['estado'],
+                ]);
+                
+                DB::update($updateMetodo, [
+                    $metodoPago['requiereComprobante'],
+                    $metodoPago['id'],
                 ]);
             }
 
@@ -202,8 +223,11 @@ class ConfiguracionController extends Controller
         $request->validate([
             'configuracionId' => 'required|integer',
             'reservar' => 'required|boolean',
+            'calendario' => 'required|boolean',
             'correo' => 'required|boolean',
+            'extrangerosPaganImpuestos' => 'required|boolean',
             'tarifasGenerales' => 'required|boolean',
+            'ventasOtas' => 'required|boolean',
             'edadTarifaNiños' => 'required|integer',
             'porcentaje' => 'required|integer',
         ]);
@@ -211,9 +235,12 @@ class ConfiguracionController extends Controller
         // Consulta SQL para actualizar la configuración de reserva
         $updateQuery = 'UPDATE configuracions SET 
         usuario_reserva = ?,
+        calendario_inhabilitado = ?,
         correo_obligatorio = ?,
+        extrangeros_pagan_impuestos = ?,
         porcentaje_separacion = ?,
         tarifas_generales = ?,
+        ventas_otas = ?,
         edad_tarifa_niños = ?,
         updated_at = NOW()
         WHERE id = ?';
@@ -222,9 +249,12 @@ class ConfiguracionController extends Controller
             // Ejecutar la actualización de la configuración de reserva
             $reservar = DB::update($updateQuery, [
                 $request->reservar,
+                $request->calendario,
                 $request->correo,
+                $request->extrangerosPaganImpuestos,
                 $request->porcentaje,
                 $request->tarifasGenerales,
+                $request->ventasOtas,
                 $request->edadTarifaNiños,
                 $request->configuracionId,
             ]);
@@ -263,6 +293,8 @@ class ConfiguracionController extends Controller
         // Validar los datos de entrada
         $request->validate([
             'configuracionId' => 'required|integer',
+            'codigoRNT' => 'required|string',
+            'codigoCIIU' => 'required|string',
             'nombre' => 'required|string',
             'tipoDocumento' => 'required|integer',
             'identificacion' => 'required',
@@ -285,6 +317,8 @@ class ConfiguracionController extends Controller
 
         // Consulta SQL para insertar la empresa
         $insertQuery = 'INSERT INTO empresa (
+        codigo_rnt,
+        codigo_ciiu,
         nombre,
         id_tipo_documento,
         identificacion,
@@ -304,7 +338,30 @@ class ConfiguracionController extends Controller
         id_responsabilidad,
         id_regimen,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE
+        codigo_rnt = VALUES(codigo_rnt),
+        codigo_ciiu = VALUES(codigo_ciiu),
+        nombre = VALUES(nombre),
+        id_tipo_documento = VALUES(id_tipo_documento),
+        identificacion = VALUES(identificacion),
+        dv = VALUES(dv),
+        registro_mercantil = VALUES(registro_mercantil),
+        pais_id = VALUES(pais_id),
+        departamento_id = VALUES(departamento_id),
+        ciudad_id = VALUES(ciudad_id),
+        direccion = VALUES(direccion),
+        correo = VALUES(correo),
+        telefono = VALUES(telefono),
+        lenguaje = VALUES(lenguaje),
+        impuesto = VALUES(impuesto),
+        id_operacion = VALUES(id_operacion),
+        id_entorno = VALUES(id_entorno),
+        id_organizacion = VALUES(id_organizacion),
+        id_responsabilidad = VALUES(id_responsabilidad),
+        id_regimen = VALUES(id_regimen),
+        updated_at = NOW(),
+        deleted_at = NULL';
 
         // Iniciar transacción
         DB::beginTransaction();
@@ -312,6 +369,8 @@ class ConfiguracionController extends Controller
         try {
             // Ejecutar la inserción de la empresa
             DB::insert($insertQuery, [
+                $request->codigoRNT,
+                $request->codigoCIIU,
                 $request->nombre,
                 $request->tipoDocumento,
                 $request->identificacion,
@@ -573,6 +632,8 @@ class ConfiguracionController extends Controller
     {
         $query = 'SELECT
         e.id AS id,
+        e.codigo_rnt AS codigoRNT,
+        e.codigo_ciiu AS codigoCIIU,
         e.id_tipo_documento AS idDocumento,
         ctd.tipo AS documento,
         e.identificacion AS identificacion,
@@ -580,8 +641,11 @@ class ConfiguracionController extends Controller
         e.dv AS dv,
         e.registro_mercantil AS registro,
         e.pais_id AS paisId,
+        dp.name AS pais,
         e.departamento_id AS departamentoId,
+        dd.name AS departamento,
         e.ciudad_id AS ciudadId,
+        dc.name AS ciudad,
         e.direccion AS direccion,
         e.correo AS correo,
         e.telefono AS telefono,
@@ -605,6 +669,9 @@ class ConfiguracionController extends Controller
         LEFT JOIN cliente_tipo_regimen ctr ON e.id_regimen = ctr.id
         LEFT JOIN cliente_tipo_documento ctd ON e.id_tipo_documento = ctd.id
         LEFT JOIN cliente_tipo_obligacion cto ON e.id_responsabilidad = cto.id
+        LEFT JOIN direcciones_ciudades dc ON e.ciudad_id = dc.id
+        LEFT JOIN direcciones_departamentos dd ON e.departamento_id = dd.id
+        LEFT JOIN direcciones_paises dp ON e.pais_id = dp.id
         WHERE e.id = ? AND e.deleted_at IS NULL';
 
         try {
@@ -615,6 +682,73 @@ class ConfiguracionController extends Controller
         } catch (\Exception $e) {
             // Retornar null en caso de error
             return null;
+        }
+    }
+
+    /**
+     * Obtener Detalles de la Empresa
+     *
+     * Este método se encarga de obtener los detalles de una empresa desde la base de datos.
+     *
+     * @return \stdClass|null Detalles de la empresa o null si no se encuentra.
+     */
+    public function getApiEmpresa()
+    {
+        $query = 'SELECT
+        e.id AS id,
+        e.codigo_rnt AS codigoRNT,
+        e.codigo_ciiu AS codigoCIIU,
+        e.id_tipo_documento AS idDocumento,
+        ctd.tipo AS documento,
+        e.identificacion AS identificacion,
+        e.nombre AS nombre,
+        e.dv AS dv,
+        e.registro_mercantil AS registro,
+        e.pais_id AS paisId,
+        dp.name AS pais,
+        e.departamento_id AS departamentoId,
+        dd.name AS departamento,
+        e.ciudad_id AS ciudadId,
+        dc.name AS ciudad,
+        e.direccion AS direccion,
+        e.correo AS correo,
+        e.telefono AS telefono,
+        e.lenguaje AS lenguaje,
+        e.impuesto AS impuesto,
+        e.id_operacion AS idOperacion,
+        eto.tipo AS operacion,
+        e.id_entorno AS idEntorno,
+        ete.tipo AS entorno,
+        e.id_organizacion AS idOrganizacion,
+        ctp.tipo AS organizacion,
+        e.id_responsabilidad AS idResponsabilidad,
+        cto.tipo AS responsabilidad,
+        e.id_regimen AS idRegimen,
+        ctr.tipo AS regimen,
+        e.created_at AS created_at
+        FROM empresa e
+        LEFT JOIN empresa_tipo_operacion eto ON e.id_operacion = eto.id
+        LEFT JOIN empresa_tipo_entorno ete ON e.id_entorno = ete.id
+        LEFT JOIN cliente_tipo_persona ctp ON e.id_organizacion = ctp.id
+        LEFT JOIN cliente_tipo_regimen ctr ON e.id_regimen = ctr.id
+        LEFT JOIN cliente_tipo_documento ctd ON e.id_tipo_documento = ctd.id
+        LEFT JOIN cliente_tipo_obligacion cto ON e.id_responsabilidad = cto.id
+        LEFT JOIN direcciones_ciudades dc ON e.ciudad_id = dc.id
+        LEFT JOIN direcciones_departamentos dd ON e.departamento_id = dd.id
+        LEFT JOIN direcciones_paises dp ON e.pais_id = dp.id
+        WHERE e.deleted_at IS NULL';
+
+        try {
+            // Ejecutar la consulta
+            $empresa = DB::selectOne($query);
+
+            return response()->json($empresa);
+        } catch (\Exception $e) {
+            // Retornar null en caso de error
+            return response()->json([
+                'message' => 'Error al traer la empresa',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -707,8 +841,11 @@ class ConfiguracionController extends Controller
     {
         // Consulta SQL para obtener la configuración de reserva no eliminada
         $query = 'SELECT
+        ventas_otas as ventasOtas,
         usuario_reserva AS usuarioReserva,
+        calendario_inhabilitado AS calendarioInhabilitado,
         correo_obligatorio AS correoObligatorio,
+        extrangeros_pagan_impuestos AS extrangerosPaganImpuestos,
         tarifas_generales AS tarifasGenerales,
         edad_tarifa_niños AS edadTarifaNiños,
         porcentaje_separacion AS porcentajeSeparacion
@@ -721,8 +858,11 @@ class ConfiguracionController extends Controller
 
             // Convertir campos de tipo booleano
             $configuration->usuarioReserva = (bool) $configuration->usuarioReserva;
+            $configuration->calendarioInhabilitado = (bool) $configuration->calendarioInhabilitado;
             $configuration->correoObligatorio = (bool) $configuration->correoObligatorio;
+            $configuration->extrangerosPaganImpuestos = (bool) $configuration->extrangerosPaganImpuestos;
             $configuration->tarifasGenerales = (bool) $configuration->tarifasGenerales;
+            $configuration->ventasOtas = (bool) $configuration->ventasOtas;
 
             // Devolver una respuesta JSON con la configuración de reserva si se encuentra
             return response()->json($configuration, 200);

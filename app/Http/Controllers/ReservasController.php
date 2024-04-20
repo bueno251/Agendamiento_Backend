@@ -21,10 +21,13 @@ class ReservasController extends Controller
         $request->validate([
             'dateIn' => 'required|string',
             'dateOut' => 'required|string',
+            'origen' => 'required|integer',
             'room' => 'required|integer',
             'adultos' => 'required|integer',
             'niños' => 'required|integer',
             'precio' => 'required|integer',
+            'abono' => 'required|integer',
+            'useTarifasEspeciales' => 'required|boolean',
             'verificacion_pago' => 'required|integer',
             'huespedes' => [
                 'required',
@@ -64,9 +67,11 @@ class ReservasController extends Controller
         if ($request->verificacion_pago) {
             $table = "reservas";
             $message = "Reserva Hecha";
+            $reserva = "reserva_id";
         } else {
             $table = "reservas_temporales";
             $message = "Se espera el pago de su reserva dentro de los siguientes 10 minutos o será eliminada su reserva";
+            $reserva = "reserva_temporal_id";
         }
 
         // Consulta SQL para verificar disponibilidad de fechas
@@ -99,7 +104,7 @@ class ReservasController extends Controller
 
             if (count($rooms) == 0) {
                 return response()->json([
-                    'message' => 'No hay habitaciones disponibles',
+                    'message' => 'No hay habitaciones disponibles con esas fechas',
                 ], 400);
             }
 
@@ -125,6 +130,7 @@ class ReservasController extends Controller
             $insertReserva = "INSERT INTO $table (
                 fecha_entrada,
                 fecha_salida,
+                origen_id,
                 room_id,
                 user_id,
                 estado_id,
@@ -133,14 +139,19 @@ class ReservasController extends Controller
                 adultos,
                 niños,
                 precio,
+                abono,
+                descuentos,
+                cupon,
+                tarifa_especial,
                 verificacion_pago,
                 created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
             // Ejecutar la inserción de la reserva
             DB::insert($insertReserva, [
                 $request->dateIn,
                 $request->dateOut,
+                $request->origen,
                 $rooms[0]->id,
                 isset($request->user) ? $request->user : 1, // Usuario web
                 1, // Estado Pendiente
@@ -149,6 +160,10 @@ class ReservasController extends Controller
                 $request->adultos,
                 $request->niños,
                 $request->precio,
+                $request->abono,
+                json_encode($request->descuentos),
+                json_encode($request->cupon),
+                $request->useTarifasEspeciales,
                 $request->verificacion_pago,
             ]);
 
@@ -174,16 +189,53 @@ class ReservasController extends Controller
             FROM clients
             WHERE documento = ?';
 
-            $insertHuespedReserva = 'INSERT INTO reservas_huespedes (
+            $insertHuespedReserva = "INSERT INTO reservas_huespedes (
             responsable,
-            reserva_id,
+            $reserva,
             cliente_id,
             motivo_id,
             pais_procedencia_id,
             departamento_procedencia_id,
             ciudad_procedencia_id,
             created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+
+            if ($request->cupon) {
+                $getCuponCode = 'SELECT id FROM tarifa_descuento_cupones_codigos WHERE codigo = ? AND usado = 0 AND activo = 1';
+
+                $cuponCode = DB::selectOne($getCuponCode, [$request->cupon['codigo']]);
+
+                if (!empty($cuponCode)) {
+                    $saveCupon = "UPDATE tarifa_descuento_cupones_codigos SET
+                    usado = 1,
+                    updated_at = NOW()
+                    WHERE id = ?";
+
+                    $SaveCuponBitacora = "INSERT INTO tarifa_descuento_cupones_bitacora (
+                    cedula,
+                    cupon_id,
+                    codigo_id,
+                    created_at)
+                    VALUES (?, ?, ?, NOW())";
+
+                    DB::update($saveCupon, [
+                        $cuponCode->id,
+                    ]);
+
+                    DB::insert($SaveCuponBitacora, [
+                        $huespedes[0]['documento'],
+                        $request->cupon['id'],
+                        $cuponCode->id,
+                    ]);
+                } else {
+
+                    DB::rollBack();
+
+                    return response()->json([
+                        'message' => 'El cupon ya a sido utilizado'
+                    ], 500);
+                }
+            }
 
             foreach ($huespedes as $huesped) {
 
@@ -203,7 +255,7 @@ class ReservasController extends Controller
                     ]);
                 } else {
                     DB::insert($insertClient, [
-                        $request['tipoDocumento'],
+                        $huesped['tipoDocumento'],
                         $huesped['documento'],
                         $huesped['nombre1'],
                         $huesped['nombre2'],
@@ -377,6 +429,64 @@ class ReservasController extends Controller
             ) AS bitacora,";
         }
 
+        $getTemporales = 'ORDER BY r.created_at DESC';
+
+        if ($estado == 'Pendiente') {
+            $getTemporales = "UNION
+
+            SELECT
+                rt.id AS id,
+                rt.fecha_entrada AS fechaEntrada,
+                rt.fecha_salida AS fechaSalida,
+                rt.room_id AS room,
+                rt.user_id AS user,
+                rt.estado_id AS estadoId,
+                re2.estado AS estado,
+                rt.desayuno_id AS desayunoId,
+                rt.decoracion_id AS decoracionId,
+                rt.adultos + rt.niños AS huespedes,
+                rt.adultos AS adultos,
+                rt.niños AS niños,
+                rt.precio AS precio,
+                rt.abono AS abono,
+                rt.descuentos AS descuentos,
+                rt.cupon AS cupon,
+                rt.tarifa_especial AS useTarifasEspeciales,
+                rt.comprobante AS comprobante,
+                rt.verificacion_pago AS verificacionPago,
+                1 AS esTemporal,
+                (
+                    SELECT
+                    JSON_ARRAYAGG(JSON_OBJECT(
+                        'id', c2.id,
+                        'fullname', CONCAT_WS(' ', c2.nombre1, c2.nombre2, c2.apellido1, c2.apellido2),
+                        'documento', c2.documento,
+                        'telefono', c2.telefono
+                        ))
+                     FROM clients c2
+                     LEFT JOIN reservas_huespedes rh2 ON c2.id = rh2.cliente_id
+                    WHERE c2.deleted_at IS NULL AND rh2.reserva_temporal_id = rt.id AND rh2.responsable = 1
+                ) AS huesped,
+                (
+                    SELECT
+                    JSON_ARRAYAGG(JSON_OBJECT(
+                        'id', rp.id,
+                        'nombre', rp.nombre,
+                        'descripcion', rp.descripcion
+                        ))
+                    FROM room_padre rp
+                    WHERE rp.deleted_at IS NULL AND room.room_padre_id = rp.id
+                ) AS room,
+                rt.created_at AS created_at
+            FROM reservas_temporales rt
+            JOIN reserva_estados re2 ON rt.estado_id = re2.id
+            JOIN rooms room ON rt.room_id = room.id
+            WHERE rt.deleted_at IS NULL
+            AND rt.estado_id = 1
+            ORDER BY created_at DESC
+            ";
+        }
+
         // Validar si el estado proporcionado es válido
         if (!in_array($estado, array_keys($estados))) {
             return response()->json(['message' => 'Estado no válido'], 400);
@@ -387,32 +497,52 @@ class ReservasController extends Controller
         r.id AS id,
         r.fecha_entrada AS fechaEntrada,
         r.fecha_salida AS fechaSalida,
-        r.room_id AS room,
-        r.cliente_id AS cliente,
+        r.room_id AS roomId,
         r.user_id AS user,
         r.estado_id AS estadoId,
         re.estado AS estado,
         r.desayuno_id AS desayunoId,
         r.decoracion_id AS decoracionId,
-        r.cedula AS cedula,
-        r.telefono AS telefono,
-        r.nombre AS nombre,
-        r.apellido AS apellido,
-        CONCAT_WS(' ', r.nombre, r.apellido) AS fullname,
-        r.correo AS correo,
-        r.huespedes AS huespedes,
+        r.adultos + r.niños AS huespedes,
         r.adultos AS adultos,
         r.niños AS niños,
         r.precio AS precio,
         r.abono AS abono,
+        r.descuentos AS descuentos,
+        r.cupon AS cupon,
+        r.tarifa_especial AS useTarifasEspeciales,
         r.comprobante AS comprobante,
         r.verificacion_pago AS verificacionPago,
+        0 AS esTemporal,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                'id', c.id,
+                'fullname', CONCAT_WS(' ', c.nombre1, c.nombre2, c.apellido1, c.apellido2),
+                'documento', c.documento,
+                'telefono', c.telefono
+                ))
+            FROM clients c
+            LEFT JOIN reservas_huespedes rh ON c.id = rh.cliente_id
+            WHERE c.deleted_at IS NULL AND rh.reserva_id = r.id AND rh.responsable = 1
+        ) AS huesped,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                'id', rp.id,
+                'nombre', rp.nombre,
+                'descripcion', rp.descripcion
+                ))
+            FROM room_padre rp
+            WHERE rp.deleted_at IS NULL AND room.room_padre_id = rp.id
+        ) AS room,
         $getBitacoraCancelacion
         r.created_at AS created_at
         FROM reservas r
         JOIN reserva_estados re ON r.estado_id = re.id
+        JOIN rooms room ON r.room_id = room.id
         WHERE r.deleted_at IS NULL $estados[$estado]
-        ORDER BY r.created_at DESC";
+        $getTemporales";
 
         try {
             // Obtener las reservas desde la base de datos
@@ -421,6 +551,14 @@ class ReservasController extends Controller
             // Iterar sobre las reservas para agregar información adicional
             foreach ($reservas as $reserva) {
                 $reserva->verificacionPago = (bool) $reserva->verificacionPago;
+                $reserva->useTarifasEspeciales = (bool) $reserva->useTarifasEspeciales;
+                $reserva->esTemporal = (bool) $reserva->esTemporal;
+                $reserva->huesped = json_decode($reserva->huesped);
+                $reserva->descuentos = json_decode($reserva->descuentos);
+                $reserva->cupon = json_decode($reserva->cupon);
+                $reserva->room = json_decode($reserva->room);
+                $reserva->room = $reserva->room[0];
+                $reserva->huesped = $reserva->huesped[0];
                 if ($estado == 'Cancelada') {
                     $reserva->bitacora = json_decode($reserva->bitacora);
                     $reserva->bitacora = $reserva->bitacora[0];
@@ -446,14 +584,25 @@ class ReservasController extends Controller
      * @param int $id ID de la reserva que se va a aprobar.
      * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
      */
-    public function approve(int $id)
+    public function approve(Request $request, int $id)
     {
+        $request->validate([
+            'esTemporal' => 'required|boolean',
+        ]);
+
+        if ($request->esTemporal) {
+            $table = "reservas_temporales";
+        } else {
+            $table = "reservas";
+        }
+
         try {
             // Consulta SQL para actualizar el estado de la reserva a "Confirmada"
-            $query = 'UPDATE reservas SET
+            $query = "UPDATE $table SET
             estado_id = ?,
+            verificacion_pago = 1,
             updated_at = NOW()
-            WHERE id = ?';
+            WHERE id = ?";
 
             // Ejecutar la actualización del estado de la reserva
             DB::update($query, [
@@ -482,14 +631,24 @@ class ReservasController extends Controller
      * @param int $id ID de la reserva que se va a rechazar.
      * @return \Illuminate\Http\JsonResponse Respuesta JSON indicando el éxito o un mensaje de error en caso de fallo, con detalles sobre el error.
      */
-    public function reject(int $id)
+    public function reject(Request $request, int $id)
     {
+        $request->validate([
+            'esTemporal' => 'required|boolean',
+        ]);
+
+        if ($request->esTemporal) {
+            $table = "reservas_temporales";
+        } else {
+            $table = "reservas";
+        }
+
         try {
             // Consulta SQL para actualizar el estado de la reserva a "Rechazada"
-            $query = 'UPDATE reservas SET
+            $query = "UPDATE $table SET
             estado_id = ?,
             updated_at = NOW()
-            WHERE id = ?';
+            WHERE id = ?";
 
             // Ejecutar la actualización del estado de la reserva
             DB::update($query, [

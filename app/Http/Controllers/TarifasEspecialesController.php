@@ -18,8 +18,7 @@ class TarifasEspecialesController extends Controller
     public function create(Request $request)
     {
         $request->validate([
-            'fechaInicio' => 'required|string',
-            'fechaFin' => 'required|string',
+            'fecha' => 'required|string',
             'precio' => 'required|integer',
             'descripcion' => 'required|string',
             'room' => 'required|integer',
@@ -28,22 +27,20 @@ class TarifasEspecialesController extends Controller
 
         // Consulta SQL para insertar la tarifa especial
         $queryInsert = 'INSERT INTO tarifas_especiales (
-        fecha_inicio,
-        fecha_fin,
+        fecha,
         precio,
         descripcion,
         room_id,
         impuesto_id,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, NOW())';
 
         DB::beginTransaction();
 
         try {
             // Ejecutar la inserción de la tarifa especial
             DB::insert($queryInsert, [
-                $request->fechaInicio,
-                $request->fechaFin,
+                $request->fecha,
                 $request->precio,
                 $request->descripcion,
                 $request->room,
@@ -80,13 +77,9 @@ class TarifasEspecialesController extends Controller
         // Consulta SQL para obtener tarifas especiales
         $query = 'SELECT
         te.id,
-        te.fecha_inicio AS fechaInicio,
-        te.fecha_fin AS fechaFin,
+        te.fecha,
         te.precio,
-        te.descripcion,
-        IF(te.impuesto_id IS NOT NULL, ROUND(te.precio * (1 + imp.tasa/100)), ROUND(te.precio)) AS precioConIva,
-        IF(te.impuesto_id IS NOT NULL, ROUND(te.precio * (imp.tasa/100)), 0) AS precioIva,
-        IF(te.impuesto_id IS NOT NULL, imp.tasa, 0) AS impuesto
+        te.descripcion
         FROM tarifas_especiales te
         LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
         WHERE te.room_id = ? AND te.deleted_at IS NULL
@@ -120,8 +113,7 @@ class TarifasEspecialesController extends Controller
         // Consulta SQL para obtener la tarifa especial por ID
         $query = 'SELECT
         te.id,
-        te.fecha_inicio AS fechaInicio,
-        te.fecha_fin AS fechaFin,
+        te.fecha,
         te.precio,
         te.descripcion,
         IF(te.impuesto_id IS NOT NULL, ROUND(te.precio * (1 + im.tasa/100)), ROUND(te.precio)) AS precioConIva,
@@ -167,16 +159,14 @@ class TarifasEspecialesController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'fechaInicio' => 'required|string',
-            'fechaFin' => 'required|string',
+            'fecha' => 'required|string',
             'precio' => 'required|integer',
             'descripcion' => 'required|string',
         ]);
 
         // Consulta SQL para actualizar la tarifa especial por ID
         $query = 'UPDATE tarifas_especiales SET
-        fecha_inicio = ?,
-        fecha_fin = ?,
+        fecha = ?,
         precio = ?,
         descripcion = ?,
         updated_at = NOW()
@@ -187,8 +177,7 @@ class TarifasEspecialesController extends Controller
         try {
             // Ejecutar la actualización de la tarifa especial por ID
             DB::update($query, [
-                $request->fechaInicio,
-                $request->fechaFin,
+                $request->fecha,
                 $request->precio,
                 $request->descripcion,
                 $id,

@@ -28,6 +28,7 @@ class RoomController extends Controller
             'capacidad' => 'required|integer',
             'estado' => 'required|integer',
             'cantidad' => 'required|integer',
+            'cantidadOtas' => 'required|integer',
             'decoracion' => 'required|integer',
             'desayuno' => 'required|integer',
             'incluyeDesayuno' => 'required|integer',
@@ -43,11 +44,12 @@ class RoomController extends Controller
         capacidad,
         room_estado_id,
         cantidad,
+        cantidad_otas,
         tiene_decoracion,
         tiene_desayuno,
         incluye_desayuno,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
 
         $queryRooms = 'INSERT INTO rooms (
         room_padre_id,
@@ -81,6 +83,7 @@ class RoomController extends Controller
                 $request->capacidad,
                 $request->estado,
                 $request->cantidad,
+                $request->cantidadOtas,
                 $request->decoracion,
                 $request->desayuno,
                 $request->incluyeDesayuno,
@@ -150,37 +153,38 @@ class RoomController extends Controller
     {
         // Consulta SQL para obtener información detallada sobre las habitaciones
         $query = 'SELECT
-        r.id AS id,
-        r.nombre AS nombre,
-        r.tiene_iva AS tieneIva,
-        r.impuesto_id AS impuestoId,
-        r.descripcion AS descripcion,
-        r.room_tipo_id AS tipoId,
+        rp.id AS id,
+        rp.nombre AS nombre,
+        rp.tiene_iva AS tieneIva,
+        rp.impuesto_id AS impuestoId,
+        rp.descripcion AS descripcion,
+        rp.room_tipo_id AS tipoId,
         rt.tipo AS tipo,
-        r.room_estado_id AS estadoId,
+        rp.room_estado_id AS estadoId,
         re.estado AS estado,
-        r.capacidad AS capacidad,
-        r.habilitada AS habilitada,
-        r.tiene_decoracion AS tieneDecoracion,
-        r.tiene_desayuno AS tieneDesayuno,
-        r.incluye_desayuno AS incluyeDesayuno,
+        rp.capacidad AS capacidad,
+        rp.cantidad_otas AS cantidadOtas,
+        rp.habilitada AS habilitada,
+        rp.tiene_decoracion AS tieneDecoracion,
+        rp.tiene_desayuno AS tieneDesayuno,
+        rp.incluye_desayuno AS incluyeDesayuno,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
             FROM room_imgs ri 
-            WHERE ri.room_padre_id = r.id AND ri.deleted_at IS NULL
+            WHERE ri.room_padre_id = rp.id AND ri.deleted_at IS NULL
         ) AS imgs,
         (
             SELECT
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
-            WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
+            WHERE rcr.room_id = rp.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
         ) AS caracteristicas,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", rs.id,"nombre", rs.nombre, "estado_id", rs.room_estado_id))
             FROM rooms rs
-            WHERE rs.room_padre_id = r.id AND rs.deleted_at IS NULL
+            WHERE rs.room_padre_id = rp.id AND rs.deleted_at IS NULL
         ) AS rooms,
         (
             SELECT
@@ -190,49 +194,58 @@ class RoomController extends Controller
                 "jornada_id", rt.jornada_id,
                 "impuestoId", rt.impuesto_id,
                 "precio", rt.precio,
-                "precio_con_iva", 
+                "precioOtas", 
                 CASE 
-                    WHEN rt.impuesto_id IS NOT NULL
-                        THEN rt.precio * (1 + imp.tasa / 100)
-                    ELSE rt.precio
+                    WHEN otas.es_porcentaje = 1
+                        THEN rt.precio * (1 + otas.precio / 100)
+                    ELSE rt.precio + otas.precio
                 END
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
             LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
-            WHERE rt.room_id = r.id
+            WHERE rt.room_id = rp.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
         ) AS precios,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
-                "fechaInicio", te.fecha_inicio,
-                "fechaFin", te.fecha_fin,
-                "precio", te.precio,
-                "precio_con_iva", 
-                CASE 
-                    WHEN te.impuesto_id IS NOT NULL
-                        THEN te.precio * (1 + imp.tasa / 100)
-                    ELSE te.precio
-                END
+                "fecha", te.fecha,
+                "precio", te.precio
             ))
             FROM tarifas_especiales te
             LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
-            WHERE te.room_id = r.id AND te.deleted_at IS NULL
+            WHERE te.room_id = rp.id AND te.deleted_at IS NULL
             ORDER BY te.created_at DESC
         ) AS tarifasEspeciales,
         (
             SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "precio", ota.precio,
+                "tipo",
+                CASE 
+                    WHEN ota.es_porcentaje = 1
+                        THEN "Porcentaje"
+                    ELSE "Precio"
+                END
+            ))
+            FROM tarifas_otas ota
+            WHERE ota.id = otas.id
+        ) AS tarifaOta,
+        (
+            SELECT
             COUNT(*)
             FROM rooms rs
-            WHERE rs.room_padre_id = r.id AND rs.deleted_at IS NULL
+            WHERE rs.room_padre_id = rp.id AND rs.deleted_at IS NULL
         ) AS countRooms
-        FROM room_padre r
-        JOIN room_tipos rt ON r.room_tipo_id = rt.id
-        JOIN room_estados re ON r.room_estado_id = re.id
-        WHERE r.deleted_at IS NULL
-        ORDER BY r.created_at DESC';
+        FROM room_padre rp
+        JOIN room_tipos rt ON rp.room_tipo_id = rt.id
+        JOIN room_estados re ON rp.room_estado_id = re.id
+        LEFT JOIN tarifas_otas otas ON otas.room_id = rp.id
+        WHERE rp.deleted_at IS NULL
+        AND rp.habilitada = 1
+        ORDER BY rp.created_at DESC';
 
         // Ejecutar la consulta SQL
         $rooms = DB::select($query);
@@ -251,6 +264,11 @@ class RoomController extends Controller
             $room->rooms = json_decode($room->rooms);
             $room->precios = json_decode($room->precios);
             $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
+            $room->tarifaOta = json_decode($room->tarifaOta);
+
+            if ($room->tarifaOta != null) {
+                $room->tarifaOta = $room->tarifaOta[0];
+            }
         }
 
         // Devolver la respuesta JSON con detalles sobre las habitaciones
@@ -268,96 +286,82 @@ class RoomController extends Controller
     {
         // Consulta SQL para obtener información detallada sobre las habitaciones para clientes
         $query = 'SELECT
-        r.id AS id,
-        r.nombre AS nombre,
-        r.descripcion AS descripcion,
-        r.room_tipo_id AS tipoId,
-        rt.tipo AS tipo,
-        r.room_estado_id AS estadoId,
-        re.estado AS estado,
-        r.capacidad AS capacidad,
-        r.habilitada AS habilitada,
-        r.tiene_decoracion AS tieneDecoracion,
-        r.tiene_desayuno AS tieneDesayuno,
-        r.incluye_desayuno AS incluyeDesayuno,
+        rp.id AS id,
+        rp.nombre AS nombre,
+        rp.descripcion AS descripcion,
+        rp.capacidad AS capacidad,
+        rp.cantidad_otas AS cantidadOtas,
         (
             SELECT
-            JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
+            JSON_ARRAYAGG(JSON_OBJECT("url", ri.url))
             FROM room_imgs ri 
-            WHERE ri.room_padre_id = r.id AND ri.deleted_at IS NULL
+            WHERE ri.room_padre_id = rp.id AND ri.deleted_at IS NULL
         ) AS imgs,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
                 "name", rt.nombre,
                 "jornada", tj.nombre,
-                "jornada_id", rt.jornada_id,
-                "impuestoId", rt.impuesto_id,
                 "precio", rt.precio,
-                "precio_con_iva", 
+                "previoFestivo", rt.precio_previo_festivo,
+                "precioConIva", 
                 CASE 
                     WHEN rt.impuesto_id IS NOT NULL
                         THEN rt.precio * (1 + imp.tasa / 100)
-                        ELSE rt.precio
-                    END
+                    ELSE rt.precio
+                END
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
             LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
-            WHERE rt.room_id = r.id
+            WHERE rt.room_id = rp.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
         ) AS precios,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
-                "fechaInicio", te.fecha_inicio,
-                "fechaFin", te.fecha_fin,
-                "precio", te.precio,
-                "precio_con_iva", 
-                CASE 
-                    WHEN te.impuesto_id IS NOT NULL
-                        THEN te.precio * (1 + imp.tasa / 100)
-                        ELSE te.precio
-                    END
+                "fechaEntrada", res.fecha_entrada,
+                "fechaSalida", res.fecha_salida
             ))
-            FROM tarifas_especiales te
-            LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
-            WHERE te.room_id = r.id AND te.deleted_at IS NULL
-            ORDER BY te.created_at DESC
-        ) AS tarifasEspeciales,
+            FROM reservas res
+            JOIN rooms rs ON rs.id = res.room_id
+            WHERE res.fecha_salida >= CURRENT_DATE
+            AND rs.room_padre_id = rp.id
+        ) AS reservas,
+        (
+            SELECT
+            COUNT(*)
+            FROM rooms rs
+            WHERE rs.room_padre_id = rp.id AND rs.habilitada = 1 AND rs.deleted_at IS NULL
+        ) AS cantidad,
         (
             SELECT
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
-            WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
+            WHERE rcr.room_id = rp.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
         ) AS caracteristicas
-        FROM room_padre r
-        JOIN room_tipos rt ON r.room_tipo_id = rt.id
-        JOIN room_estados re ON r.room_estado_id = re.id
-        WHERE r.deleted_at IS NULL
-        AND EXISTS (
-            SELECT 1
+        FROM room_padre rp
+        WHERE rp.deleted_at IS NULL
+        AND rp.habilitada = 1
+        AND (
+            SELECT COUNT(*)
             FROM tarifas rt
-            WHERE rt.room_id = r.id AND rt.deleted_at IS NULL
-        )
-        ORDER BY r.created_at DESC';
+            WHERE rt.room_id = rp.id AND rt.deleted_at IS NULL
+        ) >= 7
+        ORDER BY rp.created_at DESC';
 
         // Ejecutar la consulta SQL
         $rooms = DB::select($query);
 
         // Decodificar datos JSON y ajustar valores booleanos
         foreach ($rooms as $room) {
-            $room->habilitada = (bool) $room->habilitada;
-            $room->tieneDesayuno = (bool) $room->tieneDesayuno;
-            $room->tieneDecoracion = (bool) $room->tieneDecoracion;
-            $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
 
             // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
             $room->caracteristicas = json_decode($room->caracteristicas);
             $room->precios = json_decode($room->precios);
-            $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
+            $room->reservas = json_decode($room->reservas);
         }
 
         // Devolver la respuesta JSON con detalles sobre las habitaciones para clientes
@@ -377,40 +381,33 @@ class RoomController extends Controller
     {
         // Consulta SQL para obtener información detallada sobre una habitación específica
         $query = 'SELECT
-        r.id AS id,
-        r.nombre AS nombre,
-        r.descripcion AS descripcion,
-        r.room_tipo_id AS tipoId,
+        rp.id AS id,
+        rp.nombre AS nombre,
+        rp.descripcion AS descripcion,
         rt.tipo AS tipo,
-        r.room_estado_id AS estadoId,
         re.estado AS estado,
-        r.capacidad AS capacidad,
-        r.habilitada AS habilitada,
-        r.cantidad AS cantidad,
-        r.tiene_iva AS tieneIva,
-        r.tiene_decoracion AS tieneDecoracion,
-        r.tiene_desayuno AS tieneDesayuno,
-        r.incluye_desayuno AS incluyeDesayuno,
+        rp.capacidad AS capacidad,
+        rp.tiene_decoracion AS tieneDecoracion,
+        rp.tiene_desayuno AS tieneDesayuno,
+        rp.incluye_desayuno AS incluyeDesayuno,
         im.tasa AS iva,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT("id", ri.id, "url", ri.url))
             FROM room_imgs ri 
-            WHERE ri.room_padre_id = r.id AND ri.deleted_at IS NULL
+            WHERE ri.room_padre_id = rp.id AND ri.deleted_at IS NULL
         ) AS imgs,
         (
             SELECT
             JSON_ARRAYAGG(rcr.caracteristica_id)
             FROM room_caracteristica_relacion rcr
-            WHERE rcr.room_id = r.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
+            WHERE rcr.room_id = rp.id AND rcr.estado = 1 AND rcr.deleted_at IS NULL
         ) AS caracteristicas,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
                 "name", rt.nombre,
                 "jornada", tj.nombre,
-                "jornada_id", rt.jornada_id,
-                "impuestoId", rt.impuesto_id,
                 "precio", rt.precio,
                 "previoFestivo", rt.precio_previo_festivo,
                 "precioConIva", 
@@ -418,39 +415,15 @@ class RoomController extends Controller
                     WHEN rt.impuesto_id IS NOT NULL
                         THEN rt.precio * (1 + imp.tasa / 100)
                     ELSE rt.precio
-                END,
-                "previoFestivoConIva",
-                CASE 
-                    WHEN rt.impuesto_id IS NOT NULL
-                        THEN ROUND(rt.precio_previo_festivo * (1 + imp.tasa/100))
-                    ELSE ROUND(rt.precio_previo_festivo)
                 END
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
             LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
-            WHERE rt.room_id = r.id
+            WHERE rt.room_id = rp.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")
         ) AS precios,
-        (
-            SELECT
-            JSON_ARRAYAGG(JSON_OBJECT(
-                "fechaInicio", te.fecha_inicio,
-                "fechaFin", te.fecha_fin,
-                "precio", te.precio,
-                "precioConIva", 
-                CASE 
-                    WHEN te.impuesto_id IS NOT NULL
-                        THEN te.precio * (1 + imp.tasa / 100)
-                    ELSE te.precio
-                END
-            ))
-            FROM tarifas_especiales te
-            LEFT JOIN tarifa_impuestos imp ON imp.id = te.impuesto_id
-            WHERE te.room_id = r.id AND te.deleted_at IS NULL
-            ORDER BY te.created_at DESC
-        ) AS tarifasEspeciales,
         (
             SELECT
             JSON_ARRAYAGG(JSON_OBJECT(
@@ -469,26 +442,46 @@ class RoomController extends Controller
         ) AS tarifasGenerales,
         (
             SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "fecha", te.fecha,
+                "precio", te.precio
+            ))
+            FROM tarifas_especiales te
+            WHERE te.room_id = rp.id AND te.deleted_at IS NULL
+            ORDER BY te.created_at DESC
+        ) AS tarifasEspeciales,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                "fechaEntrada", res.fecha_entrada,
+                "fechaSalida", res.fecha_salida
+            ))
+            FROM reservas res
+            JOIN rooms rs ON rs.id = res.room_id
+            WHERE res.fecha_salida >= CURRENT_DATE
+            AND rs.room_padre_id = rp.id
+        ) AS reservas,
+        (
+            SELECT
             COUNT(*)
             FROM rooms rs
-            WHERE rs.room_padre_id = r.id AND rs.habilitada = 1 AND rs.deleted_at IS NULL
-        ) AS rooms
-        FROM room_padre r
-        JOIN room_tipos rt ON r.room_tipo_id = rt.id
-        JOIN room_estados re ON r.room_estado_id = re.id
+            WHERE rs.room_padre_id = rp.id AND rs.habilitada = 1 AND rs.deleted_at IS NULL
+        ) AS cantidad
+        FROM room_padre rp
+        JOIN room_tipos rt ON rp.room_tipo_id = rt.id
+        JOIN room_estados re ON rp.room_estado_id = re.id
         JOIN configuracions config ON config.id = 1
-        LEFT JOIN tarifa_impuestos im ON im.id = r.impuesto_id
-        WHERE r.id = ? && r.deleted_at IS NULL';
+        LEFT JOIN tarifa_impuestos im ON im.id = rp.impuesto_id
+        WHERE rp.id = ? && rp.deleted_at IS NULL
+        AND rp.habilitada = 1';
 
         $room = DB::selectOne($query, [$id]);
 
         if ($room) {
             // Ajustar valores booleanos
-            $room->habilitada = (bool) $room->habilitada;
             $room->tieneDecoracion = (bool) $room->tieneDecoracion;
             $room->tieneDesayuno = (bool) $room->tieneDesayuno;
             $room->incluyeDesayuno = (bool) $room->incluyeDesayuno;
-            $room->tieneIva = (bool) $room->tieneIva;
 
             // Decodificar datos JSON
             $room->imgs = json_decode($room->imgs);
@@ -496,6 +489,7 @@ class RoomController extends Controller
             $room->precios = json_decode($room->precios);
             $room->tarifasEspeciales = json_decode($room->tarifasEspeciales);
             $room->tarifasGenerales = json_decode($room->tarifasGenerales);
+            $room->reservas = json_decode($room->reservas);
 
             // Devolver la respuesta JSON con detalles sobre la habitación
             return response()->json($room, 200);
@@ -529,6 +523,7 @@ class RoomController extends Controller
             'estado' => 'required|integer',
             'estadoAntiguo' => 'required|integer',
             'cantidad' => 'required|integer',
+            'cantidadOtas' => 'required|integer',
             'decoracion' => 'required|integer',
             'desayuno' => 'required|integer',
             'incluyeDesayuno' => 'required|integer',
@@ -542,6 +537,7 @@ class RoomController extends Controller
         impuesto_id = ?,
         room_tipo_id = ?,
         capacidad = ?,
+        cantidad_otas = ?,
         room_estado_id = ?,
         tiene_decoracion = ?,
         tiene_desayuno = ?,
@@ -602,6 +598,7 @@ class RoomController extends Controller
                 $request->tieneIva ? $request->impuesto : null,
                 $request->tipo,
                 $request->capacidad,
+                $request->cantidadOtas,
                 $request->estado,
                 $request->decoracion ? 1 : 0,
                 $request->desayuno ? 1 : 0,
