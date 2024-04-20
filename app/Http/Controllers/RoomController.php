@@ -192,6 +192,7 @@ class RoomController extends Controller
                 "name", rt.nombre,
                 "jornada", tj.nombre,
                 "jornada_id", rt.jornada_id,
+                "impuestoId", rt.impuesto_id,
                 "precio", rt.precio,
                 "precioOtas", 
                 CASE 
@@ -202,6 +203,7 @@ class RoomController extends Controller
             ))
             FROM tarifas rt
             LEFT JOIN tarifa_jornada tj ON tj.id = rt.jornada_id
+            LEFT JOIN tarifa_impuestos imp ON imp.id = rt.impuesto_id
             WHERE rt.room_id = rp.id
             ORDER BY
             FIELD(rt.nombre, "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Adicional", "Niños")

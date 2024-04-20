@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             DireccionCiudadesSeeder::class,
             CancelacionTipoSeeder::class,
             CaracteristicaEstadoSeeder::class,
+            CategoriasSeeder::class,
             ClienteTipoDocumentoSeeder::class,
             ClienteTipoObligacionSeeder::class,
             ClienteTipoPersonaSeeder::class,

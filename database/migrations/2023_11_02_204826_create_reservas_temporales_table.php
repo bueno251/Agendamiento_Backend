@@ -28,6 +28,7 @@ return new class extends Migration
             $table->text('descuentos')->nullable();
             $table->text('cupon')->nullable();
             $table->boolean('tarifa_especial')->default(0);
+            $table->boolean('es_extrangero')->default(0);
             $table->string('comprobante')->nullable();
             $table->boolean('verificacion_pago');
             $table->timestamps();

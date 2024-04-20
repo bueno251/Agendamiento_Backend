@@ -48,6 +48,7 @@ class VerificarReservasTemporales extends Command
         descuentos,
         cupon,
         tarifa_especial,
+        es_extrangero,
         comprobante,
         verificacion_pago,
         created_at
@@ -77,10 +78,11 @@ class VerificarReservasTemporales extends Command
         descuentos,
         cupon,
         tarifa_especial,
+        es_extrangero,
         comprobante,
         verificacion_pago,
         created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
         // Consulta para eliminar una reserva temporal de la tabla 'reservas_temporales'
         $queryDelete = 'UPDATE reservas_temporales SET 
@@ -116,6 +118,7 @@ class VerificarReservasTemporales extends Command
                         $reserva->descuentos,
                         $reserva->cupon,
                         $reserva->tarifa_especial,
+                        $reserva->es_extrangero,
                         $reserva->comprobante,
                         $reserva->verificacion_pago,
                         $reserva->created_at,
