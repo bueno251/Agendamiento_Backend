@@ -576,6 +576,92 @@ class ReservasController extends Controller
         }
     }
 
+    public function generateInforme($dateIn, $dateOut)
+    {
+        // Consulta SQL para obtener las reservas con información adicional
+        $query = "SELECT
+        r.id AS id,
+        r.fecha_entrada AS fechaEntrada,
+        r.fecha_salida AS fechaSalida,
+        r.room_id AS roomId,
+        r.user_id AS user,
+        r.estado_id AS estadoId,
+        re.estado AS estado,
+        r.desayuno_id AS desayunoId,
+        r.decoracion_id AS decoracionId,
+        r.adultos + r.niños AS huespedes,
+        r.adultos AS adultos,
+        r.niños AS niños,
+        r.precio AS precio,
+        r.abono AS abono,
+        r.descuentos AS descuentos,
+        r.cupon AS cupon,
+        r.tarifa_especial AS useTarifasEspeciales,
+        r.comprobante AS comprobante,
+        r.verificacion_pago AS verificacionPago,
+        0 AS esTemporal,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                'id', c.id,
+                'fullname', CONCAT_WS(' ', c.nombre1, c.nombre2, c.apellido1, c.apellido2),
+                'documento', c.documento,
+                'telefono', c.telefono
+                ))
+            FROM clients c
+            LEFT JOIN reservas_huespedes rh ON c.id = rh.cliente_id
+            WHERE c.deleted_at IS NULL AND rh.reserva_id = r.id AND rh.responsable = 1
+        ) AS huesped,
+        (
+            SELECT
+            JSON_ARRAYAGG(JSON_OBJECT(
+                'id', rp.id,
+                'nombre', rp.nombre,
+                'descripcion', rp.descripcion
+                ))
+            FROM room_padre rp
+            WHERE rp.deleted_at IS NULL AND room.room_padre_id = rp.id
+        ) AS room,
+        r.created_at AS created_at
+        FROM reservas r
+        JOIN reserva_estados re ON r.estado_id = re.id
+        JOIN rooms room ON r.room_id = room.id
+        WHERE r.deleted_at IS NULL
+        AND r.estado_id = 2
+        AND r.fecha_entrada < ?
+        AND r.fecha_salida > ?";
+
+        try {
+            // Obtener las reservas desde la base de datos
+            $reservas = DB::select($query, [
+                $dateIn,
+                $dateOut,
+            ]);
+
+            // Iterar sobre las reservas para agregar información adicional
+            foreach ($reservas as $reserva) {
+                $reserva->verificacionPago = (bool) $reserva->verificacionPago;
+                $reserva->useTarifasEspeciales = (bool) $reserva->useTarifasEspeciales;
+                $reserva->esTemporal = (bool) $reserva->esTemporal;
+                $reserva->huesped = json_decode($reserva->huesped);
+                $reserva->descuentos = json_decode($reserva->descuentos);
+                $reserva->cupon = json_decode($reserva->cupon);
+                $reserva->room = json_decode($reserva->room);
+                $reserva->room = $reserva->room[0];
+                $reserva->huesped = $reserva->huesped[0];
+            }
+
+            // Retornar las reservas con la información adicional como respuesta JSON
+            return response()->json($reservas, 200);
+        } catch (\Exception $e) {
+            // Retornar respuesta de error con detalles en caso de fallo
+            return response()->json([
+                'message' => 'Error al obtener las reservas',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * Aprobar Reserva
      *
